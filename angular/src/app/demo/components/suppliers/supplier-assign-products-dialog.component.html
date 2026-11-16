@@ -1,0 +1,121 @@
+<p-dialog
+    [header]="dialogTitle"
+    [visible]="visible"
+    (visibleChange)="onVisibleChange($event)"
+    [modal]="true"
+    appendTo="body"
+    [blockScroll]="true"
+    [style]="{ width: '40rem' }"
+    [breakpoints]="{ '960px': '90vw', '640px': '95vw' }"
+    [draggable]="false"
+    [resizable]="false"
+    (onHide)="onHide()"
+>
+    <div *ngIf="loading" class="text-center p-4 text-500">Loading...</div>
+
+    <div *ngIf="!loading" class="flex flex-column gap-3">
+        <div class="flex align-items-center justify-content-between gap-2 flex-wrap">
+            <span class="p-input-icon-left flex-1" style="min-width: 12rem">
+                <i class="pi pi-search"></i>
+                <input
+                    pInputText
+                    type="text"
+                    class="w-full"
+                    placeholder="Search products"
+                    [(ngModel)]="productFilter"
+                    [disabled]="saving"
+                />
+            </span>
+            <div class="flex align-items-center gap-2">
+                <button
+                    pButton
+                    pRipple
+                    type="button"
+                    class="p-button-text p-button-sm"
+                    label="Select all"
+                    (click)="selectAllVisible()"
+                    [disabled]="saving || !filteredProducts.length"
+                ></button>
+                <button
+                    pButton
+                    pRipple
+                    type="button"
+                    class="p-button-text p-button-sm"
+                    label="Clear"
+                    (click)="clearSelection()"
+                    [disabled]="saving || !selectedProductIds.length"
+                ></button>
+            </div>
+        </div>
+
+        <div
+            class="surface-border border-1 border-round overflow-auto"
+            style="max-height: 22rem"
+            *ngIf="filteredProducts.length; else emptyProducts"
+        >
+            <div
+                *ngFor="let product of filteredProducts"
+                class="flex align-items-center gap-2 px-3 py-2 border-bottom-1 surface-border"
+            >
+                <p-checkbox
+                    [binary]="true"
+                    [ngModel]="isSelected(product.id)"
+                    (ngModelChange)="toggleProduct(product.id, $event)"
+                    [inputId]="'assign-product-' + product.id"
+                    [disabled]="saving"
+                ></p-checkbox>
+                <label
+                    [for]="'assign-product-' + product.id"
+                    class="cursor-pointer flex-1 m-0"
+                >
+                    <div class="font-medium text-900">{{ product.name }}</div>
+                    <small class="text-500" *ngIf="product.categoryName || product.barcode">
+                        <span *ngIf="product.categoryName">{{ product.categoryName }}</span>
+                        <span *ngIf="product.categoryName && product.barcode"> · </span>
+                        <span *ngIf="product.barcode">{{ product.barcode }}</span>
+                    </small>
+                </label>
+            </div>
+        </div>
+
+        <ng-template #emptyProducts>
+            <div class="p-3 surface-100 border-round text-600">
+                <ng-container *ngIf="products.length; else noProductsAtAll">
+                    No products match your search.
+                </ng-container>
+                <ng-template #noProductsAtAll>
+                    No products available to assign.
+                    <span *ngIf="isRestaurant">
+                        Create products under the <strong>Permanent Grocery</strong> category first.
+                    </span>
+                </ng-template>
+            </div>
+        </ng-template>
+
+        <small class="text-500">
+            {{ selectedProductIds.length }} selected — these products will appear when this supplier is chosen on Purchases.
+        </small>
+    </div>
+
+    <ng-template pTemplate="footer">
+        <button
+            pButton
+            pRipple
+            type="button"
+            label="Cancel"
+            class="p-button-text"
+            (click)="onHide()"
+            [disabled]="saving"
+        ></button>
+        <button
+            pButton
+            pRipple
+            type="button"
+            label="Save"
+            icon="pi pi-check"
+            (click)="save()"
+            [loading]="saving"
+            [disabled]="loading || saving"
+        ></button>
+    </ng-template>
+</p-dialog>

@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>SmartPos.Web.Host</name>
+    </assembly>
+    <members>
+        <member name="M:SmartPos.Web.Host.Controllers.HomeController.TestNotification(System.String)">
+            <summary>
+            This is a demo code to demonstrate sending notification to default tenant admin and host admin uers.
+            Don't use this code in production !!!
+            </summary>
+            <param name="message"></param>
+            <returns></returns>
+        </member>
+        <member name="T:SmartPos.Web.Host.Controllers.OnlineOrderHeroImageController">
+            <summary>
+            Serves hero banner images under /api so the Angular proxy can reach them
+            without a dedicated static-file proxy entry.
+            </summary>
+        </member>
+    </members>
+</doc>

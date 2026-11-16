@@ -1,13 +1,18 @@
-import { HttpClient } from '@angular/common/http';
+﻿import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import {
+    DailyOverviewDto,
     DashboardDto,
     DashboardLatestListItemDto,
     DashboardProductRowDto,
     DashboardQuickActionCountsDto,
     DashboardTimelineEventDto,
     MonthlyCashFlowDto,
+    // ONLINE-PIPELINE START
+    OnlineOrderPipelineDto,
+    OnlineOrderPipelineStageDto,
+    // ONLINE-PIPELINE END
 } from '../api/dashboard';
 import { environment } from '../../../environments/environment';
 
@@ -77,21 +82,25 @@ export class DashboardService {
             isGrowthPositive:
                 data.isGrowthPositive ?? data.IsGrowthPositive ?? true,
             last7Days: (Array.isArray(data.last7Days || data.Last7Days) ? (data.last7Days || data.Last7Days) : []).map(
-                (item: any) => ({
+                (item: any): DailyOverviewDto => ({
                     date: item.date ?? item.Date ?? '',
                     dayLabel: item.dayLabel ?? item.DayLabel ?? '',
                     sales: item.sales ?? item.Sales ?? 0,
                     purchases: item.purchases ?? item.Purchases ?? 0,
                     expenses: item.expenses ?? item.Expenses ?? 0,
+                    costOfGoodsSold: item.costOfGoodsSold ?? item.CostOfGoodsSold ?? 0,
+                    profit: item.profit ?? item.Profit ?? 0,
                 })
             ),
             last15Days: (Array.isArray(data.last15Days || data.Last15Days) ? (data.last15Days || data.Last15Days) : []).map(
-                (item: any) => ({
+                (item: any): DailyOverviewDto => ({
                     date: item.date ?? item.Date ?? '',
                     dayLabel: item.dayLabel ?? item.DayLabel ?? '',
                     sales: item.sales ?? item.Sales ?? 0,
                     purchases: item.purchases ?? item.Purchases ?? 0,
                     expenses: item.expenses ?? item.Expenses ?? 0,
+                    costOfGoodsSold: item.costOfGoodsSold ?? item.CostOfGoodsSold ?? 0,
+                    profit: item.profit ?? item.Profit ?? 0,
                 })
             ),
             cashFlow: (Array.isArray(cashFlow) ? cashFlow : []).map(
@@ -102,6 +111,7 @@ export class DashboardService {
                     income: item.income ?? item.Income ?? 0,
                     expense: item.expense ?? item.Expense ?? 0,
                     purchases: item.purchases ?? item.Purchases ?? 0,
+                    profit: item.profit ?? item.Profit ?? 0,
                 })
             ),
             products: (Array.isArray(products) ? products : []).map(
@@ -158,4 +168,63 @@ export class DashboardService {
                 data.branchCount ?? data.BranchCount ?? 0,
         };
     }
+    // ONLINE-PIPELINE START
+    async getOnlineOrderPipeline(branchId?: number, date?: Date | string): Promise<OnlineOrderPipelineDto> {
+        const params: any = {};
+        if (branchId !== undefined && branchId !== null) {
+            params.branchId = branchId;
+        }
+        if (date) {
+            if (date instanceof Date) {
+                const y = date.getFullYear();
+                const m = `${date.getMonth() + 1}`.padStart(2, '0');
+                const d = `${date.getDate()}`.padStart(2, '0');
+                params.date = `${y}-${m}-${d}`;
+            } else {
+                const raw = String(date).trim();
+                const m = raw.match(/^(\d{4}-\d{2}-\d{2})/);
+                params.date = m ? m[1] : raw;
+            }
+        }
+
+        const res: any = await firstValueFrom(
+            this.http.get<any>(`${this.apiUrl}/GetOnlineOrderPipeline`, { params })
+        );
+        return this.mapOnlineOrderPipeline(
+            this.unwrap(res, 'Failed to load online order pipeline')
+        );
+    }
+
+    private mapOnlineOrderPipeline(data: any): OnlineOrderPipelineDto {
+        const rawStages = data.stages || data.Stages || [];
+        const stages: OnlineOrderPipelineStageDto[] = (Array.isArray(rawStages) ? rawStages : []).map((s: any) => ({
+            status: Number(s.status ?? s.Status ?? 0),
+            statusName: String(s.statusName ?? s.StatusName ?? ''),
+            count: Number(s.count ?? s.Count ?? 0)
+        }));
+
+        const todayTotalOrders = Number(data.todayTotalOrders ?? data.TodayTotalOrders ?? data.todayOrdersCount ?? data.TodayOrdersCount ?? 0);
+        const todayOrdersCount = Number(data.todayOrdersCount ?? data.TodayOrdersCount ?? todayTotalOrders);
+        const pendingCount = Number(data.pendingCount ?? data.PendingCount ?? 0);
+        const approvedCount = Number(data.approvedCount ?? data.ApprovedCount ?? data.acceptedCount ?? data.AcceptedCount ?? 0);
+        const acceptedCount = Number(data.acceptedCount ?? data.AcceptedCount ?? approvedCount);
+        const rejectedCount = Number(data.rejectedCount ?? data.RejectedCount ?? 0);
+        const inProgressCount = Number(data.inProgressCount ?? data.InProgressCount ?? data.preparingCount ?? data.PreparingCount ?? 0);
+        const preparingCount = Number(data.preparingCount ?? data.PreparingCount ?? inProgressCount);
+        const deliveredCount = Number(data.deliveredCount ?? data.DeliveredCount ?? 0);
+
+        return {
+            todayTotalOrders,
+            todayOrdersCount,
+            pendingCount,
+            approvedCount,
+            acceptedCount,
+            rejectedCount,
+            inProgressCount,
+            preparingCount,
+            deliveredCount,
+            stages
+        };
+    }
+    // ONLINE-PIPELINE END
 }

@@ -16,5 +16,10 @@
         public int? TenantId { get; set; }
 
         public string TenancyName { get; set; }
+
+        /// <summary>
+        /// True when waiter/rider attendance was auto-checked-in because login GPS was within branch radius.
+        /// </summary>
+        public bool AttendanceAutoCheckedIn { get; set; }
     }
 }

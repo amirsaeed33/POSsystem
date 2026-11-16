@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="SmartPos.Mobile.Controls.AljannatDialogOverlay"
+             BackgroundColor="Transparent">
+
+    <Border x:Name="DialogCard"
+            MaximumWidthRequest="336"
+            WidthRequest="336"
+            HorizontalOptions="Center"
+            VerticalOptions="Center"
+            BackgroundColor="#FFFFFF"
+            Stroke="#EAE2DA"
+            StrokeThickness="1"
+            Padding="22">
+        <Border.StrokeShape>
+            <RoundRectangle CornerRadius="26" />
+        </Border.StrokeShape>
+        <Border.Shadow>
+            <Shadow Brush="#1C1410" Offset="0,10" Radius="24" Opacity="0.18" />
+        </Border.Shadow>
+
+        <VerticalStackLayout Spacing="12">
+            <!-- Icon medallion -->
+            <Border x:Name="IconBadge"
+                    WidthRequest="52"
+                    HeightRequest="52"
+                    Stroke="#F0C4AE"
+                    StrokeThickness="1"
+                    BackgroundColor="#FDF1EB"
+                    HorizontalOptions="Center">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="26" />
+                </Border.StrokeShape>
+                <Path x:Name="IconPath"
+                      Aspect="Uniform"
+                      WidthRequest="24"
+                      HeightRequest="24"
+                      Fill="#C84B11"
+                      HorizontalOptions="Center"
+                      VerticalOptions="Center"
+                      Data="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" />
+            </Border>
+
+            <Label x:Name="TitleLabel"
+                   FontFamily="Georgia"
+                   FontSize="20"
+                   FontAttributes="Bold"
+                   TextColor="#1E1916"
+                   HorizontalTextAlignment="Center"
+                   LineBreakMode="WordWrap" />
+
+            <Label x:Name="MessageLabel"
+                   FontSize="13.5"
+                   TextColor="#5C5048"
+                   LineHeight="1.35"
+                   HorizontalTextAlignment="Center"
+                   LineBreakMode="WordWrap" />
+
+            <!-- Prompt entry -->
+            <Border x:Name="PromptHost"
+                    IsVisible="False"
+                    Stroke="#EAE2DA"
+                    StrokeThickness="1"
+                    BackgroundColor="#FAF7F4"
+                    Padding="12,4"
+                    Margin="0,4,0,0">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="14" />
+                </Border.StrokeShape>
+                <Entry x:Name="PromptEntry"
+                       FontSize="14"
+                       TextColor="#1E1916"
+                       PlaceholderColor="#8C7E74"
+                       BackgroundColor="Transparent"
+                       HeightRequest="44" />
+            </Border>
+
+            <!-- Action sheet options -->
+            <VerticalStackLayout x:Name="ActionSheetHost"
+                                 Spacing="8"
+                                 IsVisible="False"
+                                 Margin="0,4,0,0" />
+
+            <!-- Footer buttons -->
+            <Grid x:Name="TwoButtonRow"
+                  ColumnDefinitions="*,*"
+                  ColumnSpacing="10"
+                  Margin="0,8,0,0"
+                  IsVisible="False">
+                <Border x:Name="CancelButton"
+                        Grid.Column="0"
+                        HeightRequest="46"
+                        Stroke="#EAE2DA"
+                        StrokeThickness="1"
+                        BackgroundColor="#F4EFEA">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="14" />
+                    </Border.StrokeShape>
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnCancelTapped" />
+                    </Border.GestureRecognizers>
+                    <Label x:Name="CancelLabel"
+                           Text="Cancel"
+                           FontSize="13.5"
+                           FontAttributes="Bold"
+                           TextColor="#1E1916"
+                           HorizontalOptions="Center"
+                           VerticalOptions="Center"
+                           HorizontalTextAlignment="Center" />
+                </Border>
+
+                <Border x:Name="ConfirmButton"
+                        Grid.Column="1"
+                        HeightRequest="46"
+                        StrokeThickness="0"
+                        BackgroundColor="#C84B11">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="14" />
+                    </Border.StrokeShape>
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnConfirmTapped" />
+                    </Border.GestureRecognizers>
+                    <Label x:Name="ConfirmLabel"
+                           Text="Confirm"
+                           FontSize="13.5"
+                           FontAttributes="Bold"
+                           TextColor="#FFFFFF"
+                           HorizontalOptions="Center"
+                           VerticalOptions="Center"
+                           HorizontalTextAlignment="Center" />
+                </Border>
+            </Grid>
+
+            <Border x:Name="SingleButton"
+                    HeightRequest="46"
+                    StrokeThickness="0"
+                    BackgroundColor="#C84B11"
+                    Margin="0,8,0,0"
+                    IsVisible="False">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="14" />
+                </Border.StrokeShape>
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnConfirmTapped" />
+                </Border.GestureRecognizers>
+                <Label x:Name="SingleButtonLabel"
+                       Text="OK"
+                       FontSize="13.5"
+                       FontAttributes="Bold"
+                       TextColor="#FFFFFF"
+                       HorizontalOptions="Center"
+                       VerticalOptions="Center"
+                       HorizontalTextAlignment="Center" />
+            </Border>
+        </VerticalStackLayout>
+    </Border>
+</ContentView>

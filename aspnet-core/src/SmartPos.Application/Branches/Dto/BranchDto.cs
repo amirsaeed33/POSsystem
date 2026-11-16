@@ -59,8 +59,48 @@ namespace SmartPos.Branches.Dto
         [StringLength(Branch.MaxWebsiteLength)]
         public string Website { get; set; }
 
+        /// <summary>Custom storefront hostname without protocol (e.g. almeezanfoods.com).</summary>
+        [StringLength(Branch.MaxCustomDomainLength)]
+        public string CustomDomain { get; set; }
+
+        /// <summary>Public brand title used for SEO on the custom-domain storefront.</summary>
+        [StringLength(Branch.MaxStorefrontTitleLength)]
+        public string StorefrontTitle { get; set; }
+
+        [StringLength(Branch.MaxWebsiteLength)]
+        public string FacebookUrl { get; set; }
+
+        [StringLength(Branch.MaxWebsiteLength)]
+        public string InstagramUrl { get; set; }
+
+        [StringLength(Branch.MaxWebsiteLength)]
+        public string YoutubeUrl { get; set; }
+
         [StringLength(Branch.MaxInvoiceFooterLength)]
         public string InvoiceFooter { get; set; }
+
+        [StringLength(Branch.MaxSoftwareDeveloperNameLength)]
+        public string SoftwareDeveloperName { get; set; }
+
+        [StringLength(Branch.MaxSoftwareDeveloperPhoneLength)]
+        public string SoftwareDeveloperPhone { get; set; }
+
+        [StringLength(Branch.MaxCustomerFeedbackNameLength)]
+        public string CustomerFeedbackName { get; set; }
+
+        [StringLength(Branch.MaxCustomerFeedbackRoleLength)]
+        public string CustomerFeedbackRole { get; set; }
+
+        [StringLength(Branch.MaxCustomerFeedbackCityLength)]
+        public string CustomerFeedbackCity { get; set; }
+
+        [StringLength(Branch.MaxCustomerFeedbackCommentLength)]
+        public string CustomerFeedbackComment { get; set; }
+
+        [Range(0, 5)]
+        public int CustomerFeedbackRating { get; set; }
+
+        public bool ShowCustomerFeedback { get; set; }
 
         [Range(0, 100)]
         public decimal TaxPercent { get; set; }
@@ -70,5 +110,20 @@ namespace SmartPos.Branches.Dto
 
         [Range(0, double.MaxValue)]
         public decimal DiscountAmount { get; set; }
+
+        public BusinessType BusinessType { get; set; } = BusinessType.Retail;
+
+        [Range(0, 100)]
+        public decimal ServiceChargePercent { get; set; }
+
+        public bool AutoAssignWaiterToTables { get; set; } = true;
+
+        public double? Latitude { get; set; }
+
+        public double? Longitude { get; set; }
+
+        /// <summary>Auto attendance check-in radius in feet. Default 200.</summary>
+        [Range(1, 100000)]
+        public int AttendanceAutoCheckInRadiusFeet { get; set; } = Branch.DefaultAttendanceAutoCheckInRadiusFeet;
     }
 }

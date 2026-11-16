@@ -46,6 +46,12 @@ namespace SmartPos.StaffPayrolls.Dto
 
         public DateTime? PaymentDate { get; set; }
 
+        /// <summary>
+        /// True when Debit/Credit ledger lines were posted for this payroll payment.
+        /// Paid without this flag means status was set manually and accounts were not updated.
+        /// </summary>
+        public bool IsAccountingPosted { get; set; }
+
         [StringLength(StaffPayroll.MaxRemarksLength)]
         public string Remarks { get; set; }
     }

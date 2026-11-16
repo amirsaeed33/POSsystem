@@ -17,6 +17,7 @@ namespace SmartPos.Products
         public const int MaxImagePathLength = 512;
         public const int MaxBarcodeLength = 64;
         public const int MaxLocationLength = 256;
+        public const int MaxCardTagLength = 64;
 
         public virtual int? TenantId { get; set; }
 
@@ -80,5 +81,33 @@ namespace SmartPos.Products
         /// Structured JSON string storing product specifications and technical attributes (e.g. RAM, Capacity, Dimensions).
         /// </summary>
         public virtual string Specifications { get; set; }
+
+        /// <summary>
+        /// Indicates if this specific product qualifies for free delivery.
+        /// </summary>
+        public virtual bool IsFreeDelivery { get; set; }
+
+        /// <summary>
+        /// Links this product to a Deal if it represents a Deal item.
+        /// </summary>
+        public virtual int? DealId { get; set; }
+
+        /// <summary>
+        /// Indicates if this product is a Deal bundle.
+        /// </summary>
+        public virtual bool IsDeal { get; set; }
+
+        /// <summary>
+        /// Optional online-menu badge label (e.g. Hot Deal, Best Seller).
+        /// Empty = no badge on the storefront card.
+        /// </summary>
+        [StringLength(MaxCardTagLength)]
+        public virtual string CardTag { get; set; }
+
+        /// <summary>
+        /// When true, product appears on the public online store menu.
+        /// Defaults to true so existing products stay visible after migration.
+        /// </summary>
+        public virtual bool IsVisibleOnline { get; set; } = true;
     }
 }

@@ -8,13 +8,18 @@ export interface SaleReportRowDto {
     id: number;
     invoiceNo?: string;
     saleDate: string | Date;
+    saleType?: string;
     customerName?: string;
     totalAmount: number;
+    paidAmount?: number;
+    dueAmount?: number;
     notes?: string;
 }
 
 export interface SaleReportDto {
     totalAmount: number;
+    totalPaidAmount?: number;
+    totalDueAmount?: number;
     items: SaleReportRowDto[];
 }
 

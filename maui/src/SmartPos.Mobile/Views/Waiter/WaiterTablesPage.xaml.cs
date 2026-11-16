@@ -1,0 +1,42 @@
+using SmartPos.Mobile.Helpers;
+using SmartPos.Mobile.ViewModels;
+
+namespace SmartPos.Mobile.Views.Waiter;
+
+public partial class WaiterTablesPage : ContentPage
+{
+    private readonly WaiterTablesViewModel _vm;
+
+    public WaiterTablesPage() : this(ServiceHelper.Get<WaiterTablesViewModel>())
+    {
+    }
+
+    public WaiterTablesPage(WaiterTablesViewModel vm)
+    {
+        InitializeComponent();
+        _vm = vm;
+        BindingContext = vm;
+        Shell.SetNavBarIsVisible(this, false);
+        Shell.SetTabBarIsVisible(this, false);
+    }
+
+    protected override void OnAppearing()
+    {
+        base.OnAppearing();
+        Shell.SetNavBarIsVisible(this, false);
+        Shell.SetTabBarIsVisible(this, false);
+        if (_vm.AppearingCommand.CanExecute(null))
+        {
+            _vm.AppearingCommand.Execute(null);
+        }
+    }
+
+    protected override void OnDisappearing()
+    {
+        base.OnDisappearing();
+        if (_vm.DisappearingCommand.CanExecute(null))
+        {
+            _vm.DisappearingCommand.Execute(null);
+        }
+    }
+}

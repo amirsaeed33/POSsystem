@@ -17,11 +17,10 @@ namespace SmartPos.Products.Dto
         [StringLength(Product.MaxLocationLength)]
         public string Location { get; set; }
 
-        [Required(ErrorMessage = "Barcode is required.")]
         [StringLength(Product.MaxBarcodeLength)]
         public string Barcode { get; set; }
 
-        [Range(0.01, double.MaxValue, ErrorMessage = "Price is required.")]
+        [Range(0, double.MaxValue, ErrorMessage = "Price is required.")]
         public decimal Price { get; set; }
 
         [Range(0, double.MaxValue, ErrorMessage = "Wholesale price is required.")]
@@ -49,8 +48,7 @@ namespace SmartPos.Products.Dto
 
         public string CategoryName { get; set; }
 
-        [Required(ErrorMessage = "Brand is required.")]
-        public int BrandId { get; set; }
+        public int? BrandId { get; set; }
 
         public string BrandName { get; set; }
 
@@ -79,5 +77,16 @@ namespace SmartPos.Products.Dto
         /// Assigned branch ids (from BranchStock rows). Empty when tenant-level (all locations).
         /// </summary>
         public List<int> BranchIds { get; set; }
+
+        public int? DealId { get; set; }
+
+        public bool IsDeal { get; set; }
+
+        /// <summary>Optional online-menu badge (Hot Deal, Best Seller, etc.).</summary>
+        [StringLength(Product.MaxCardTagLength)]
+        public string CardTag { get; set; }
+
+        /// <summary>When true, product appears on the public online store menu.</summary>
+        public bool IsVisibleOnline { get; set; } = true;
     }
 }

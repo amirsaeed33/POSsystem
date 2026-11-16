@@ -62,20 +62,27 @@ namespace SmartPos.Web.Host.Startup
         private static Task QueryStringTokenResolver(MessageReceivedContext context)
         {
             if (!context.HttpContext.Request.Path.HasValue ||
-                !context.HttpContext.Request.Path.Value.StartsWith("/signalr"))
+                !context.HttpContext.Request.Path.Value.StartsWith("/signalr", StringComparison.OrdinalIgnoreCase))
             {
                 // We are just looking for signalr clients
+                return Task.CompletedTask;
+            }
+
+            // Standard SignalR JS client sends JWT as access_token (WebSockets cannot set Authorization header).
+            var accessToken = context.HttpContext.Request.Query["access_token"].FirstOrDefault();
+            if (!string.IsNullOrEmpty(accessToken))
+            {
+                context.Token = accessToken;
                 return Task.CompletedTask;
             }
 
             var qsAuthToken = context.HttpContext.Request.Query["enc_auth_token"].FirstOrDefault();
             if (qsAuthToken == null)
             {
-                // Cookie value does not matches to querystring value
                 return Task.CompletedTask;
             }
 
-            // Set auth token from cookie
+            // Legacy ABP encrypted token from query string
             context.Token = SimpleStringCipher.Instance.Decrypt(qsAuthToken);
             return Task.CompletedTask;
         }

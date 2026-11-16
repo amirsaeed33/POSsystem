@@ -56,16 +56,24 @@
                 <th pSortableColumn="description" class="white-space-nowrap">
                     Description <p-sortIcon field="description"></p-sortIcon>
                 </th>
-                <th class="text-center" style="width: 4.5rem">Actions</th>
+                <th class="text-center white-space-nowrap" style="width: 7rem">Actions</th>
             </tr>
         </ng-template>
 
         <ng-template pTemplate="body" let-unit>
             <tr>
-                <td>{{ unit.name }}</td>
+                <td>
+                    <a
+                        href="javascript:void(0)"
+                        class="font-semibold text-primary cursor-pointer hover:underline"
+                        (click)="openEditDialog(unit); $event.preventDefault()"
+                        pTooltip="Edit unit"
+                        tooltipPosition="top"
+                    >{{ unit.name }}</a>
+                </td>
                 <td>{{ unit.description || '—' }}</td>
-                <td class="text-center">
-                    <app-row-actions [items]="getRowActions(unit)"></app-row-actions>
+                <td class="text-center white-space-nowrap">
+                    <app-row-actions mode="inline" [items]="getRowActions(unit)"></app-row-actions>
                 </td>
             </tr>
         </ng-template>

@@ -33,6 +33,9 @@ namespace SmartPos.Sales
         [StringLength(MaxInvoiceNoLength)]
         public virtual string InvoiceNo { get; set; }
 
+        /// <summary>Restaurant kitchen/queue token copied from dine-in or takeaway order.</summary>
+        public virtual int? TokenNo { get; set; }
+
         /// <summary>Sum of line totals before discount/tax.</summary>
         public virtual decimal SubTotal { get; set; }
 
@@ -44,7 +47,12 @@ namespace SmartPos.Sales
 
         public virtual decimal TaxAmount { get; set; }
 
-        /// <summary>Grand total after discount and tax.</summary>
+        public virtual decimal DeliveryCharges { get; set; }
+
+        [StringLength(128)]
+        public virtual string DeliveryAreaName { get; set; }
+
+        /// <summary>Grand total after discount, tax, and delivery.</summary>
         public virtual decimal TotalAmount { get; set; }
 
         /// <summary><see cref="PaymentTypes"/> value.</summary>

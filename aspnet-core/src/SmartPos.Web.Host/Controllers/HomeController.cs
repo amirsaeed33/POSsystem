@@ -1,4 +1,6 @@
+using System.IO;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Abp;
 using Abp.Extensions;
@@ -12,14 +14,25 @@ namespace SmartPos.Web.Host.Controllers
     public class HomeController : SmartPosControllerBase
     {
         private readonly INotificationPublisher _notificationPublisher;
+        private readonly IWebHostEnvironment _env;
 
-        public HomeController(INotificationPublisher notificationPublisher)
+        public HomeController(
+            INotificationPublisher notificationPublisher,
+            IWebHostEnvironment env)
         {
             _notificationPublisher = notificationPublisher;
+            _env = env;
         }
 
         public IActionResult Index()
         {
+            // Prefer Angular SPA when present (same-site deploy under wwwroot).
+            var indexPath = Path.Combine(_env.WebRootPath ?? string.Empty, "index.html");
+            if (!string.IsNullOrWhiteSpace(_env.WebRootPath) && System.IO.File.Exists(indexPath))
+            {
+                return PhysicalFile(indexPath, "text/html");
+            }
+
             return Redirect("/swagger");
         }
 

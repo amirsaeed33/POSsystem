@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -6,6 +7,7 @@ using Abp.Authorization.Users;
 using Abp.Configuration;
 using Abp.Domain.Repositories;
 using Abp.IdentityFramework;
+using Abp.Localization;
 using Abp.MultiTenancy;
 using Abp.UI;
 using Abp.Zero.Configuration;
@@ -116,38 +118,68 @@ namespace SmartPos.Authorization.Accounts
             await _tenantManager.CreateAsync(tenant);
             await CurrentUnitOfWork.SaveChangesAsync();
 
-            _abpZeroDbMigrator.CreateOrMigrateForTenant(tenant);
-
-            using (CurrentUnitOfWork.SetTenantId(tenant.Id))
+            try
             {
-                CheckErrors(await _roleManager.CreateStaticRoles(tenant.Id));
-                await CurrentUnitOfWork.SaveChangesAsync();
+                _abpZeroDbMigrator.CreateOrMigrateForTenant(tenant);
 
-                var adminRole = _roleManager.Roles.Single(r => r.Name == StaticRoleNames.Tenants.Admin);
-                await _roleManager.GrantAllPermissionsAsync(adminRole);
+                // Ensure tenant has a default language (used by AbpUserConfiguration/GetAll).
+                await SettingManager.ChangeSettingForTenantAsync(
+                    tenant.Id,
+                    LocalizationSettingNames.DefaultLanguage,
+                    "en");
 
-                var adminUser = new User
+                using (CurrentUnitOfWork.SetTenantId(tenant.Id))
                 {
-                    TenantId = tenant.Id,
-                    UserName = input.AdminUserName,
-                    Name = input.AdminName,
-                    Surname = input.AdminSurname,
-                    EmailAddress = input.AdminEmailAddress,
-                    IsActive = true,
-                    IsEmailConfirmed = true,
-                    BranchId = null,
-                    Roles = new List<UserRole>()
-                };
-                adminUser.SetNormalizedNames();
+                    CheckErrors(await _roleManager.CreateStaticRoles(tenant.Id));
+                    await CurrentUnitOfWork.SaveChangesAsync();
 
-                await _userManager.InitializeOptionsAsync(tenant.Id);
-                CheckErrors(await _userManager.CreateAsync(adminUser, input.AdminPassword));
-                await CurrentUnitOfWork.SaveChangesAsync();
+                    var adminRole = _roleManager.Roles.Single(r => r.Name == StaticRoleNames.Tenants.Admin);
+                    await _roleManager.GrantAllPermissionsAsync(adminRole);
 
-                CheckErrors(await _userManager.AddToRoleAsync(adminUser, adminRole.Name));
-                await CurrentUnitOfWork.SaveChangesAsync();
+                    var adminUser = new User
+                    {
+                        TenantId = tenant.Id,
+                        UserName = input.AdminUserName,
+                        Name = input.AdminName,
+                        Surname = input.AdminSurname,
+                        EmailAddress = input.AdminEmailAddress,
+                        IsActive = true,
+                        IsEmailConfirmed = true,
+                        BranchId = null,
+                        Roles = new List<UserRole>()
+                    };
+                    adminUser.SetNormalizedNames();
 
-                await SeedDefaultLookUpsAsync(tenant.Id);
+                    await _userManager.InitializeOptionsAsync(tenant.Id);
+                    CheckErrors(await _userManager.CreateAsync(adminUser, input.AdminPassword));
+                    await CurrentUnitOfWork.SaveChangesAsync();
+
+                    CheckErrors(await _userManager.AddToRoleAsync(adminUser, adminRole.Name));
+                    await CurrentUnitOfWork.SaveChangesAsync();
+
+                    await SeedDefaultLookUpsAsync(tenant.Id);
+                }
+            }
+            catch (UserFriendlyException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                // Avoid leaving a half-created tenancy name that blocks retries.
+                try
+                {
+                    await _tenantManager.DeleteAsync(tenant);
+                    await CurrentUnitOfWork.SaveChangesAsync();
+                }
+                catch
+                {
+                    // ignore cleanup failure; surface original error
+                }
+
+                throw new UserFriendlyException(
+                    "Could not finish creating your company account. Please try a different Workspace ID, or try again in a moment.",
+                    ex.Message);
             }
 
             return new SignUpTenantOutput

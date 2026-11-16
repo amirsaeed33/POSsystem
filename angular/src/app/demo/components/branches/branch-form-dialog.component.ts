@@ -40,6 +40,7 @@ export class BranchFormDialogComponent implements OnChanges {
     imagePreview = '';
     saving = false;
     loading = false;
+    locating = false;
     private originalStatusId = 0;
 
     companyTypes: HostCatalogItemDto[] = [];
@@ -47,6 +48,11 @@ export class BranchFormDialogComponent implements OnChanges {
     seedCatalog: HostCatalogByCompanyTypeDto | null = null;
     selectedHostItemIds: number[] = [];
     seedLoading = false;
+
+    businessTypeOptions = [
+        { label: '🛒 Retail & Supermarket', value: 1 },
+        { label: '🍽️ Restaurant & Cafe', value: 2 },
+    ];
 
     constructor(
         private branchService: BranchService,
@@ -92,6 +98,19 @@ export class BranchFormDialogComponent implements OnChanges {
             !!this.branchId &&
             this.permissionService.isGranted(PermissionNames.BranchesApprove)
         );
+    }
+
+    /** Host/super admin only — SoftwareDeveloperName / Phone. */
+    get canEditSoftwareDeveloper(): boolean {
+        return (
+            this.permissionService.isGranted(PermissionNames.BranchesApprove) ||
+            BranchContextService.isHostAdminSession()
+        );
+    }
+
+    /** Host admin only — custom domain storefront mapping. */
+    get canEditCustomDomain(): boolean {
+        return this.canEditSoftwareDeveloper;
     }
 
     ngOnChanges(changes: SimpleChanges): void {
@@ -239,12 +258,47 @@ export class BranchFormDialogComponent implements OnChanges {
                 this.branch.invoiceContactPhone?.trim() || undefined,
             taxNumber: this.branch.taxNumber?.trim() || undefined,
             website: this.branch.website?.trim() || undefined,
+            ...(this.canEditCustomDomain
+                ? {
+                      customDomain:
+                          this.branch.customDomain?.trim() || undefined,
+                      storefrontTitle:
+                          this.branch.storefrontTitle?.trim() || undefined,
+                  }
+                : {}),
+            facebookUrl: this.branch.facebookUrl?.trim() || undefined,
+            instagramUrl: this.branch.instagramUrl?.trim() || undefined,
+            youtubeUrl: this.branch.youtubeUrl?.trim() || undefined,
             invoiceFooter: this.branch.invoiceFooter?.trim() || undefined,
+            customerFeedbackName: this.branch.customerFeedbackName?.trim() || undefined,
+            customerFeedbackRole: this.branch.customerFeedbackRole?.trim() || undefined,
+            customerFeedbackCity: this.branch.customerFeedbackCity?.trim() || undefined,
+            customerFeedbackComment: this.branch.customerFeedbackComment?.trim() || undefined,
+            customerFeedbackRating: this.branch.customerFeedbackRating ?? 0,
+            showCustomerFeedback: !!this.branch.showCustomerFeedback,
+            ...(this.canEditSoftwareDeveloper
+                ? {
+                      softwareDeveloperName:
+                          this.branch.softwareDeveloperName?.trim() || undefined,
+                      softwareDeveloperPhone:
+                          this.branch.softwareDeveloperPhone?.trim() || undefined,
+                  }
+                : {}),
             taxPercent: this.branch.taxPercent ?? 0,
             discountPercent: this.branch.discountPercent ?? 0,
             discountAmount: this.branch.discountAmount ?? 0,
+            businessType: this.branch.businessType ?? 1,
+            serviceChargePercent: this.branch.serviceChargePercent ?? 0,
+            autoAssignWaiterToTables: this.branch.autoAssignWaiterToTables !== false,
             companyTypeId: this.selectedCompanyTypeId || undefined,
             hostCatalogItemIds: this.selectedHostItemIds,
+            latitude: this.branch.latitude != null ? Number(this.branch.latitude) : null,
+            longitude: this.branch.longitude != null ? Number(this.branch.longitude) : null,
+            attendanceAutoCheckInRadiusFeet:
+                this.branch.attendanceAutoCheckInRadiusFeet != null &&
+                this.branch.attendanceAutoCheckInRadiusFeet > 0
+                    ? this.branch.attendanceAutoCheckInRadiusFeet
+                    : 200,
         };
 
         const selectedStatus = this.statusOptions.find(
@@ -260,6 +314,13 @@ export class BranchFormDialogComponent implements OnChanges {
             ? this.branchService.update({
                   id: this.branchId,
                   ...createPayload,
+                  latitude: this.branch.latitude != null ? Number(this.branch.latitude) : null,
+                  longitude: this.branch.longitude != null ? Number(this.branch.longitude) : null,
+                  attendanceAutoCheckInRadiusFeet:
+                      this.branch.attendanceAutoCheckInRadiusFeet != null &&
+                      this.branch.attendanceAutoCheckInRadiusFeet > 0
+                          ? this.branch.attendanceAutoCheckInRadiusFeet
+                          : 200,
                   statusId: this.canEditStatus
                       ? this.branch.statusId
                       : undefined,
@@ -318,11 +379,88 @@ export class BranchFormDialogComponent implements OnChanges {
             invoiceContactPhone: '',
             taxNumber: '',
             website: '',
+            customDomain: '',
+            storefrontTitle: '',
+            facebookUrl: '',
+            instagramUrl: '',
+            youtubeUrl: '',
             invoiceFooter: '',
+            softwareDeveloperName: 'Software develop by AlNawabTech',
+            softwareDeveloperPhone: '03167854606',
+            customerFeedbackName: '',
+            customerFeedbackRole: '',
+            customerFeedbackCity: '',
+            customerFeedbackComment: '',
+            customerFeedbackRating: 5,
+            showCustomerFeedback: false,
             taxPercent: 0,
             discountPercent: 0,
             discountAmount: 0,
+            businessType: 1,
+            serviceChargePercent: 0,
+            autoAssignWaiterToTables: true,
+            latitude: null,
+            longitude: null,
+            attendanceAutoCheckInRadiusFeet: 200,
         };
+    }
+
+    get customStorefrontUrl(): string | null {
+        const domain = (this.branch.customDomain || '')
+            .trim()
+            .toLowerCase()
+            .replace(/^https?:\/\//, '')
+            .split('/')[0]
+            .replace(/^www\./, '');
+        if (!domain) {
+            return null;
+        }
+        return `https://${domain}/online-order`;
+    }
+
+    detectCurrentLocation(): void {
+        if (!navigator.geolocation) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'GPS Not Supported',
+                detail: 'Geolocation is not supported by your browser.',
+            });
+            return;
+        }
+        this.locating = true;
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                this.branch.latitude = Number(pos.coords.latitude.toFixed(6));
+                this.branch.longitude = Number(pos.coords.longitude.toFixed(6));
+                this.locating = false;
+                this.messageService.add({
+                    severity: 'success',
+                    summary: 'Location Captured',
+                    detail: `Store coordinates set to: (${this.branch.latitude}, ${this.branch.longitude})`,
+                });
+            },
+            () => {
+                this.locating = false;
+                this.messageService.add({
+                    severity: 'warn',
+                    summary: 'GPS Detection',
+                    detail: 'Unable to detect coordinates automatically. Please enter latitude & longitude manually.',
+                });
+            },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        );
+    }
+
+    clearShopLocation(): void {
+        this.branch.latitude = null;
+        this.branch.longitude = null;
+    }
+
+    get googleMapsShopLink(): string | null {
+        if (this.branch.latitude != null && this.branch.longitude != null) {
+            return `https://maps.google.com/?q=${this.branch.latitude},${this.branch.longitude}`;
+        }
+        return null;
     }
 
     private resetForm(): void {
@@ -369,7 +507,18 @@ export class BranchFormDialogComponent implements OnChanges {
         this.branchService
             .get(id)
             .then((branch) => {
-                this.branch = { ...branch, imageBase64: undefined };
+                this.branch = {
+                    ...branch,
+                    autoAssignWaiterToTables: branch.autoAssignWaiterToTables !== false,
+                    latitude: branch.latitude ?? null,
+                    longitude: branch.longitude ?? null,
+                    attendanceAutoCheckInRadiusFeet:
+                        branch.attendanceAutoCheckInRadiusFeet != null &&
+                        branch.attendanceAutoCheckInRadiusFeet > 0
+                            ? branch.attendanceAutoCheckInRadiusFeet
+                            : 200,
+                    imageBase64: undefined
+                };
                 this.originalStatusId = branch.statusId || 0;
                 this.imagePreview = this.branchService.getImageUrl(
                     branch.imagePath

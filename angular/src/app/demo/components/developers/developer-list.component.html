@@ -1,0 +1,331 @@
+<p-toast></p-toast>
+<p-confirmDialog></p-confirmDialog>
+
+<div class="dev-page">
+    <div class="flex flex-wrap gap-2 align-items-center justify-content-between mb-4">
+        <div class="flex flex-wrap gap-2 align-items-center">
+            <span class="p-input-icon-left w-full sm:w-20rem">
+                <i class="pi pi-search"></i>
+                <input
+                    pInputText
+                    type="text"
+                    class="w-full"
+                    placeholder="Search developers"
+                    [(ngModel)]="keyword"
+                    (keyup.enter)="onSearch()"
+                />
+            </span>
+            <button
+                pButton
+                pRipple
+                type="button"
+                icon="pi pi-search"
+                class="p-button-outlined"
+                label="Search"
+                (click)="onSearch()"
+            ></button>
+        </div>
+        <button
+            *ngIf="canCreate"
+            pButton
+            pRipple
+            type="button"
+            icon="pi pi-plus"
+            label="Create"
+            class="p-button-outlined w-full sm:w-auto"
+            (click)="openCreate()"
+        ></button>
+    </div>
+
+    <div *ngIf="loading" class="flex justify-content-center align-items-center py-6 text-500">
+        <i class="pi pi-spin pi-spinner text-2xl mr-2"></i>
+        Loading developers…
+    </div>
+
+    <div
+        *ngIf="!loading && !developers.length"
+        class="surface-card border-round-xl p-5 text-center text-500"
+    >
+        <i class="pi pi-users text-4xl mb-3 block text-400"></i>
+        No developers yet. Click Create to add one.
+    </div>
+
+    <div *ngIf="!loading && developers.length" class="grid">
+        <div
+            class="col-12 sm:col-6 lg:col-4 xl:col-3"
+            *ngFor="let dev of developers; let i = index"
+        >
+            <article
+                class="dev-card h-full flex flex-column"
+                [class.dev-card--inactive]="dev.isActive === false"
+                [style.animation-delay.ms]="i * 40"
+            >
+                <div class="dev-card__cover">
+                    <img
+                        *ngIf="coverUrl(dev) as cover; else coverFallback"
+                        [src]="cover"
+                        [alt]="dev.name"
+                        class="dev-card__cover-img"
+                    />
+                    <ng-template #coverFallback>
+                        <div class="dev-card__cover-fallback"></div>
+                    </ng-template>
+
+                    <div class="dev-card__actions" *ngIf="canEdit || canDelete">
+                        <app-row-actions
+                            mode="inline"
+                            [items]="getRowActions(dev)"
+                        ></app-row-actions>
+                    </div>
+
+                    <div class="dev-card__avatar-wrap">
+                        <img
+                            *ngIf="profileUrl(dev) as avatar; else avatarFallback"
+                            [src]="avatar"
+                            [alt]="dev.name"
+                            class="dev-card__avatar"
+                        />
+                        <ng-template #avatarFallback>
+                            <div class="dev-card__avatar-fallback">
+                                {{ initials(dev) }}
+                            </div>
+                        </ng-template>
+                    </div>
+                </div>
+
+                <div class="dev-card__body flex flex-column flex-1">
+                    <div class="flex align-items-start justify-content-between gap-2 mb-2">
+                        <div class="min-w-0">
+                            <h3
+                                class="dev-card__title m-0 cursor-pointer"
+                                (click)="canEdit && openEdit(dev)"
+                            >
+                                {{ dev.name }}
+                            </h3>
+                            <div class="dev-card__status">
+                                <span
+                                    class="dev-badge"
+                                    [class.dev-badge--ok]="dev.isActive !== false"
+                                    [class.dev-badge--muted]="dev.isActive === false"
+                                >
+                                    {{ dev.isActive === false ? 'Inactive' : 'Active' }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <p class="dev-card__desc" *ngIf="dev.description">
+                        {{ dev.description }}
+                    </p>
+
+                    <div class="dev-card__meta flex flex-column gap-2 mb-3">
+                        <div class="dev-meta-row" *ngIf="dev.email">
+                            <i class="pi pi-envelope"></i>
+                            <span>{{ dev.email }}</span>
+                        </div>
+                        <div class="dev-meta-row" *ngIf="dev.phoneNumber">
+                            <i class="pi pi-phone"></i>
+                            <span>{{ dev.phoneNumber }}</span>
+                        </div>
+                    </div>
+
+                    <div class="dev-card__edu mb-3" *ngIf="educationLines(dev).length">
+                        <div class="dev-section-label">Education</div>
+                        <ul class="dev-edu-list">
+                            <li *ngFor="let line of educationLines(dev)">{{ line }}</li>
+                        </ul>
+                    </div>
+
+                    <div class="dev-card__tags mt-auto" *ngIf="tagList(dev).length">
+                        <span class="dev-tag" *ngFor="let tag of tagList(dev)">{{ tag }}</span>
+                    </div>
+                </div>
+            </article>
+        </div>
+    </div>
+</div>
+
+<p-dialog
+    [(visible)]="dialogVisible"
+    [modal]="true"
+    [draggable]="false"
+    [resizable]="false"
+    [style]="{ width: '640px', maxWidth: '96vw' }"
+    [header]="editing ? 'Edit Developer' : 'Create Developer'"
+    (onHide)="closeDialog()"
+>
+    <div class="dev-form p-fluid" *ngIf="dialogVisible">
+        <!-- Background + profile like branch edit card -->
+        <div class="dev-form-media mb-4">
+            <div class="dev-form-cover" (click)="bgInput.click()">
+                <img
+                    *ngIf="backgroundPreview; else formCoverEmpty"
+                    [src]="backgroundPreview"
+                    alt="Background"
+                    class="dev-form-cover__img"
+                />
+                <ng-template #formCoverEmpty>
+                    <div class="dev-form-cover__empty">
+                        <i class="pi pi-image"></i>
+                        <span>Background picture</span>
+                    </div>
+                </ng-template>
+                <div class="dev-form-cover__hint">Change cover</div>
+            </div>
+            <input
+                #bgInput
+                type="file"
+                accept="image/*"
+                hidden
+                (change)="onBackgroundSelected($event)"
+            />
+
+            <div class="dev-form-avatar">
+                <div class="dev-form-avatar__ring" (click)="profileInput.click()">
+                    <img
+                        *ngIf="profilePreview; else formAvatarEmpty"
+                        [src]="profilePreview"
+                        alt="Profile"
+                        class="dev-form-avatar__img"
+                    />
+                    <ng-template #formAvatarEmpty>
+                        <div class="dev-form-avatar__empty">
+                            <i class="pi pi-camera"></i>
+                        </div>
+                    </ng-template>
+                </div>
+                <input
+                    #profileInput
+                    type="file"
+                    accept="image/*"
+                    hidden
+                    (change)="onProfileSelected($event)"
+                />
+                <div class="flex gap-2 mt-2">
+                    <button
+                        *ngIf="profilePreview"
+                        pButton
+                        type="button"
+                        class="p-button-text p-button-sm p-button-danger"
+                        label="Remove photo"
+                        (click)="clearProfile()"
+                    ></button>
+                    <button
+                        *ngIf="backgroundPreview"
+                        pButton
+                        type="button"
+                        class="p-button-text p-button-sm p-button-danger"
+                        label="Remove cover"
+                        (click)="clearBackground()"
+                    ></button>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid formgrid">
+            <div class="field col-12 md:col-6">
+                <label for="devName">Name <span class="p-error">*</span></label>
+                <input
+                    id="devName"
+                    pInputText
+                    [(ngModel)]="form.name"
+                    maxlength="128"
+                    [disabled]="saving"
+                />
+            </div>
+            <div class="field col-12 md:col-6">
+                <label for="devPhone">Phone</label>
+                <input
+                    id="devPhone"
+                    pInputText
+                    [(ngModel)]="form.phoneNumber"
+                    maxlength="32"
+                    [disabled]="saving"
+                />
+            </div>
+            <div class="field col-12">
+                <label for="devEmail">Email</label>
+                <input
+                    id="devEmail"
+                    pInputText
+                    type="email"
+                    [(ngModel)]="form.email"
+                    maxlength="256"
+                    [disabled]="saving"
+                />
+            </div>
+            <div class="field col-12">
+                <label for="devDesc">Description</label>
+                <textarea
+                    id="devDesc"
+                    pInputTextarea
+                    rows="3"
+                    [(ngModel)]="form.description"
+                    maxlength="2000"
+                    [disabled]="saving"
+                ></textarea>
+            </div>
+            <div class="field col-12">
+                <label for="devEdu">Education</label>
+                <textarea
+                    id="devEdu"
+                    pInputTextarea
+                    rows="3"
+                    [(ngModel)]="form.education"
+                    maxlength="2000"
+                    placeholder="One line per school / degree"
+                    [disabled]="saving"
+                ></textarea>
+            </div>
+            <div class="field col-12 md:col-8">
+                <label for="devTags">Tags</label>
+                <input
+                    id="devTags"
+                    pInputText
+                    [(ngModel)]="form.tags"
+                    maxlength="512"
+                    placeholder="e.g. Angular, .NET, Lead"
+                    [disabled]="saving"
+                />
+            </div>
+            <div class="field col-12 md:col-4">
+                <label for="devSort">Sort order</label>
+                <p-inputNumber
+                    inputId="devSort"
+                    [(ngModel)]="form.sortOrder"
+                    [min]="0"
+                    [disabled]="saving"
+                    styleClass="w-full"
+                ></p-inputNumber>
+            </div>
+            <div class="field col-12 flex align-items-center gap-2">
+                <p-checkbox
+                    [(ngModel)]="form.isActive"
+                    [binary]="true"
+                    inputId="devActive"
+                    [disabled]="saving"
+                ></p-checkbox>
+                <label for="devActive" class="mb-0">Active</label>
+            </div>
+        </div>
+    </div>
+
+    <ng-template pTemplate="footer">
+        <button
+            pButton
+            type="button"
+            label="Cancel"
+            class="p-button-text"
+            (click)="closeDialog()"
+            [disabled]="saving"
+        ></button>
+        <button
+            pButton
+            type="button"
+            label="Save"
+            icon="pi pi-check"
+            (click)="save()"
+            [loading]="saving"
+        ></button>
+    </ng-template>
+</p-dialog>

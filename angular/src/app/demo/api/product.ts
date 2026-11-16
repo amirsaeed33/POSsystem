@@ -34,7 +34,7 @@ export interface ProductDto {
     alertQuantityLimit: number;
     categoryId: number;
     categoryName?: string;
-    brandId: number;
+    brandId?: number;
     brandName?: string;
     unitId: number;
     unitName?: string;
@@ -46,26 +46,34 @@ export interface ProductDto {
     isShared?: boolean;
     branchIds?: number[];
     specifications?: string;
+    dealId?: number;
+    isDeal?: boolean;
+    /** Online menu badge label (Hot Deal, Best Seller, etc.). Empty = no badge. */
+    cardTag?: string;
+    /** When true, product appears on the public online store menu. */
+    isVisibleOnline?: boolean;
 }
 
 export interface CreateProductDto {
     name: string;
     description?: string;
     location?: string;
-    barcode: string;
+    barcode?: string;
     price: number;
     wholesalePrice: number;
     costPrice: number;
     alertQuantityLimit: number;
     stockQuantity?: number;
     categoryId: number;
-    brandId: number;
+    brandId?: number;
     unitId: number;
     branchId?: number;
     imageBase64?: string;
     /** Empty = tenant-level (all locations). */
     branchIds?: number[];
     specifications?: string;
+    cardTag?: string;
+    isVisibleOnline?: boolean;
 }
 
 export interface PagedProductResultRequestDto {

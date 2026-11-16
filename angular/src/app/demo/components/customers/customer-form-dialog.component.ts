@@ -13,6 +13,7 @@ import { MessageService } from 'primeng/api';
 @Component({
     selector: 'app-customer-form-dialog',
     templateUrl: './customer-form-dialog.component.html',
+    styleUrls: ['./customer-form-dialog.component.scss'],
 })
 export class CustomerFormDialogComponent implements OnChanges {
     @Input() visible = false;

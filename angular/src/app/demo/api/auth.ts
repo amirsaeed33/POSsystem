@@ -2,6 +2,8 @@ export interface AuthenticateModel {
     userNameOrEmailAddress: string;
     password: string;
     rememberClient?: boolean;
+    latitude?: number | null;
+    longitude?: number | null;
 }
 
 export interface AuthenticateResultModel {
@@ -11,5 +13,6 @@ export interface AuthenticateResultModel {
     userId: number;
     tenantId?: number | null;
     tenancyName?: string | null;
+    attendanceAutoCheckedIn?: boolean;
 }
 

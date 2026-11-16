@@ -7,6 +7,7 @@ import { InputTextModule } from 'primeng/inputtext';
 import { InputTextareaModule } from 'primeng/inputtextarea';
 import { TableModule } from 'primeng/table';
 import { DialogModule } from 'primeng/dialog';
+import { CheckboxModule } from 'primeng/checkbox';
 import { ToastModule } from 'primeng/toast';
 import { TooltipModule } from 'primeng/tooltip';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
@@ -15,6 +16,7 @@ import { AppRowActionsComponent } from 'src/app/shared/components/row-actions/ro
 import { SuppliersRoutingModule } from './suppliers-routing.module';
 import { SupplierListComponent } from './supplier-list.component';
 import { SupplierFormDialogComponent } from './supplier-form-dialog.component';
+import { SupplierAssignProductsDialogComponent } from './supplier-assign-products-dialog.component';
 
 @NgModule({
     imports: [
@@ -27,12 +29,17 @@ import { SupplierFormDialogComponent } from './supplier-form-dialog.component';
         InputTextareaModule,
         TableModule,
         DialogModule,
+        CheckboxModule,
         ToastModule,
         TooltipModule,
         ConfirmDialogModule,
         StyleClassModule,
         AppRowActionsComponent,
     ],
-    declarations: [SupplierListComponent, SupplierFormDialogComponent],
+    declarations: [
+        SupplierListComponent,
+        SupplierFormDialogComponent,
+        SupplierAssignProductsDialogComponent,
+    ],
 })
 export class SuppliersModule {}

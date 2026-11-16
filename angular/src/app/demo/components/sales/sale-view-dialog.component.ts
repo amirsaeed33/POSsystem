@@ -29,12 +29,44 @@ export class SaleViewDialogComponent implements OnChanges {
     returns: SaleReturnDto[] = [];
     loading = false;
 
-    constructor(public formatService: AppFormatService, 
+    constructor(
+        public formatService: AppFormatService,
         private saleService: SaleService,
         private saleReturnService: SaleReturnService,
         private messageService: MessageService,
         private confirmationService: ConfirmationService
     ) {}
+
+    get paidAmount(): number {
+        if (!this.sale) return 0;
+        if (this.sale.paidAmount != null) return this.sale.paidAmount;
+        return (this.sale.cashAmount || 0) + (this.sale.cardAmount || 0);
+    }
+
+    get dueAmount(): number {
+        if (!this.sale) return 0;
+        if (this.sale.dueAmount != null) return this.sale.dueAmount;
+        return Math.max(0, (this.sale.totalAmount || 0) - this.paidAmount);
+    }
+
+    get paymentHistoryTotal(): number {
+        return (this.sale?.paymentHistory || []).reduce(
+            (sum, p) => sum + (p.amount || 0),
+            0
+        );
+    }
+
+    /** Notes without the appended [Collected PKR …] payment tags. */
+    get displayNotes(): string {
+        const raw = (this.sale?.notes || '').trim();
+        if (!raw) return '';
+        const cleaned = raw
+            .split('|')
+            .map((p) => p.trim())
+            .filter((p) => p && !/^\[Collected\s+PKR/i.test(p))
+            .join(' | ');
+        return cleaned;
+    }
 
     ngOnChanges(changes: SimpleChanges): void {
         if (changes['visible'] && this.visible && this.saleId) {

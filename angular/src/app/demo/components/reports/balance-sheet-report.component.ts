@@ -25,6 +25,13 @@ export class BalanceSheetReportComponent implements OnInit {
         equityCategories: [],
     };
 
+    fetchPdf = () =>
+        this.reportService.getBalanceSheetReportPdf({
+            fromDate: this.fromDate || undefined,
+            toDate: this.toDate || undefined,
+            keyword: this.keyword?.trim() || undefined,
+        });
+
     constructor(
         private reportService: ReportService,
         private messageService: MessageService,

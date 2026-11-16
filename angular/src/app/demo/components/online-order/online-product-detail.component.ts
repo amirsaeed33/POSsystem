@@ -3,8 +3,16 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { MessageService } from 'primeng/api';
 import { CustomerOrderService } from 'src/app/demo/service/customer-order.service';
 import { OnlineCartService, CartItem } from 'src/app/demo/service/online-cart.service';
-import { CreateCustomerOrderDto } from 'src/app/demo/api/customer-order';
+import {
+    CreateCustomerOrderDto,
+    CustomerSavedAddressDto,
+} from 'src/app/demo/api/customer-order';
+import { DeliveryAreaService, DeliveryAreaDto } from 'src/app/demo/service/delivery-area.service';
+import { DealService } from 'src/app/demo/service/deal.service';
 import { environment } from 'src/environments/environment';
+import { findProductImageNear, flyToCart } from 'src/app/demo/utils/fly-to-cart';
+import { AppSoundService } from 'src/app/demo/service/app-sound.service';
+import { AppSeoService } from 'src/app/demo/service/app-seo.service';
 
 @Component({
     selector: 'app-online-product-detail',
@@ -18,9 +26,11 @@ export class OnlineProductDetailComponent implements OnInit {
     branchName = '';
     currencyFormat = 'PKR';
     dateFormat = 'dd/MM/yyyy';
+    isRestaurant = false;
 
     product: any = null;
     specificationsList: { key: string; value: string }[] = [];
+    dealItems: any[] = [];
     relatedProducts: any[] = [];
     loading = false;
     quantity = 1;
@@ -29,20 +39,48 @@ export class OnlineProductDetailComponent implements OnInit {
     checkoutModalVisible = false;
     customerName = '';
     customerMobile = '';
+    deliveryAddress = '';
+    deliveryLandmark = '';
     notes = '';
+    paymentMethod: 'CashOnDelivery' | 'OnlinePayment' = 'CashOnDelivery';
     submitting = false;
+
+    // Delivery Location & Live GPS state
+    locating = false;
+    locationCaptured = false;
+    latitude: number | null = null;
+    longitude: number | null = null;
+    googleMapsLink: string | null = null;
+    locationAccuracy: number | null = null;
+    locationError: string | null = null;
 
     // Success confirmation modal
     successModalVisible = false;
     confirmedOrderNo = '';
     confirmedTotal = 0;
+    orderCopied = false;
+
+    // Delivery areas & pricing
+    deliveryAreas: DeliveryAreaDto[] = [];
+    selectedAreaId: number | null = null;
+    selectedArea: DeliveryAreaDto | null = null;
+    defaultDeliveryFee: number = 100;
+    freeDeliveryThreshold: number = 1500;
+
+    savedAddresses: CustomerSavedAddressDto[] = [];
+    selectedSavedAddressId: number | null = null;
+    loadingSavedAddresses = false;
 
     constructor(
         public cartService: OnlineCartService,
         private customerOrderService: CustomerOrderService,
         private route: ActivatedRoute,
         private router: Router,
-        private messageService: MessageService
+        private messageService: MessageService,
+        private deliveryAreaService: DeliveryAreaService,
+        private dealService: DealService,
+        private appSound: AppSoundService,
+        private seo: AppSeoService
     ) {}
 
     ngOnInit(): void {
@@ -50,6 +88,7 @@ export class OnlineProductDetailComponent implements OnInit {
         if (snapBranchId && !isNaN(Number(snapBranchId))) {
             this.branchId = Number(snapBranchId);
             this.resolveBranchInfo(this.branchId);
+            this.loadDeliveryAreas(this.branchId);
         }
 
         const snapProductId = this.route.snapshot.paramMap.get('id');
@@ -57,6 +96,10 @@ export class OnlineProductDetailComponent implements OnInit {
             this.productId = Number(snapProductId);
             this.quantity = 1;
             this.checkAndLoad();
+        }
+
+        if (!snapBranchId) {
+            this.loadDeliveryAreas();
         }
 
         this.route.paramMap.subscribe((params) => {
@@ -78,6 +121,7 @@ export class OnlineProductDetailComponent implements OnInit {
                 if (newBranchId !== this.branchId) {
                     this.branchId = newBranchId;
                     this.resolveBranchInfo(this.branchId);
+                    this.loadDeliveryAreas(this.branchId);
                     this.checkAndLoad();
                 }
             }
@@ -91,9 +135,11 @@ export class OnlineProductDetailComponent implements OnInit {
                 if (info.branchName) this.branchName = info.branchName;
                 if (info.currencyFormat) this.currencyFormat = info.currencyFormat;
                 if (info.dateFormat) this.dateFormat = info.dateFormat;
+                this.isRestaurant = !!info.isRestaurant || info.businessType === 2;
             }
         } catch {
             this.branchName = '';
+            this.isRestaurant = false;
         }
     }
 
@@ -112,8 +158,38 @@ export class OnlineProductDetailComponent implements OnInit {
 
             this.specificationsList = this.parseSpecs(this.product?.specifications);
 
+            const isDealCandidate =
+                !!this.product?.isDeal ||
+                !!this.product?.dealId ||
+                (this.product?.categoryName || '').toLowerCase().includes('deal') ||
+                (this.product?.name || '').toLowerCase().includes('deal');
+
+            if (isDealCandidate) {
+                try {
+                    let deal: any = null;
+                    if (this.product.dealId) {
+                        deal = await this.dealService.get(this.product.dealId);
+                    } else {
+                        deal = await this.dealService.getByProductId(this.product.id);
+                    }
+                    if (deal && deal.items && deal.items.length > 0) {
+                        const seenIds = new Set<number>();
+                        this.dealItems = deal.items.filter((it: any) => {
+                            if (it.id && seenIds.has(it.id)) return false;
+                            if (it.id) seenIds.add(it.id);
+                            return true;
+                        });
+                    }
+                } catch {
+                    this.dealItems = [];
+                }
+            } else {
+                this.dealItems = [];
+            }
+
             // Load related products from catalog
             this.loadRelatedProducts();
+            this.applyProductSeo();
         } catch (error: any) {
             this.messageService.add({
                 severity: 'error',
@@ -123,6 +199,33 @@ export class OnlineProductDetailComponent implements OnInit {
         } finally {
             this.loading = false;
         }
+    }
+
+    private applyProductSeo(): void {
+        if (!this.product) {
+            return;
+        }
+        const imagePath = (this.product.imagePath || this.product.ImagePath || '')
+            .toString()
+            .trim();
+        let imageUrl: string | null = null;
+        if (imagePath) {
+            imageUrl = imagePath.startsWith('http')
+                ? imagePath
+                : `${environment.apiUrl}${imagePath.startsWith('/') ? '' : '/'}${imagePath}`;
+        }
+        const path = this.productId
+            ? `/online-order/product/${this.productId}`
+            : '/online-order';
+        this.seo.setProduct({
+            productName: this.product.name || 'Menu item',
+            description: this.product.description || this.product.shortDescription,
+            branchName: this.branchName,
+            path,
+            image: imageUrl,
+            price: this.product.price ?? this.product.unitPrice,
+            currency: this.currencyFormat || 'PKR',
+        });
     }
 
     async loadRelatedProducts(): Promise<void> {
@@ -161,17 +264,17 @@ export class OnlineProductDetailComponent implements OnInit {
         }
     }
 
-    addToCart(item?: any, qty?: number): void {
+    addToCart(item?: any, qty?: number, event?: Event): void {
         const prod = item || this.product;
         if (!prod) return;
 
         const count = qty || this.quantity || 1;
         this.cartService.addToCart(prod, count);
-        this.messageService.add({
-            severity: 'success',
-            summary: 'Added to Cart',
-            detail: `${count > 1 ? count + 'x ' : ''}${prod.name} added to your order`,
-            life: 2000,
+        this.appSound.playAddToCartChime();
+        const source = event ?? document.querySelector('.btn-add-cart');
+        flyToCart(source, {
+            imageEl: findProductImageNear(source),
+            imageUrl: this.getProductImage(prod),
         });
     }
 
@@ -196,8 +299,220 @@ export class OnlineProductDetailComponent implements OnInit {
             });
             return;
         }
+        if (!this.isMinOrderSatisfied()) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Minimum Order Not Met',
+                detail: `Minimum order amount for ${this.selectedArea?.name} is PKR ${this.selectedArea?.minimumOrderAmount}. Please add more items.`,
+                life: 5000,
+            });
+            return;
+        }
+        this.applyCheckoutDraft();
         this.cartService.sidebarVisible = false;
         this.checkoutModalVisible = true;
+        void this.loadSavedAddresses(this.customerMobile);
+    }
+
+    async loadSavedAddresses(phone?: string): Promise<void> {
+        const mobile = (phone || this.customerMobile || '').trim();
+        if (!this.branchId || mobile.replace(/\D/g, '').length < 7) {
+            this.savedAddresses = [];
+            return;
+        }
+        this.loadingSavedAddresses = true;
+        try {
+            this.savedAddresses = await this.customerOrderService.getSavedAddresses({
+                phone: mobile,
+                branchId: this.branchId,
+            });
+            const def = this.savedAddresses.find((a) => a.isDefault) || this.savedAddresses[0];
+            if (def && !this.deliveryAddress?.trim()) {
+                this.applySavedAddress(def);
+            }
+        } catch {
+            /* ignore */
+        } finally {
+            this.loadingSavedAddresses = false;
+        }
+    }
+
+    applySavedAddress(addr: CustomerSavedAddressDto | null): void {
+        if (!addr) {
+            this.selectedSavedAddressId = null;
+            return;
+        }
+        this.selectedSavedAddressId = addr.id;
+        this.deliveryAddress = addr.address || '';
+        this.deliveryLandmark = addr.landmark || '';
+        if (addr.deliveryAreaId && this.deliveryAreas.some((a) => a.id === addr.deliveryAreaId)) {
+            this.selectedAreaId = addr.deliveryAreaId;
+            this.onAreaChange();
+        }
+    }
+
+    onCheckoutPhoneBlur(): void {
+        void this.loadSavedAddresses(this.customerMobile);
+    }
+
+    private applyCheckoutDraft(): void {
+        const draft = this.cartService.getCheckoutDraft();
+
+        if (!this.customerName?.trim()) {
+            this.customerName =
+                draft?.customerName?.trim() ||
+                this.readLocal('smartpos_customer_name') ||
+                '';
+        }
+        if (!this.customerMobile?.trim()) {
+            this.customerMobile =
+                draft?.customerMobile?.trim() ||
+                this.readLocal('smartpos_customer_phone') ||
+                '';
+        }
+        if (!this.deliveryAddress?.trim() && draft?.deliveryAddress) {
+            this.deliveryAddress = draft.deliveryAddress;
+        }
+        if (!this.deliveryLandmark?.trim() && draft?.deliveryLandmark) {
+            this.deliveryLandmark = draft.deliveryLandmark;
+        }
+        if (draft?.paymentMethod === 'OnlinePayment' || draft?.paymentMethod === 'CashOnDelivery') {
+            this.paymentMethod = draft.paymentMethod;
+        }
+        if (
+            !this.selectedAreaId &&
+            draft?.deliveryAreaId &&
+            this.deliveryAreas.some((a) => a.id === draft.deliveryAreaId)
+        ) {
+            this.selectedAreaId = draft.deliveryAreaId;
+            this.onAreaChange();
+        }
+    }
+
+    private readLocal(key: string): string {
+        try {
+            return localStorage.getItem(key) || '';
+        } catch {
+            return '';
+        }
+    }
+
+    captureCurrentLocation(): void {
+        if (!navigator.geolocation) {
+            this.locationError = 'Geolocation is not supported by your browser.';
+            this.messageService.add({
+                severity: 'error',
+                summary: 'GPS Not Supported',
+                detail: 'Geolocation is not supported by your browser. Please enter your address manually.',
+            });
+            return;
+        }
+
+        this.locating = true;
+        this.locationError = null;
+
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                this.latitude = Number(pos.coords.latitude.toFixed(6));
+                this.longitude = Number(pos.coords.longitude.toFixed(6));
+                this.locationAccuracy = Math.round(pos.coords.accuracy);
+                this.googleMapsLink = `https://maps.google.com/?q=${this.latitude},${this.longitude}`;
+                this.locationCaptured = true;
+                this.locating = false;
+
+                this.messageService.add({
+                    severity: 'success',
+                    summary: 'Location Captured',
+                    detail: '✓ Live GPS location captured successfully',
+                    life: 2500,
+                });
+
+                this.reverseGeocode(this.latitude, this.longitude);
+            },
+            (err) => {
+                this.locating = false;
+                let msg = 'Location access denied. Please enter your address manually.';
+                if (err.code === err.TIMEOUT) {
+                    msg = 'GPS signal timed out. Please enter your address manually.';
+                } else if (err.code === err.POSITION_UNAVAILABLE) {
+                    msg = 'GPS position unavailable. Please enter your address manually.';
+                }
+                this.locationError = msg;
+                this.messageService.add({
+                    severity: 'warn',
+                    summary: 'GPS Location',
+                    detail: msg,
+                    life: 4000,
+                });
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0,
+            }
+        );
+    }
+
+    clearLocation(): void {
+        this.locationCaptured = false;
+        this.latitude = null;
+        this.longitude = null;
+        this.googleMapsLink = null;
+        this.locationAccuracy = null;
+        this.locationError = null;
+    }
+
+    private async reverseGeocode(lat: number, lng: number): Promise<void> {
+        try {
+            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`, {
+                headers: { Accept: 'application/json' },
+            });
+            if (res.ok) {
+                const data = await res.json();
+                if (data?.display_name && !this.deliveryAddress.trim()) {
+                    const parts = data.display_name.split(',').slice(0, 3).join(', ');
+                    this.deliveryAddress = parts.trim();
+                }
+            }
+        } catch {
+            // Best effort
+        }
+    }
+
+    async loadDeliveryAreas(bId?: number): Promise<void> {
+        try {
+            this.deliveryAreas = await this.deliveryAreaService.getActiveAreasForBranch(bId || 0);
+            if (this.deliveryAreas.length > 0 && !this.selectedAreaId) {
+                this.selectedAreaId = this.deliveryAreas[0].id;
+                this.selectedArea = this.deliveryAreas[0];
+            }
+        } catch {
+            this.deliveryAreas = [];
+        }
+    }
+
+    onAreaChange(): void {
+        this.selectedArea = this.deliveryAreas.find(a => a.id === this.selectedAreaId) || null;
+    }
+
+    getDeliveryFee(): number {
+        if (this.isFreeDeliveryEligible()) return 0;
+        if (this.selectedArea) return this.selectedArea.deliveryFee ?? 0;
+        if (this.deliveryAreas.length > 0) return this.deliveryAreas[0].deliveryFee ?? 0;
+        return this.defaultDeliveryFee;
+    }
+
+    isFreeDeliveryEligible(): boolean {
+        return this.cartService.cartSubtotal >= this.freeDeliveryThreshold;
+    }
+
+    getGrandTotal(): number {
+        return this.cartService.cartSubtotal + this.getDeliveryFee();
+    }
+
+    isMinOrderSatisfied(): boolean {
+        if (!this.selectedArea || !this.selectedArea.minimumOrderAmount) return true;
+        return this.cartService.cartSubtotal >= this.selectedArea.minimumOrderAmount;
     }
 
     async submitOrder(): Promise<void> {
@@ -220,11 +535,36 @@ export class OnlineProductDetailComponent implements OnInit {
 
         try {
             this.submitting = true;
+
+            const addressParts: string[] = [];
+            if (this.deliveryAddress.trim()) {
+                addressParts.push(`📍 Addr: ${this.deliveryAddress.trim()}`);
+            }
+            if (this.deliveryLandmark.trim()) {
+                addressParts.push(`🏛️ Landmark: ${this.deliveryLandmark.trim()}`);
+            }
+            if (this.googleMapsLink) {
+                addressParts.push(`🗺️ Maps: ${this.googleMapsLink}`);
+            }
+            if (this.notes.trim()) {
+                addressParts.push(`📝 Notes: ${this.notes.trim()}`);
+            }
+
+            const formattedNotes = addressParts.length > 0 ? addressParts.join(' | ').substring(0, 510) : this.notes.trim();
+
             const input: CreateCustomerOrderDto = {
                 customerName: this.customerName.trim(),
                 customerMobile: this.customerMobile.trim(),
                 branchId: this.branchId || undefined,
-                notes: this.notes.trim(),
+                notes: formattedNotes,
+                latitude: this.latitude ?? undefined,
+                longitude: this.longitude ?? undefined,
+                googleMapsLink: this.googleMapsLink ?? undefined,
+                google_maps_link: this.googleMapsLink ?? undefined,
+                deliveryAddress: this.deliveryAddress.trim() || undefined,
+                deliveryLandmark: this.deliveryLandmark.trim() || undefined,
+                deliveryAreaId: this.selectedAreaId ?? (this.selectedArea?.id || undefined),
+                paymentMethod: this.paymentMethod || 'CashOnDelivery',
                 lines: this.cartService.items.map((c) => ({
                     productId: c.productId,
                     quantity: c.quantity,
@@ -237,11 +577,24 @@ export class OnlineProductDetailComponent implements OnInit {
             this.confirmedOrderNo = createdOrder.orderNo || `ORD-${createdOrder.id}`;
             this.confirmedTotal = createdOrder.totalAmount;
 
-            // Reset cart & checkout modal
+            this.cartService.setCheckoutDraft({
+                customerName: input.customerName,
+                customerMobile: input.customerMobile,
+                deliveryAddress: input.deliveryAddress,
+                deliveryLandmark: input.deliveryLandmark,
+                paymentMethod: this.paymentMethod,
+                deliveryAreaId: input.deliveryAreaId ?? null,
+            });
+
+            // Reset cart & checkout modal (draft kept for next order / reorder)
             this.cartService.clearCart();
             this.customerName = '';
             this.customerMobile = '';
+            this.deliveryAddress = '';
+            this.deliveryLandmark = '';
             this.notes = '';
+            this.paymentMethod = 'CashOnDelivery';
+            this.clearLocation();
             this.checkoutModalVisible = false;
             this.cartService.sidebarVisible = false;
 
@@ -262,6 +615,92 @@ export class OnlineProductDetailComponent implements OnInit {
         if (!path) return 'assets/demo/images/product/placeholder.png';
         if (path.startsWith('http://') || path.startsWith('https://')) return path;
         return `${environment.apiUrl}${path.startsWith('/') ? '' : '/'}${path}`;
+    }
+
+    getProductImage(product: any): string {
+        if (product?.imagePath && !product.imagePath.includes('placeholder.png')) {
+            return this.getImageUrl(product.imagePath);
+        }
+        const text = `${product?.name || ''} ${product?.categoryName || ''} ${product?.brandName || ''} ${product?.description || ''} ${this.branchName || ''}`.toLowerCase();
+        const id = Math.abs(product?.id || 1);
+
+        if (
+            text.includes('battery') ||
+            text.includes('batteries') ||
+            text.includes('lithium') ||
+            text.includes('tubular') ||
+            text.includes('gel') ||
+            text.includes('osaka') ||
+            text.includes('phoenix') ||
+            text.includes('narada') ||
+            text.includes('volta')
+        ) {
+            const batteryImages = [
+                'https://images.unsplash.com/photo-1617788138017-80ad40651399?auto=format&fit=crop&w=800&q=80',
+                'https://images.unsplash.com/photo-1513836279014-a89f7a76ae86?auto=format&fit=crop&w=800&q=80',
+                'https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?auto=format&fit=crop&w=800&q=80',
+            ];
+            return batteryImages[id % batteryImages.length];
+        }
+
+        if (
+            text.includes('inverter') ||
+            text.includes('ups') ||
+            text.includes('inverex') ||
+            text.includes('growatt') ||
+            text.includes('fronus') ||
+            text.includes('knox') ||
+            text.includes('hybrid')
+        ) {
+            const inverterImages = [
+                'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80',
+                'https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&w=800&q=80',
+                'https://images.unsplash.com/photo-1581092580497-e0d23cbdf1dc?auto=format&fit=crop&w=800&q=80',
+            ];
+            return inverterImages[id % inverterImages.length];
+        }
+
+        if (
+            this.isRestaurant ||
+            text.includes('burger') ||
+            text.includes('pizza') ||
+            text.includes('biryani') ||
+            text.includes('tikka') ||
+            text.includes('karahi') ||
+            text.includes('kebab') ||
+            text.includes('chai') ||
+            text.includes('tea') ||
+            text.includes('soup') ||
+            text.includes('naan') ||
+            text.includes('roti') ||
+            text.includes('roll') ||
+            text.includes('food') ||
+            text.includes('dessert') ||
+            text.includes('cake') ||
+            text.includes('ice cream') ||
+            text.includes('fast food') ||
+            text.includes('drink') ||
+            text.includes('beverage')
+        ) {
+            const foodImages = [
+                'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=800&q=80',
+                'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&w=800&q=80',
+                'https://images.unsplash.com/photo-1621996346565-e3d5d628169e?auto=format&fit=crop&w=800&q=80',
+                'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?auto=format&fit=crop&w=800&q=80',
+                'https://images.unsplash.com/photo-1527477378698-4797598e5a66?auto=format&fit=crop&w=800&q=80',
+                'https://images.unsplash.com/photo-1576107232684-1279f3908594?auto=format&fit=crop&w=800&q=80',
+                'https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?auto=format&fit=crop&w=800&q=80'
+            ];
+            return foodImages[id % foodImages.length];
+        }
+
+        const solarPanelImages = [
+            'https://images.unsplash.com/photo-1509391365360-2e959784a276?auto=format&fit=crop&w=800&q=80',
+            'https://images.unsplash.com/photo-1508514177221-188b1cf16e9d?auto=format&fit=crop&w=800&q=80',
+            'https://images.unsplash.com/photo-1558449028-b53a39d100fc?auto=format&fit=crop&w=800&q=80',
+            'https://images.unsplash.com/photo-1613665813446-82a78c468a1d?auto=format&fit=crop&w=800&q=80',
+        ];
+        return solarPanelImages[id % solarPanelImages.length];
     }
 
     getInitials(name: string): string {
@@ -307,5 +746,70 @@ export class OnlineProductDetailComponent implements OnInit {
             return items.filter((i) => i.key && i.value);
         }
         return [];
+    }
+
+    copyOrderNo(orderNo: string): void {
+        if (!orderNo) return;
+        if (navigator?.clipboard?.writeText) {
+            navigator.clipboard.writeText(orderNo).then(() => {
+                this.orderCopied = true;
+                this.messageService?.add({
+                    severity: 'success',
+                    summary: 'Copied',
+                    detail: `Order number ${orderNo} copied to clipboard!`,
+                    life: 2500,
+                });
+                setTimeout(() => {
+                    this.orderCopied = false;
+                }, 2500);
+            }).catch(() => {
+                this.fallbackCopy(orderNo);
+            });
+        } else {
+            this.fallbackCopy(orderNo);
+        }
+    }
+
+    private fallbackCopy(text: string): void {
+        try {
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            textArea.style.position = 'fixed';
+            textArea.style.left = '-999999px';
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textArea);
+            this.orderCopied = true;
+            this.messageService?.add({
+                severity: 'success',
+                summary: 'Copied',
+                detail: `Order number ${text} copied to clipboard!`,
+                life: 2500,
+            });
+            setTimeout(() => {
+                this.orderCopied = false;
+            }, 2500);
+        } catch {
+            // Ignore
+        }
+    }
+
+    goToTracking(orderNo?: string): void {
+        this.successModalVisible = false;
+        let phone = '';
+        try {
+            phone = (localStorage.getItem('smartpos_customer_phone') || '').trim();
+        } catch {
+            phone = '';
+        }
+        this.router.navigate(['/online-order/history'], {
+            queryParams: {
+                ...(this.branchId ? { branchId: this.branchId } : {}),
+                ...(phone ? { phone } : {}),
+                ...(orderNo ? { orderNo } : {}),
+            },
+        });
     }
 }

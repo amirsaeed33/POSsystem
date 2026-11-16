@@ -20,6 +20,7 @@
                 inputId="supplierId"
                 [options]="suppliers"
                 [(ngModel)]="purchase.supplierId"
+                (ngModelChange)="onSupplierChange()"
                 optionLabel="name"
                 optionValue="id"
                 placeholder="Select supplier"
@@ -87,6 +88,15 @@
         <div class="col-12">
             <div class="flex align-items-center justify-content-between mb-2">
                 <h5 class="m-0">Products</h5>
+                <small class="text-500" *ngIf="purchase.supplierId && !loadingSupplierProducts && !products.length">
+                    <ng-container *ngIf="isRestaurant; else retailEmptyProducts">
+                        No Permanent Grocery products assigned to this supplier.
+                        Create products under <strong>Permanent Grocery</strong>, then use Suppliers → Assign Products.
+                    </ng-container>
+                    <ng-template #retailEmptyProducts>
+                        No products available for this branch. Add products first, or assign them to this supplier.
+                    </ng-template>
+                </small>
                 <button
                     pButton
                     pRipple

@@ -1,10 +1,12 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, BehaviorSubject, Observable } from 'rxjs';
 import { AuthenticateModel, AuthenticateResultModel } from '../api/auth';
 import { environment } from '../../../environments/environment';
 import { PermissionService } from './permission.service';
 import { TenantContextService } from './tenant-context.service';
+import { BranchContextService } from './branch-context.service';
+import { UserPresenceService } from './user-presence.service';
 
 const TOKEN_KEY = 'accessToken';
 const ENCRYPTED_TOKEN_KEY = 'encryptedAccessToken';
@@ -33,10 +35,14 @@ export class AuthService {
     private readonly sendEmailLoginCodeUrl = `${environment.apiUrl}/api/TokenAuth/SendEmailLoginCode`;
     private readonly authenticateWithEmailCodeUrl = `${environment.apiUrl}/api/TokenAuth/AuthenticateWithEmailCode`;
 
+    private readonly currentUserSubject = new BehaviorSubject<any>(this.getUserInfo());
+    public readonly currentUser$: Observable<any> = this.currentUserSubject.asObservable();
+
     constructor(
         private http: HttpClient,
         private permissionService: PermissionService,
-        private tenantContext: TenantContextService
+        private tenantContext: TenantContextService,
+        private presence: UserPresenceService
     ) {}
 
     async authenticate(model: AuthenticateModel): Promise<AuthenticateResultModel> {
@@ -46,6 +52,8 @@ export class AuthService {
                     userNameOrEmailAddress: model.userNameOrEmailAddress,
                     password: model.password,
                     rememberClient: !!model.rememberClient,
+                    latitude: model.latitude ?? null,
+                    longitude: model.longitude ?? null,
                 })
             );
 
@@ -164,6 +172,9 @@ export class AuthService {
     }
 
     logout(): void {
+        if (this.getAccessToken()) {
+            this.presence.signOut();
+        }
         localStorage.removeItem(TOKEN_KEY);
         localStorage.removeItem(ENCRYPTED_TOKEN_KEY);
         localStorage.removeItem(USER_ID_KEY);
@@ -173,15 +184,140 @@ export class AuthService {
         localStorage.removeItem('SmartPos.IsHostAdmin');
         this.tenantContext.setTenantId(undefined);
         this.permissionService.clear();
+        this.currentUserSubject.next(null);
     }
 
     setUserInfo(userInfo: any): void {
         localStorage.setItem(USER_INFO_KEY, JSON.stringify(userInfo));
+        this.currentUserSubject.next(userInfo);
     }
 
     getUserInfo(): any {
         const userInfo = localStorage.getItem(USER_INFO_KEY);
         return userInfo ? JSON.parse(userInfo) : null;
+    }
+
+    isDeliveryRider(): boolean {
+        const user = this.getUserInfo();
+        if (!user) {
+            return false;
+        }
+        if (user.isDeliveryRider) {
+            return true;
+        }
+        if (user.roleNames && Array.isArray(user.roleNames) && user.roleNames.some((r: string) => r && r.toLowerCase().includes('rider'))) {
+            return true;
+        }
+        if (user.designation && (user.designation.toLowerCase().includes('rider') || user.designation.toLowerCase().includes('delivery'))) {
+            return true;
+        }
+        return false;
+    }
+
+    isWaiter(): boolean {
+        const user = this.getUserInfo();
+        if (!user) {
+            return false;
+        }
+        if (user.isWaiter) {
+            return true;
+        }
+        if (user.roles && Array.isArray(user.roles) && user.roles.some((r: string) => r && r.toLowerCase().includes('waiter'))) {
+            return true;
+        }
+        if (user.roleNames && Array.isArray(user.roleNames) && user.roleNames.some((r: string) => r && r.toLowerCase().includes('waiter'))) {
+            return true;
+        }
+        if (user.designation && (user.designation.toLowerCase().includes('waiter') || user.designation.toLowerCase().includes('server'))) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * True for Admin / Super Admin / other back-office staff (not rider, waiter, or storefront-only customer).
+     */
+    isAdminOrStaff(): boolean {
+        if (!this.isAuthenticated() || this.isDeliveryRider() || this.isWaiter()) {
+            return false;
+        }
+        const user = this.getUserInfo();
+        if (!user) {
+            return false;
+        }
+        const roleMatch = (r: string) =>
+            !!r &&
+            (r.toLowerCase().includes('admin') ||
+                r.toLowerCase().includes('manager') ||
+                r.toLowerCase().includes('cashier') ||
+                r.toLowerCase().includes('staff') ||
+                r.toLowerCase() === 'user');
+        if (user.roles && Array.isArray(user.roles) && user.roles.some(roleMatch)) {
+            return true;
+        }
+        if (user.roleNames && Array.isArray(user.roleNames) && user.roleNames.some(roleMatch)) {
+            return true;
+        }
+        if (BranchContextService.isHostAdminSession()) {
+            return true;
+        }
+        // Back-office sessions have granted permissions; storefront customers usually do not.
+        return this.permissionService.isGranted('Pages.Users')
+            || this.permissionService.isGranted('Pages.Products')
+            || this.permissionService.isGranted('Pages.Tenants')
+            || this.permissionService.isGranted('Pages.CustomerOrders');
+    }
+
+    /** True when logo/home should open a staff portal (not the public storefront). */
+    isStaffPortalUser(): boolean {
+        return this.isDeliveryRider() || this.isWaiter() || this.isAdminOrStaff();
+    }
+
+    /**
+     * Role home: rider → rider dashboard, waiter → POS, admin/super admin → SaaS dashboard, customer/guest → online order.
+     */
+    getHomeRoute(): string {
+        if (this.isDeliveryRider()) {
+            return '/rider/dashboard';
+        }
+        if (this.isWaiter()) {
+            return '/waiter/dashboard';
+        }
+        if (this.isAdminOrStaff()) {
+            return '/dashboard';
+        }
+        return '/online-order';
+    }
+
+    getPrinterIdentity(): { id: number; name: string; role: string; text: string; time: Date } {
+        const user = this.getUserInfo();
+        const id = user?.id || 0;
+        let name = '';
+        if (user?.name) {
+            name = `${user.name} ${user.surname || ''}`.trim();
+        }
+        if (!name) {
+            name = user?.userName || 'Staff';
+        }
+        let role = 'Staff';
+        if (this.isWaiter()) {
+            role = 'Waiter';
+        } else if (
+            (user?.roles && Array.isArray(user.roles) && user.roles.some((r: string) => r && r.toLowerCase().includes('admin'))) ||
+            (user?.roleNames && Array.isArray(user.roleNames) && user.roleNames.some((r: string) => r && r.toLowerCase().includes('admin')))
+        ) {
+            role = 'Admin';
+        } else if (user?.designation) {
+            role = user.designation;
+        }
+        const time = new Date();
+        return {
+            id,
+            name,
+            role,
+            text: `Printed By: ${name} (${role})`,
+            time
+        };
     }
 
     private persistAuthResult(res: any, fallbackMessage: string): AuthenticateResultModel {
@@ -245,6 +381,8 @@ export class AuthService {
             userId,
             tenantId,
             tenancyName,
+            attendanceAutoCheckedIn:
+                !!(result.attendanceAutoCheckedIn ?? result.AttendanceAutoCheckedIn),
         };
     }
 

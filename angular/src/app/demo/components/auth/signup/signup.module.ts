@@ -6,7 +6,6 @@ import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { RippleModule } from 'primeng/ripple';
 import { ToastModule } from 'primeng/toast';
-import { AppConfigModule } from 'src/app/layout/config/config.module';
 import { SignupRoutingModule } from './signup-routing.module';
 import { SignupComponent } from './signup.component';
 
@@ -21,7 +20,6 @@ import { SignupComponent } from './signup.component';
         InputTextModule,
         RippleModule,
         ToastModule,
-        AppConfigModule,
     ],
     declarations: [SignupComponent],
 })

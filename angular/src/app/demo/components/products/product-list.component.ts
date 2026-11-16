@@ -8,6 +8,25 @@ import { PermissionNames } from 'src/app/demo/api/permission-names';
 import { PermissionService } from 'src/app/demo/service/permission.service';
 import { RowActionItem } from 'src/app/shared/components/row-actions/row-actions.component';
 
+import {
+    ProductModifierGroupDto,
+    ProductModifierOptionDto,
+} from 'src/app/demo/api/product-modifier';
+import { ProductModifierService } from 'src/app/demo/service/product-modifier.service';
+
+import { BranchContextService } from 'src/app/demo/service/branch-context.service';
+import { CategoryService } from 'src/app/demo/service/category.service';
+import { DealService } from 'src/app/demo/service/deal.service';
+import { CreateDealDto, UpdateDealDto, DealDto } from 'src/app/demo/api/deal';
+
+export interface DealAddedItem {
+    product: ProductDto;
+    quantity: number;
+    unitPrice: number;
+    selectedOptionIds: number[];
+    selectedOptionLabels: string[];
+}
+
 @Component({
     templateUrl: './product-list.component.html',
     styleUrls: ['./product-list.component.scss'],
@@ -18,6 +37,13 @@ export class ProductListComponent implements OnInit {
     loading = false;
     totalRecords = 0;
     keyword = '';
+    /** null = all categories */
+    selectedCategoryId: number | null = null;
+    categoryOptions: { label: string; value: number | null }[] = [
+        { label: 'All categories', value: null },
+    ];
+    /** 0 = Products tab, 1 = Deals tab (restaurant). */
+    activeListTab = 0;
 
     dialogVisible = false;
     editingProductId: number | null = null;
@@ -30,13 +56,127 @@ export class ProductListComponent implements OnInit {
     barcodeTargetProduct: ProductDto | null = null;
     selectedProducts: ProductDto[] = [];
 
+    // Product Modifiers management
+    modifierDialogVisible = false;
+    modifierTargetProduct: ProductDto | null = null;
+    loadingModifiers = false;
+    modifierGroups: ProductModifierGroupDto[] = [];
+    newGroupName = '';
+    newGroupIsRequired = false;
+    newGroupAllowMultiple = true;
+    creatingGroup = false;
+    newOptionName: Record<number, string> = {};
+    /** null/undefined = empty → use product sale price; 0 = Free. */
+    newOptionPrice: Record<number, number | null> = {};
+    addingOption: Record<number, boolean> = {};
+    readonly sizeQuickOptions = ['Small', 'Medium', 'Large', 'XL'];
+
+    // Deal Management (Restaurant only)
+    dealDialogVisible = false;
+    editingDealId: number | null = null;
+    dealName = '';
+    dealPrice: number | null = null;
+    dealExpiryDate = '';
+    dealCategoryId: number | null = null;
+    dealCategoryType = 'Deals';
+    dealCategoryOptions: { label: string; value: number }[] = [];
+    dealDescription = '';
+    dealProductSearch = '';
+    dealImagePreview = '';
+    dealImageBase64: string | undefined;
+    /** Catalog rows (not yet / already addable). */
+    availableDealProducts: { product: ProductDto }[] = [];
+    /** Products confirmed into the deal (with options). */
+    dealAddedItems: DealAddedItem[] = [];
+    savingDeal = false;
+
+    dealOptionDialogVisible = false;
+    dealOptionLoading = false;
+    dealOptionProduct: ProductDto | null = null;
+    dealOptionGroups: ProductModifierGroupDto[] = [];
+    dealOptionSelections: Record<number, number[]> = {};
+    dealOptionAdding = false;
+
+    viewDealDialogVisible = false;
+    selectedDealDetails: DealDto | null = null;
+    loadingDealDetails = false;
+
     canCreate = false;
     canEdit = false;
     canDelete = false;
+    togglingVisibleOnlineId: number | null = null;
+
+    get isRestaurant(): boolean {
+        return this.branchContext.isRestaurant();
+    }
+
+    get isDealsTab(): boolean {
+        return this.isRestaurant && this.activeListTab === 1;
+    }
+
+    /** Products shown in the active tab (deals filtered out of Products tab). */
+    get listProducts(): ProductDto[] {
+        if (!this.isRestaurant) {
+            return this.products;
+        }
+        if (this.isDealsTab) {
+            return this.products.filter((p) => this.isDealProduct(p));
+        }
+        return this.products.filter((p) => !this.isDealProduct(p));
+    }
+
+    get productsTabCount(): number {
+        return this.products.filter((p) => !this.isDealProduct(p)).length;
+    }
+
+    get dealsTabCount(): number {
+        return this.products.filter((p) => this.isDealProduct(p)).length;
+    }
+
+    onListTabChange(index: number): void {
+        this.activeListTab = index;
+        this.selectedProducts = [];
+        this.keyword = '';
+        this.selectedCategoryId = null;
+        this.totalRecords = this.listProducts.length;
+        if (!this.isDealsTab) {
+            this.loadProducts();
+        }
+    }
+
+    /** Legacy locked single Grocery product (not editable). */
+    isGroceryProduct(product: ProductDto): boolean {
+        if (!product) return false;
+        return (
+            (product.barcode || '').startsWith('GROCERY-') ||
+            (product.name || '').trim().toLowerCase() === 'grocery'
+        );
+    }
+
+    isPermanentGroceryCategory(product: ProductDto): boolean {
+        return (
+            (product?.categoryName || '').trim().toLowerCase() ===
+            'permanent grocery'
+        );
+    }
+
+    isGroceryInventoryItem(product: ProductDto): boolean {
+        if (!product) return false;
+        const catName = (product.categoryName || '').trim().toLowerCase();
+        return (
+            this.isGroceryProduct(product) ||
+            catName === 'permanent grocery' ||
+            catName.includes('grocery')
+        );
+    }
 
     constructor(
         private productService: ProductService,
+        private productModifierService: ProductModifierService,
+        private categoryService: CategoryService,
+        private dealService: DealService,
         private permissionService: PermissionService,
+        private branchContext: BranchContextService,
         private messageService: MessageService,
         private confirmationService: ConfirmationService
     ) {}
@@ -60,20 +200,53 @@ export class ProductListComponent implements OnInit {
     }
 
     getRowActions(product: ProductDto): RowActionItem[] {
-        const actions: RowActionItem[] = [
-            {
+        if (this.isGroceryProduct(product)) {
+            return []; // Permanent grocery entry: non-editable, non-deletable
+        }
+
+        const actions: RowActionItem[] = [];
+
+        if (!this.isRestaurant) {
+            actions.push({
                 label: 'Print barcode',
                 icon: 'pi pi-print',
                 color: 'blue',
                 action: () => this.openBarcodeDialog(product)
-            }
-        ];
-        if (this.canEdit) {
+            });
+        }
+
+        if (this.isDealProduct(product)) {
             actions.push({
-                label: 'Edit',
+                label: 'Edit Deal & Products',
                 icon: 'pi pi-pencil',
                 color: 'blue',
-                action: () => this.openEditDialog(product)
+                action: () => this.openEditDealDialog(product)
+            });
+            actions.push({
+                label: 'View Deal Items',
+                icon: 'pi pi-bolt',
+                color: 'blue',
+                action: () => this.openViewDealDialog(product)
+            });
+        }
+
+        if (this.isRestaurant && !this.isDealProduct(product)) {
+            actions.push({
+                label: 'Modifiers & Add-ons',
+                icon: 'pi pi-list',
+                color: 'blue',
+                action: () => this.openModifierDialog(product)
+            });
+        }
+        if (this.canEdit) {
+            actions.push({
+                label: this.isDealProduct(product) ? 'Edit Product Details' : 'Edit',
+                icon: 'pi pi-pencil',
+                color: 'blue',
+                action: () => {
+                    this.editingProductId = product.id;
+                    this.dialogVisible = true;
+                }
             });
         }
         if (this.canDelete) {
@@ -87,24 +260,279 @@ export class ProductListComponent implements OnInit {
         return actions;
     }
 
+
+    isPizzaProduct(product?: any): boolean {
+        if (!product) return false;
+        const cat = (product.categoryName || '').trim().toLowerCase();
+        if (cat.includes('pizza')) return true;
+        const name = (product.name || '').trim().toLowerCase();
+        if (name.includes('pizza')) return true;
+        return false;
+    }
+
+    /**
+     * Pricing rules for size/options:
+     * - empty box → included in sale (no "+" when customer selects)
+     * - 0 → Free
+     * - any typed > 0 (even equal to sale) → "+ price" extra when selected
+     */
+    isModifierIncludedOption(option: {
+        price?: number | null;
+        isIncludedInBasePrice?: boolean;
+    } | null | undefined): boolean {
+        return !!option?.isIncludedInBasePrice;
+    }
+
+    formatModifierOptionPrice(option: {
+        price?: number | null;
+        isIncludedInBasePrice?: boolean;
+    } | null | undefined): string {
+        const price = Number(option?.price) || 0;
+        if (price <= 0) {
+            return 'Free';
+        }
+        if (this.isModifierIncludedOption(option)) {
+            return price.toFixed(2);
+        }
+        return `+ ${price.toFixed(2)}`;
+    }
+
+    isNewOptionPriceEmpty(groupId: number): boolean {
+        const raw = this.newOptionPrice[groupId];
+        return raw === null || raw === undefined || (typeof raw === 'number' && Number.isNaN(raw));
+    }
+
+    isSizeModifierGroup(group: ProductModifierGroupDto | null | undefined): boolean {
+        const name = (group?.name || '').trim().toLowerCase();
+        return name.includes('size') || name.includes('portion');
+    }
+
+    applySizeChip(groupId: number, size: string): void {
+        this.newOptionName[groupId] = size;
+        setTimeout(() => {
+            const input = document.getElementById(
+                `modifier-option-price-${groupId}`
+            ) as HTMLInputElement | null;
+            input?.focus();
+            input?.select?.();
+        }, 0);
+    }
+
+    async openModifierDialog(product: ProductDto): Promise<void> {
+        this.modifierTargetProduct = product;
+        this.modifierDialogVisible = true;
+        this.newGroupName = '';
+        this.newGroupIsRequired = false;
+        this.newGroupAllowMultiple = true;
+        await this.loadModifiers(product.id);
+    }
+
+    async loadModifiers(productId: number): Promise<void> {
+        this.loadingModifiers = true;
+        try {
+            this.modifierGroups = await this.productModifierService.getByProduct(productId);
+            for (const group of this.modifierGroups || []) {
+                // Leave price empty (null) so Add Option can default to product sale price.
+                if (this.newOptionPrice[group.id] === undefined) {
+                    this.newOptionPrice[group.id] = null;
+                }
+                if (this.newOptionName[group.id] === undefined) {
+                    this.newOptionName[group.id] = '';
+                }
+            }
+        } catch (err: any) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: err?.message || 'Failed to load modifiers',
+            });
+        } finally {
+            this.loadingModifiers = false;
+        }
+    }
+
+    async createModifierGroup(): Promise<void> {
+        if (!this.modifierTargetProduct || !this.newGroupName?.trim()) return;
+        this.creatingGroup = true;
+        try {
+            await this.productModifierService.createGroup({
+                productId: this.modifierTargetProduct.id,
+                name: this.newGroupName.trim(),
+                isRequired: this.newGroupIsRequired,
+                minSelection: this.newGroupIsRequired ? 1 : 0,
+                maxSelection: this.newGroupAllowMultiple ? 10 : 1,
+                options: [],
+            });
+            this.newGroupName = '';
+            this.newGroupIsRequired = false;
+            this.newGroupAllowMultiple = true;
+            await this.loadModifiers(this.modifierTargetProduct.id);
+            this.messageService.add({
+                severity: 'success',
+                summary: 'Created',
+                detail: 'Modifier group added',
+            });
+        } catch (err: any) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: err?.message || 'Failed to create group',
+            });
+        } finally {
+            this.creatingGroup = false;
+        }
+    }
+
+    async deleteModifierGroup(groupId: number): Promise<void> {
+        if (!this.modifierTargetProduct) return;
+        try {
+            await this.productModifierService.deleteGroup(groupId);
+            await this.loadModifiers(this.modifierTargetProduct.id);
+            this.messageService.add({
+                severity: 'info',
+                summary: 'Deleted',
+                detail: 'Modifier group deleted',
+            });
+        } catch (err: any) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: err?.message || 'Failed to delete group',
+            });
+        }
+    }
+
+    async addModifierOption(groupId: number): Promise<void> {
+        const name = (this.newOptionName[groupId] || '').trim();
+        if (!name || !this.modifierTargetProduct) return;
+
+        // Empty price → product sale (included, no "+"). Typed amount (even sale) → +extra.
+        // Explicit 0 → Free.
+        const rawPrice = this.newOptionPrice[groupId];
+        const isEmpty =
+            rawPrice === null ||
+            rawPrice === undefined ||
+            (typeof rawPrice === 'number' && Number.isNaN(rawPrice));
+        const sale = Number(this.modifierTargetProduct.price);
+        const salePrice = Number.isFinite(sale) && sale > 0 ? sale : 0;
+        let price: number;
+        let isIncludedInBasePrice = false;
+        if (isEmpty) {
+            price = salePrice;
+            isIncludedInBasePrice = true;
+        } else {
+            const parsed = Number(rawPrice);
+            price = Number.isFinite(parsed) ? Math.max(0, parsed) : 0;
+            isIncludedInBasePrice = false;
+        }
+
+        this.addingOption[groupId] = true;
+        try {
+            await this.productModifierService.addOption(groupId, {
+                name,
+                price,
+                extraPrice: price,
+                isIncludedInBasePrice,
+            });
+            this.newOptionName[groupId] = '';
+            this.newOptionPrice[groupId] = null;
+            await this.loadModifiers(this.modifierTargetProduct.id);
+            this.messageService.add({
+                severity: 'success',
+                summary: 'Added',
+                detail: 'Option added',
+            });
+        } catch (err: any) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: err?.message || 'Failed to add option',
+            });
+        } finally {
+            this.addingOption[groupId] = false;
+        }
+    }
+
+    async deleteModifierOption(optionId: number): Promise<void> {
+        if (!this.modifierTargetProduct) return;
+        try {
+            await this.productModifierService.deleteOption(optionId);
+            await this.loadModifiers(this.modifierTargetProduct.id);
+            this.messageService.add({
+                severity: 'info',
+                summary: 'Deleted',
+                detail: 'Option removed',
+            });
+        } catch (err: any) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: err?.message || 'Failed to delete option',
+            });
+        }
+    }
+
     ngOnInit(): void {
         this.canCreate = this.permissionService.isGranted(PermissionNames.ProductsCreate);
         this.canEdit = this.permissionService.isGranted(PermissionNames.ProductsEdit);
         this.canDelete = this.permissionService.isGranted(PermissionNames.ProductsDelete);
+        void this.loadCategories();
         this.loadProducts();
     }
 
-    loadProducts(): void {
+    private async loadCategories(): Promise<void> {
+        try {
+            const categories = await this.categoryService.getLookup();
+            const mapped = (categories || []).map((c) => ({
+                label: c.name,
+                value: c.id,
+            }));
+            this.categoryOptions = [
+                { label: 'All categories', value: null },
+                ...mapped,
+            ];
+            this.dealCategoryOptions = mapped;
+            this.ensureDefaultDealCategory();
+        } catch {
+            this.categoryOptions = [{ label: 'All categories', value: null }];
+            this.dealCategoryOptions = [];
+        }
+    }
+
+    private ensureDefaultDealCategory(): void {
+        if (this.dealCategoryId) {
+            return;
+        }
+        const deals = this.dealCategoryOptions.find((c) =>
+            (c.label || '').trim().toLowerCase().startsWith('deal')
+        );
+        if (deals) {
+            this.dealCategoryId = deals.value;
+            this.dealCategoryType = deals.label;
+        }
+    }
+
+    onDealCategoryChange(categoryId: number | null): void {
+        this.dealCategoryId = categoryId;
+        const match = this.dealCategoryOptions.find((c) => c.value === categoryId);
+        this.dealCategoryType = match?.label || 'Deals';
+    }
+
+    loadProducts(forceRefresh = false): void {
         this.loading = true;
         this.productService
-            .getAll({
-                keyword: this.keyword?.trim() || undefined,
-                skipCount: 0,
-                maxResultCount: 1000,
-            })
+            .getAll(
+                {
+                    keyword: this.keyword?.trim() || undefined,
+                    categoryId: this.selectedCategoryId || undefined,
+                    skipCount: 0,
+                    maxResultCount: 1000,
+                },
+                forceRefresh
+            )
             .then((result) => {
-                this.products = result.items;
-                this.totalRecords = result.totalCount;
+                this.products = result.items || [];
+                this.totalRecords = this.listProducts.length;
             })
             .catch((error) => {
                 this.messageService.add({
@@ -122,12 +550,49 @@ export class ProductListComponent implements OnInit {
         this.loadProducts();
     }
 
+    onCategoryFilterChange(): void {
+        this.loadProducts(true);
+    }
+
+    async onVisibleOnlineToggle(product: ProductDto, checked: boolean): Promise<void> {
+        if (!product?.id || !this.canEdit || this.isGroceryProduct(product)) {
+            return;
+        }
+
+        const previous = product.isVisibleOnline !== false;
+        product.isVisibleOnline = checked;
+        this.togglingVisibleOnlineId = product.id;
+        try {
+            await this.productService.setVisibleOnline(product.id, checked);
+            this.messageService.add({
+                severity: 'success',
+                summary: 'Updated',
+                detail: checked
+                    ? `"${product.name}" is visible on the online store`
+                    : `"${product.name}" is hidden from the online store`,
+            });
+        } catch (error: any) {
+            product.isVisibleOnline = previous;
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: error?.message || 'Failed to update online visibility',
+            });
+        } finally {
+            this.togglingVisibleOnlineId = null;
+        }
+    }
+
     onGlobalFilter(table: Table, event: Event): void {
         table.filterGlobal((event.target as HTMLInputElement).value, 'contains');
     }
 
     getImageUrl(product: ProductDto): string {
         return this.productService.getImageUrl(product.imagePath);
+    }
+
+    getDealImageUrl(imagePath?: string): string {
+        return this.productService.getImageUrl(imagePath);
     }
 
     getProductInitials(name?: string | null): string {
@@ -161,6 +626,10 @@ export class ProductListComponent implements OnInit {
     }
 
     openEditDialog(product: ProductDto): void {
+        if (this.isRestaurant && this.isDealProduct(product)) {
+            this.openEditDealDialog(product);
+            return;
+        }
         this.editingProductId = product.id;
         this.dialogVisible = true;
     }
@@ -198,6 +667,49 @@ export class ProductListComponent implements OnInit {
     }
 
     downloadExcelTemplate(): void {
+        if (this.isRestaurant) {
+            const restaurantSampleData = [
+                {
+                    'Product Name': 'Chicken Biryani Special',
+                    'Category Name': 'Main Course',
+                    'Unit Name': 'Plate',
+                    'Price (PKR)': 450,
+                    'Plate Cost (PKR)': 180,
+                    'Description': 'Aromatic basmati rice cooked with tender spiced chicken'
+                },
+                {
+                    'Product Name': 'Zinger Burger Meal',
+                    'Category Name': 'Fast Food',
+                    'Unit Name': 'Pcs',
+                    'Price (PKR)': 550,
+                    'Plate Cost (PKR)': 220,
+                    'Description': 'Crispy fried chicken fillet with fries and coleslaw'
+                },
+                {
+                    'Product Name': 'Chicken Karahi Half',
+                    'Category Name': 'Main Course',
+                    'Unit Name': 'Serving',
+                    'Price (PKR)': 1100,
+                    'Plate Cost (PKR)': 650,
+                    'Description': 'Desi ghee cooked fresh chicken karahi'
+                },
+                {
+                    'Product Name': 'Mint Margarita',
+                    'Category Name': 'Beverages',
+                    'Unit Name': 'Glass',
+                    'Price (PKR)': 220,
+                    'Plate Cost (PKR)': 40,
+                    'Description': 'Fresh mint, lemon, and soda blended drink'
+                }
+            ];
+
+            const worksheet = XLSX.utils.json_to_sheet(restaurantSampleData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Restaurant_Menu');
+            XLSX.writeFile(workbook, 'Restaurant_Menu_Template.xlsx');
+            return;
+        }
+
         const sampleData = [
             {
                 'Product Name': 'Sample Shampoo 200ml',
@@ -261,14 +773,23 @@ export class ProductListComponent implements OnInit {
                     Name: r['Product Name'] || r['Name'] || r['name'] || '',
                     Barcode: String(r['Barcode'] || r['barcode'] || ''),
                     Price: Number(r['Price (PKR)'] || r['Price'] || r['price'] || 0),
-                    WholesalePrice: Number(r['Wholesale Price (PKR)'] || r['WholesalePrice'] || r['wholesalePrice'] || 0),
-                    CostPrice: Number(r['Purchase Price (PKR)'] || r['Cost Price (PKR)'] || r['CostPrice'] || r['costPrice'] || 0),
-                    StockQuantity: Number(r['Stock Quantity'] || r['StockQuantity'] || r['stockQuantity'] || 0),
-                    AlertQuantityLimit: Number(r['Alert Limit'] || r['AlertQuantityLimit'] || r['alertQuantityLimit'] || 10),
+                    WholesalePrice: this.isRestaurant ? 0 : Number(r['Wholesale Price (PKR)'] || r['WholesalePrice'] || r['wholesalePrice'] || 0),
+                    CostPrice: this.isRestaurant
+                        ? Number(
+                              r['Plate Cost (PKR)'] ||
+                                  r['Purchase Price (PKR)'] ||
+                                  r['Cost Price (PKR)'] ||
+                                  r['CostPrice'] ||
+                                  r['costPrice'] ||
+                                  0
+                          )
+                        : Number(r['Purchase Price (PKR)'] || r['Cost Price (PKR)'] || r['CostPrice'] || r['costPrice'] || 0),
+                    StockQuantity: this.isRestaurant ? 0 : Number(r['Stock Quantity'] || r['StockQuantity'] || r['stockQuantity'] || 0),
+                    AlertQuantityLimit: this.isRestaurant ? 0 : Number(r['Alert Limit'] || r['AlertQuantityLimit'] || r['alertQuantityLimit'] || 10),
                     CategoryName: r['Category Name'] || r['Category'] || r['category'] || '',
-                    BrandName: r['Brand Name'] || r['Brand'] || r['brand'] || '',
+                    BrandName: this.isRestaurant ? '' : (r['Brand Name'] || r['Brand'] || r['brand'] || ''),
                     UnitName: r['Unit Name'] || r['Unit'] || r['unit'] || '',
-                    Location: r['Location'] || r['location'] || '',
+                    Location: this.isRestaurant ? '' : (r['Location'] || r['location'] || ''),
                     Description: r['Description'] || r['description'] || ''
                 }));
 
@@ -302,5 +823,497 @@ export class ProductListComponent implements OnInit {
             }
         };
         reader.readAsArrayBuffer(file);
+    }
+
+    isDealProduct(product?: ProductDto | null): boolean {
+        if (!product) return false;
+        return !!(
+            product.isDeal ||
+            product.dealId ||
+            (product.categoryName || '').trim().toLowerCase() === 'deals' ||
+            (product.barcode || '').startsWith('DEAL-')
+        );
+    }
+
+    openCreateDealDialog(): void {
+        this.editingDealId = null;
+        this.dealName = '';
+        this.dealPrice = null;
+        this.dealExpiryDate = '';
+        this.dealCategoryId = null;
+        this.dealCategoryType = 'Deals';
+        this.ensureDefaultDealCategory();
+        this.dealDescription = '';
+        this.dealProductSearch = '';
+        this.dealImagePreview = '';
+        this.dealImageBase64 = undefined;
+        this.dealAddedItems = [];
+        this.availableDealProducts = this.products
+            .filter((p) => !this.isGroceryInventoryItem(p) && !this.isDealProduct(p))
+            .map((p) => ({ product: p }));
+        this.dealDialogVisible = true;
+    }
+
+    onDealImageSelected(event: Event): void {
+        const input = event.target as HTMLInputElement;
+        if (!input.files?.length) {
+            return;
+        }
+        const file = input.files[0];
+        const reader = new FileReader();
+        reader.onload = () => {
+            const result = reader.result as string;
+            if (!result?.startsWith('data:image')) {
+                return;
+            }
+            this.dealImagePreview = result;
+            this.dealImageBase64 = result;
+        };
+        reader.readAsDataURL(file);
+        input.value = '';
+    }
+
+    clearDealImage(): void {
+        this.dealImagePreview = '';
+        this.dealImageBase64 = undefined;
+    }
+
+    async openEditDealDialog(product: ProductDto): Promise<void> {
+        this.dealProductSearch = '';
+        this.savingDeal = false;
+        try {
+            let deal: DealDto | null = null;
+            if (product.dealId) {
+                deal = await this.dealService.get(product.dealId);
+            } else {
+                deal = await this.dealService.getByProductId(product.id);
+            }
+
+            if (!deal) {
+                this.messageService.add({
+                    severity: 'error',
+                    summary: 'Error',
+                    detail: 'Deal details could not be found.',
+                });
+                return;
+            }
+
+            this.editingDealId = deal.id;
+            this.dealName = deal.name || product.name || '';
+            this.dealPrice = deal.dealPrice ?? product.price ?? 0;
+            this.dealExpiryDate = deal.expiryDate ? this.toDateInputValue(deal.expiryDate) : '';
+            this.dealCategoryId = deal.categoryId || null;
+            this.dealCategoryType = deal.categoryName || deal.categoryType || 'Deals';
+            if (!this.dealCategoryId) {
+                this.ensureDefaultDealCategory();
+            }
+            this.dealDescription = deal.description || product.description || '';
+            this.dealImageBase64 = undefined;
+            this.dealImagePreview =
+                this.productService.getImageUrl(deal.imagePath || product.imagePath) || '';
+
+            const dealProductIds = new Set((deal.items || []).map((it) => it.productId));
+            this.availableDealProducts = this.products
+                .filter(
+                    (p) =>
+                        !this.isGroceryInventoryItem(p) &&
+                        p.id !== product.id &&
+                        (!this.isDealProduct(p) || dealProductIds.has(p.id))
+                )
+                .map((p) => ({ product: p }));
+
+            this.dealAddedItems = (deal.items || []).map((it) => {
+                const prod =
+                    this.products.find((p) => p.id === it.productId) ||
+                    ({
+                        id: it.productId,
+                        name: it.productName || `Product #${it.productId}`,
+                        price: it.unitPrice,
+                    } as ProductDto);
+                const optionIds = (it.selectedOptionIds || '')
+                    .split(',')
+                    .map((x) => Number(x.trim()))
+                    .filter((n) => Number.isFinite(n) && n > 0);
+                const labels = (it.selectedModifiers || '')
+                    .split(',')
+                    .map((x) => x.trim())
+                    .filter(Boolean);
+                return {
+                    product: prod,
+                    quantity: Number(it.quantity) || 1,
+                    unitPrice: Number(it.unitPrice) || Number(prod.price) || 0,
+                    selectedOptionIds: optionIds,
+                    selectedOptionLabels: labels,
+                };
+            });
+
+            this.dealDialogVisible = true;
+        } catch (err: any) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: err?.message || 'Failed to open deal for editing.',
+            });
+        }
+    }
+
+    editCurrentDealFromView(): void {
+        if (!this.selectedDealDetails) return;
+        const deal = this.selectedDealDetails;
+        this.viewDealDialogVisible = false;
+        const matchingProduct = this.products.find(
+            (p) => p.id === deal.productId || p.dealId === deal.id
+        );
+        if (matchingProduct) {
+            this.openEditDealDialog(matchingProduct);
+        } else {
+            const pseudo: any = {
+                id: deal.productId || 0,
+                dealId: deal.id,
+                name: deal.name,
+                price: deal.dealPrice,
+                description: deal.description,
+                isDeal: true,
+            };
+            this.openEditDealDialog(pseudo);
+        }
+    }
+
+    private toDateInputValue(dateVal: any): string {
+        try {
+            const d = new Date(dateVal);
+            if (isNaN(d.getTime())) return '';
+            const year = d.getFullYear();
+            const month = `${d.getMonth() + 1}`.padStart(2, '0');
+            const day = `${d.getDate()}`.padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        } catch {
+            return '';
+        }
+    }
+
+    get selectedDealItems(): DealAddedItem[] {
+        return (this.dealAddedItems || []).filter((x) => x.quantity > 0);
+    }
+
+    get totalDealOriginalPrice(): number {
+        return this.selectedDealItems.reduce(
+            (sum, x) => sum + (Number(x.unitPrice) || 0) * (Number(x.quantity) || 0),
+            0
+        );
+    }
+
+    get filteredAvailableProducts(): { product: ProductDto }[] {
+        // Keep catalog rows visible even after add — same product can be added again with other options.
+        const available = (this.availableDealProducts || []).filter(
+            (x) => !this.isGroceryInventoryItem(x.product)
+        );
+        if (!this.dealProductSearch?.trim()) {
+            return available;
+        }
+        const q = this.dealProductSearch.trim().toLowerCase();
+        return available.filter(
+            (x) =>
+                (x.product.name || '').toLowerCase().includes(q) ||
+                (x.product.categoryName || '').toLowerCase().includes(q)
+        );
+    }
+
+    private sameDealOptionSet(a: number[], b: number[]): boolean {
+        if (a.length !== b.length) {
+            return false;
+        }
+        const left = [...a].sort((x, y) => x - y);
+        const right = [...b].sort((x, y) => x - y);
+        return left.every((id, i) => id === right[i]);
+    }
+
+    async startAddDealProduct(product: ProductDto): Promise<void> {
+        if (!product?.id) {
+            return;
+        }
+
+        this.dealOptionProduct = product;
+        this.dealOptionSelections = {};
+        this.dealOptionGroups = [];
+        this.dealOptionLoading = true;
+        this.dealOptionDialogVisible = true;
+        try {
+            const groups = await this.productModifierService.getByProduct(product.id);
+            this.dealOptionGroups = groups || [];
+            if (!this.dealOptionGroups.length) {
+                this.dealOptionDialogVisible = false;
+                this.commitDealProduct(product, [], []);
+                return;
+            }
+            for (const g of this.dealOptionGroups) {
+                this.dealOptionSelections[g.id] = [];
+            }
+        } catch (err: any) {
+            this.dealOptionDialogVisible = false;
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Options',
+                detail: err?.message || 'Failed to load product options',
+            });
+        } finally {
+            this.dealOptionLoading = false;
+        }
+    }
+
+    isDealOptionSelected(groupId: number, optionId: number): boolean {
+        return (this.dealOptionSelections[groupId] || []).includes(optionId);
+    }
+
+    isDealOptionGroupSingle(group: ProductModifierGroupDto): boolean {
+        if (!group) return false;
+        if (group.maxSelection === 1 || group.allowMultiple === false) return true;
+        const name = (group.name || '').trim().toLowerCase();
+        return name.includes('size') || name.includes('portion');
+    }
+
+    toggleDealBuildOption(group: ProductModifierGroupDto, option: ProductModifierOptionDto): void {
+        if (!group?.id || !option?.id) return;
+        const current = [...(this.dealOptionSelections[group.id] || [])];
+        const idx = current.indexOf(option.id);
+        if (this.isDealOptionGroupSingle(group)) {
+            this.dealOptionSelections[group.id] = idx >= 0 ? [] : [option.id];
+            return;
+        }
+        if (idx >= 0) {
+            current.splice(idx, 1);
+        } else {
+            current.push(option.id);
+        }
+        this.dealOptionSelections[group.id] = current;
+    }
+
+    private isIncludedModifierOption(option: ProductModifierOptionDto): boolean {
+        return !!option?.isIncludedInBasePrice;
+    }
+
+    formatDealBuildOptionPrice(option: ProductModifierOptionDto): string {
+        const price = Number(option?.price) || 0;
+        if (price <= 0) return 'Free';
+        if (this.isIncludedModifierOption(option)) return price.toFixed(2);
+        return `+ ${price.toFixed(2)}`;
+    }
+
+    confirmDealProductOptions(): void {
+        const product = this.dealOptionProduct;
+        if (!product) return;
+
+        for (const g of this.dealOptionGroups) {
+            if (g.isRequired && !(this.dealOptionSelections[g.id] || []).length) {
+                this.messageService.add({
+                    severity: 'warn',
+                    summary: 'Required',
+                    detail: `Please select an option for "${g.name}".`,
+                });
+                return;
+            }
+        }
+
+        const optionIds: number[] = [];
+        const labels: string[] = [];
+        let extra = 0;
+        for (const g of this.dealOptionGroups) {
+            for (const optId of this.dealOptionSelections[g.id] || []) {
+                const opt = g.options?.find((o) => o.id === optId);
+                if (!opt) continue;
+                optionIds.push(opt.id);
+                const price = Number(opt.price) || 0;
+                if (price > 0 && !this.isIncludedModifierOption(opt)) {
+                    extra += price;
+                    labels.push(`${opt.name} (+${price.toFixed(2)})`);
+                } else {
+                    labels.push(opt.name);
+                }
+            }
+        }
+
+        this.dealOptionDialogVisible = false;
+        this.commitDealProduct(product, optionIds, labels, extra);
+    }
+
+    private commitDealProduct(
+        product: ProductDto,
+        optionIds: number[],
+        labels: string[],
+        extra = 0
+    ): void {
+        const ids = optionIds || [];
+        const existing = this.dealAddedItems.find(
+            (x) =>
+                x.product.id === product.id &&
+                this.sameDealOptionSet(x.selectedOptionIds || [], ids)
+        );
+        if (existing) {
+            existing.quantity = (Number(existing.quantity) || 0) + 1;
+            this.messageService.add({
+                severity: 'info',
+                summary: 'Quantity Updated',
+                detail: `"${product.name}" with the same options — quantity increased.`,
+                life: 2500,
+            });
+            return;
+        }
+
+        const base = Number(product.price) || 0;
+        this.dealAddedItems = [
+            ...this.dealAddedItems,
+            {
+                product,
+                quantity: 1,
+                unitPrice: base + (Number(extra) || 0),
+                selectedOptionIds: ids,
+                selectedOptionLabels: labels || [],
+            },
+        ];
+    }
+
+    incrementAddedDealQty(item: DealAddedItem): void {
+        item.quantity = (Number(item.quantity) || 0) + 1;
+    }
+
+    decrementAddedDealQty(item: DealAddedItem): void {
+        if ((Number(item.quantity) || 0) > 1) {
+            item.quantity--;
+        } else {
+            this.removeAddedDealItem(item);
+        }
+    }
+
+    onAddedDealQtyChange(item: DealAddedItem): void {
+        if (!item.quantity || item.quantity < 1) {
+            item.quantity = 1;
+        }
+    }
+
+    removeAddedDealItem(item: DealAddedItem): void {
+        this.dealAddedItems = this.dealAddedItems.filter((x) => x !== item);
+    }
+
+    async saveDeal(): Promise<void> {
+        if (!this.dealName?.trim()) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Validation',
+                detail: 'Deal name is required.',
+            });
+            return;
+        }
+
+        if (this.dealPrice === null || this.dealPrice === undefined || this.dealPrice <= 0) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Validation',
+                detail: 'Deal price must be greater than zero.',
+            });
+            return;
+        }
+
+        const selectedItems = this.selectedDealItems;
+        if (!selectedItems.length) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Validation',
+                detail: 'Please select at least one product for this deal.',
+            });
+            return;
+        }
+
+        this.savingDeal = true;
+        try {
+            const itemsPayload = selectedItems.map((x) => ({
+                productId: x.product.id,
+                quantity: x.quantity,
+                unitPrice: x.unitPrice,
+                selectedModifiers: x.selectedOptionLabels.length
+                    ? x.selectedOptionLabels.join(', ')
+                    : undefined,
+                selectedOptionIds: x.selectedOptionIds.length
+                    ? x.selectedOptionIds.join(',')
+                    : undefined,
+            }));
+
+            const imageBase64 = this.dealImageBase64?.startsWith('data:image')
+                ? this.dealImageBase64
+                : undefined;
+
+            if (this.editingDealId) {
+                const payload: UpdateDealDto = {
+                    id: this.editingDealId,
+                    name: this.dealName.trim(),
+                    dealPrice: Number(this.dealPrice),
+                    expiryDate: this.dealExpiryDate ? new Date(this.dealExpiryDate).toISOString() : undefined,
+                    categoryId: this.dealCategoryId || undefined,
+                    categoryType: this.dealCategoryType?.trim() || 'Deals',
+                    description: this.dealDescription?.trim() || undefined,
+                    imageBase64,
+                    items: itemsPayload,
+                };
+
+                await this.dealService.update(payload);
+                this.messageService.add({
+                    severity: 'success',
+                    summary: 'Deal Updated',
+                    detail: `Deal "${this.dealName}" updated successfully with ${selectedItems.length} product(s).`,
+                });
+            } else {
+                const payload: CreateDealDto = {
+                    name: this.dealName.trim(),
+                    dealPrice: Number(this.dealPrice),
+                    expiryDate: this.dealExpiryDate ? new Date(this.dealExpiryDate).toISOString() : undefined,
+                    categoryId: this.dealCategoryId || undefined,
+                    categoryType: this.dealCategoryType?.trim() || 'Deals',
+                    description: this.dealDescription?.trim() || undefined,
+                    imageBase64,
+                    items: itemsPayload,
+                };
+
+                await this.dealService.create(payload);
+                this.messageService.add({
+                    severity: 'success',
+                    summary: 'Deal Created',
+                    detail: `Deal "${this.dealName}" saved successfully with ${selectedItems.length} product(s).`,
+                });
+            }
+
+            this.dealDialogVisible = false;
+            this.editingDealId = null;
+            // Deals live on the Deals tab; switch so the new/updated deal is visible immediately.
+            if (this.isRestaurant) {
+                this.activeListTab = 1;
+                this.selectedProducts = [];
+            }
+            this.loadProducts(true);
+        } catch (err: any) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: err?.message || 'Failed to save deal.',
+            });
+        } finally {
+            this.savingDeal = false;
+        }
+    }
+
+    async openViewDealDialog(product: ProductDto): Promise<void> {
+        this.selectedDealDetails = null;
+        this.viewDealDialogVisible = true;
+        this.loadingDealDetails = true;
+        try {
+            this.selectedDealDetails = await this.dealService.getByProductId(product.id);
+        } catch (err: any) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: err?.message || 'Failed to load deal details.',
+            });
+            this.viewDealDialogVisible = false;
+        } finally {
+            this.loadingDealDetails = false;
+        }
     }
 }

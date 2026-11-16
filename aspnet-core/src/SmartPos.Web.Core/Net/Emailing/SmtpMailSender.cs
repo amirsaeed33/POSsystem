@@ -3,7 +3,7 @@ using System.Net;
 using System.Net.Mail;
 using System.Threading.Tasks;
 using Abp.Dependency;
-using Abp.UI;
+using Castle.Core.Logging;
 using Microsoft.Extensions.Configuration;
 using SmartPos.Emailing;
 
@@ -12,17 +12,20 @@ namespace SmartPos.Net.Emailing
     public class SmtpMailSender : ISmtpMailSender, ITransientDependency
     {
         private readonly IConfiguration _configuration;
+        public ILogger Logger { get; set; }
 
         public SmtpMailSender(IConfiguration configuration)
         {
             _configuration = configuration;
+            Logger = NullLogger.Instance;
         }
 
         public async Task SendAsync(string toAddress, string subject, string body, bool isBodyHtml = false, string fromDisplayName = null)
         {
             if (string.IsNullOrWhiteSpace(toAddress))
             {
-                throw new UserFriendlyException("Recipient email is required.");
+                Logger.Warn("SendAsync called with empty toAddress.");
+                return;
             }
 
             var host = _configuration["Email:SmtpHost"];
@@ -38,7 +41,8 @@ namespace SmartPos.Net.Emailing
                 string.IsNullOrWhiteSpace(password) ||
                 string.IsNullOrWhiteSpace(fromAddress))
             {
-                throw new UserFriendlyException("Email is not configured on the server.");
+                Logger.Warn($"Email to '{toAddress}' was not sent because SMTP is not configured in appsettings.json. Subject: '{subject}'");
+                return;
             }
 
             var port = 587;
@@ -74,13 +78,9 @@ namespace SmartPos.Net.Emailing
                     await smtp.SendMailAsync(message);
                 }
             }
-            catch (UserFriendlyException)
+            catch (Exception ex)
             {
-                throw;
-            }
-            catch (Exception)
-            {
-                throw new UserFriendlyException("Failed to send email. Please try again later.");
+                Logger.Error($"Failed to send email to '{toAddress}': {ex.Message}", ex);
             }
         }
     }

@@ -1,13 +1,54 @@
 import { AppFormatService } from 'src/app/demo/service/app-format.service';
-import { Component, OnInit } from '@angular/core';
+import { Component, HostListener, OnDestroy, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CustomerOrderService } from 'src/app/demo/service/customer-order.service';
+import { DeliveryAreaService, DeliveryAreaDto } from 'src/app/demo/service/delivery-area.service';
 import { OnlineCartService, CartItem } from 'src/app/demo/service/online-cart.service';
-import { CreateCustomerOrderDto } from 'src/app/demo/api/customer-order';
+import {
+    CreateCustomerOrderDto,
+    CustomerSavedAddressDto,
+} from 'src/app/demo/api/customer-order';
 import { BranchContextService } from 'src/app/demo/service/branch-context.service';
 import { BranchService } from 'src/app/demo/service/branch.service';
+import { SessionService } from 'src/app/demo/service/session.service';
+import { AuthService } from 'src/app/demo/service/auth.service';
+import { TenantContextService } from 'src/app/demo/service/tenant-context.service';
+import { OnlineOrderHeroSlideService } from 'src/app/demo/service/online-order-hero-slide.service';
+import { ProductModifierService } from 'src/app/demo/service/product-modifier.service';
+import {
+    MyOnlineOrderRef,
+    MyOnlineOrdersService,
+} from 'src/app/demo/service/my-online-orders.service';
+import { ProductModifierGroupDto, ProductModifierOptionDto } from 'src/app/demo/api/product-modifier';
+import { DealService } from 'src/app/demo/service/deal.service';
+import { DealDto, DealDetailDto } from 'src/app/demo/api/deal';
 import { MessageService } from 'primeng/api';
 import { environment } from 'src/environments/environment';
+import { CustomerOrderStatus } from 'src/app/demo/api/customer-order';
+import { findProductImageNear, flyToCart } from 'src/app/demo/utils/fly-to-cart';
+import { AppBrowserTitleService } from 'src/app/demo/service/app-browser-title.service';
+import { AppSeoService } from 'src/app/demo/service/app-seo.service';
+import { AppSoundService } from 'src/app/demo/service/app-sound.service';
+import { StorefrontHostService } from 'src/app/demo/service/storefront-host.service';
+
+export interface OnlineDealCustomiseItem {
+    productId: number;
+    productName: string;
+    quantity: number;
+    unitPrice: number;
+    /** Options already fixed when the deal was created (read-only at order time). */
+    presetModifiers?: string;
+    modifierGroups: ProductModifierGroupDto[];
+    selectedOptions: Record<number, number[]>;
+}
+
+export interface CategorySection {
+    category: string;
+    items: any[];
+}
+
+/** Last online-order branch for this browser (auto-land on next visit). */
+const LAST_ONLINE_BRANCH_KEY = 'smartpos_last_online_branch_id';
 
 @Component({
     selector: 'app-online-order',
@@ -15,35 +56,243 @@ import { environment } from 'src/environments/environment';
     styleUrls: ['./online-order.component.scss'],
     providers: [MessageService],
 })
-export class OnlineOrderComponent implements OnInit {
+export class OnlineOrderComponent implements OnInit, OnDestroy {
     branchId: number | null = null;
     branchName = '';
+    branchAddress = '';
+    branchPhone = '';
+    branchImagePath = '';
+    branchLogoBroken = false;
+    /** Branch ids whose picker logo failed to load (fall back to AJ mark). */
+    private branchPickerLogoBrokenIds = new Set<number>();
+    facebookUrl = '';
+    instagramUrl = '';
+    youtubeUrl = '';
     currencyFormat = 'PKR';
     dateFormat = 'dd/MM/yyyy';
     branchMissingError = false;
+    isRestaurant = false;
     availableBranches: any[] = [];
     selectedBranchIdForModal: number | null = null;
+    mobileBranchModal = false;
+    mobileNavOpen = false;
+    contactModalVisible = false;
+    activeNav: 'home' | 'menu' | 'deals' | 'contact' = 'home';
 
     products: any[] = [];
     filteredProducts: any[] = [];
     categories: string[] = [];
-    selectedCategory = 'All';
+    backendCategories: string[] = [];
+    /** Empty = All categories. Multiple chips can be active at once. */
+    selectedCategories: string[] = [];
 
+    get selectedCategoryLabel(): string {
+        if (!this.selectedCategories.length) {
+            return 'All';
+        }
+        if (this.selectedCategories.length === 1) {
+            return this.selectedCategories[0];
+        }
+        return `${this.selectedCategories.length} categories`;
+    }
+
+    /** True when search text or one+ category chips are filtering the menu. */
+    get isMenuFiltering(): boolean {
+        return !!(this.searchKeyword || '').trim() || this.selectedCategories.length > 0;
+    }
+
+    isCategorySelected(cat: string): boolean {
+        if (!cat || cat === 'All') {
+            return this.selectedCategories.length === 0;
+        }
+        return this.selectedCategories.includes(cat);
+    }
+
+    get heroSpotlightItem(): any {
+        if (this.dealsList && this.dealsList.length > 0) {
+            return this.dealsList[0];
+        }
+        return (this.products && this.products.length > 0) ? this.products[0] : null;
+    }
+
+    // FoodiesPakistan Mobile Tab Bar & Filter Pills State
+    activeMobileTab: 'home' | 'deals' | 'cart' | 'favorites' | 'account' = 'home';
+    selectedPill = '';
+    pillFilters: string[] = ['📍 Near Me', '🔥 Top Deals', '⭐ Highly Rated', '⚡ Fast Delivery', '🏷️ Budget Picks'];
+    favorites: Set<number> = new Set<number>();
+    mobileSearchOpen = false;
+
+    // Curated Section Carousels & Deals
+    dealsList: any[] = [];
+    trendingDeals: any[] = [];
+    popularItems: any[] = [];
+    categorySections: CategorySection[] = [];
+
+    // View mode: 'grid' (responsive multi-column wrapped grid)
+    viewMode: 'grid' | 'carousel' = 'grid';
+
+    // Search query
     searchKeyword = '';
+
+    // Scroll state for sticky navbar shadow
+    isScrolled = false;
+    isMobile = false;
+
+    // User authentication / profile state
+    isLoggedIn = false;
+    userName = 'Guest';
+    userInitials = 'GU';
+
+    // Foodies Pakistan Product Detail Modal / Bottom-Sheet
+    detailModalVisible = false;
+    selectedProduct: any | null = null;
+    detailQuantity = 1;
+    productModifierGroups: ProductModifierGroupDto[] = [];
+    selectedModifierOptions: Record<number, number[]> = {};
+    loadingModifiers = false;
+    dealCustomiseItems: OnlineDealCustomiseItem[] = [];
+    loadingDeal = false;
+
+    // Store Chat Floating Drawer
+    storeChatOpen = false;
+
+    /** Active online orders for this device — shown in the menu (no separate track page). */
+    activeOrders: MyOnlineOrderRef[] = [];
+
+    /** Public customer feedbacks for the selected branch. */
+    branchFeedbacks: Array<{
+        orderId: number;
+        customerId?: number;
+        orderNo?: string;
+        customerName?: string;
+        customerImagePath?: string | null;
+        rating: number;
+        orderDate: string | Date;
+        branchName?: string;
+        comment?: string;
+        itemNames?: string[];
+        itemsSummary?: string;
+    }> = [];
+    private feedbackPhotoBroken = new Set<number>();
+    loadingBranchFeedbacks = false;
+    averageBranchRating = 0;
+    feedbackMarqueePaused = false;
+    loadingActiveOrders = false;
 
     // Checkout modal & state
     checkoutModalVisible = false;
     customerName = '';
     customerMobile = '';
+    deliveryAddress = '';
+    deliveryLandmark = '';
     notes = '';
+    paymentMethod: 'CashOnDelivery' | 'OnlinePayment' = 'CashOnDelivery';
     submitting = false;
+
+    // Delivery Location & Live GPS state
+    locating = false;
+    locationCaptured = false;
+    latitude: number | null = null;
+    longitude: number | null = null;
+    googleMapsLink: string | null = null;
+    locationAccuracy: number | null = null;
+    locationError: string | null = null;
+
+    // Branch GPS Coordinates & Distance Calculation State
+    branchLatitude: number | null = null;
+    branchLongitude: number | null = null;
+    distanceKm: number | null = null;
+    estimatedDeliveryMins: string | null = null;
+
+    // Delivery Areas & Free Delivery Engine
+    deliveryAreas: DeliveryAreaDto[] = [];
+    selectedDeliveryAreaId: number | null = null;
+    selectedDeliveryArea: DeliveryAreaDto | null = null;
+    baseDeliveryFee = 100;
+    freeDeliveryThreshold = 1500;
+
+    /** Purchaser/customer saved addresses (address + zone) for quick pick. */
+    savedAddresses: CustomerSavedAddressDto[] = [];
+    selectedSavedAddressId: number | null = null;
+    loadingSavedAddresses = false;
 
     // Success confirmation modal
     successModalVisible = false;
     confirmedOrderNo = '';
     confirmedTotal = 0;
+    orderCopied = false;
+
+    // Online customer profile (Account)
+    profileModalVisible = false;
+    profileSaving = false;
+    profileLoading = false;
+    profileId: number | null = null;
+    profileName = '';
+    profilePhone = '';
+    profileEmail = '';
+    profileAddress = '';
+    /** Hidden GPS for default address — stored in DB, not shown in the form. */
+    profileLatitude: number | null = null;
+    profileLongitude: number | null = null;
+    profileLocating = false;
+    profileImagePath: string | null = null;
+    profileImagePreview: string | null = null;
+    profileImageBase64: string | null = null;
+    profileClearImage = false;
+    profilePhotoBroken = false;
 
     loading = false;
+
+    // Curated high quality imagery for Solar Panels, Inverters, Batteries and general retail
+    private solarPanelImages = [
+        'https://images.unsplash.com/photo-1509391365360-2e959784a276?auto=format&fit=crop&w=720&q=80',
+        'https://images.unsplash.com/photo-1508514177221-188b1cf16e9d?auto=format&fit=crop&w=720&q=80',
+        'https://images.unsplash.com/photo-1558449028-b53a39d100fc?auto=format&fit=crop&w=720&q=80',
+        'https://images.unsplash.com/photo-1613665813446-82a78c468a1d?auto=format&fit=crop&w=720&q=80',
+        'https://images.unsplash.com/photo-1545209584-6330a1334888?auto=format&fit=crop&w=720&q=80',
+        'https://images.unsplash.com/photo-1497440001374-f26997328c1b?auto=format&fit=crop&w=720&q=80',
+    ];
+
+    private inverterImages = [
+        'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=720&q=80',
+        'https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&w=720&q=80',
+        'https://images.unsplash.com/photo-1581092580497-e0d23cbdf1dc?auto=format&fit=crop&w=720&q=80',
+        'https://images.unsplash.com/photo-1581092162384-8987c1d64718?auto=format&fit=crop&w=720&q=80',
+    ];
+
+    private batteryImages = [
+        'https://images.unsplash.com/photo-1617788138017-80ad40651399?auto=format&fit=crop&w=720&q=80',
+        'https://images.unsplash.com/photo-1513836279014-a89f7a76ae86?auto=format&fit=crop&w=720&q=80',
+        'https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?auto=format&fit=crop&w=720&q=80',
+        'https://images.unsplash.com/photo-1593941707882-a5bba14938c7?auto=format&fit=crop&w=720&q=80',
+    ];
+
+    private solarAccessoryImages = [
+        'https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&w=720&q=80',
+        'https://images.unsplash.com/photo-1473341304170-971dccb5ac1e?auto=format&fit=crop&w=720&q=80',
+        'https://images.unsplash.com/photo-1466611653911-95081537e5b7?auto=format&fit=crop&w=720&q=80',
+    ];
+
+    private foodImages = [
+        'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=720&q=80', // juicy burger
+        'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&w=720&q=80', // pizza
+        'https://images.unsplash.com/photo-1621996346565-e3d5d628169e?auto=format&fit=crop&w=720&q=80', // creamy pasta
+        'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?auto=format&fit=crop&w=720&q=80', // biryani
+        'https://images.unsplash.com/photo-1527477378698-4797598e5a66?auto=format&fit=crop&w=720&q=80', // spicy hot wings
+        'https://images.unsplash.com/photo-1576107232684-1279f3908594?auto=format&fit=crop&w=720&q=80', // cheesy loaded fries
+        'https://images.unsplash.com/photo-1544787219-7f47ccb76574?auto=format&fit=crop&w=720&q=80', // karak tea
+        'https://images.unsplash.com/photo-1517701604599-bb29b565090c?auto=format&fit=crop&w=720&q=80', // iced coffee
+        'https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?auto=format&fit=crop&w=720&q=80', // mint margarita
+    ];
+
+    private retailImages = [
+        'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?auto=format&fit=crop&w=720&q=80', // cold beverage / cola
+        'https://images.unsplash.com/photo-1550989460-0adc9554f529?auto=format&fit=crop&w=720&q=80', // supermarket shelf
+        'https://images.unsplash.com/photo-1527842891421-42eec6e703ea?auto=format&fit=crop&w=720&q=80', // tea & coffee packet
+        'https://images.unsplash.com/photo-1563729784474-d77dbb933a9e?auto=format&fit=crop&w=720&q=80', // cookies / snacks
+        'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&w=720&q=80', // personal care
+        'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=720&q=80', // grocery store
+    ];
 
     constructor(
         public formatService: AppFormatService,
@@ -51,83 +300,1324 @@ export class OnlineOrderComponent implements OnInit {
         private customerOrderService: CustomerOrderService,
         private branchContext: BranchContextService,
         private branchService: BranchService,
+        private sessionService: SessionService,
+        private authService: AuthService,
+        private tenantContext: TenantContextService,
         private route: ActivatedRoute,
         private router: Router,
-        private messageService: MessageService
+        private messageService: MessageService,
+        private deliveryAreaService: DeliveryAreaService,
+        private onlineOrderHeroSlideService: OnlineOrderHeroSlideService,
+        private productModifierService: ProductModifierService,
+        private myOnlineOrders: MyOnlineOrdersService,
+        private dealService: DealService,
+        private browserTitle: AppBrowserTitleService,
+        private seo: AppSeoService,
+        private appSound: AppSoundService,
+        private storefrontHost: StorefrontHostService
     ) {}
 
-    ngOnInit(): void {
-        this.route.queryParams.subscribe((params) => {
-            const paramBranchId = params['branchId'];
-            const paramProductId = params['productId'];
-            if (paramBranchId && !isNaN(Number(paramBranchId))) {
-                this.branchId = Number(paramBranchId);
-                this.branchMissingError = false;
-                this.resolveBranchName(this.branchId);
-                this.loadCatalog(this.branchId, paramProductId ? Number(paramProductId) : undefined);
+    /** Custom client domain: branch is fixed; no multi-branch picker. */
+    get isCustomDomainStorefront(): boolean {
+        return !!this.storefrontHost.getForcedBranchId();
+    }
+
+    /** Show branch/city switcher only when more than one store is available. */
+    get canSwitchOnlineBranch(): boolean {
+        return (
+            !this.isCustomDomainStorefront &&
+            (this.availableBranches?.length || 0) > 1
+        );
+    }
+
+    /** Manual drag state for product strips (no auto marquee). */
+    productMarqueeDragging = false;
+    private productMarqueeRafId: number | null = null;
+    private productMarqueeDragEl: HTMLElement | null = null;
+    private productMarqueeDragStartX = 0;
+    private productMarqueeDragScrollLeft = 0;
+    private productMarqueeDidDrag = false;
+    private suppressProductClickAfterDrag = false;
+
+    currentHeroSlide = 0;
+    private heroSlideTimer: any = null;
+
+    heroSlides: any[] = [];
+
+    private readonly defaultHeroSlides = [
+        {
+            id: 1,
+            badge: 'FRESH FROM OVEN • 30-45 MIN DELIVERY',
+            badgeIcon: '🔥',
+            titleMain: 'Craving Something',
+            titleHighlight: 'Hot, Cheesy',
+            titleEnd: '& Delicious?',
+            description: 'Explore handcrafted pizzas loaded with 100% mozzarella, sizzling juicy burgers, crispy wings, and mouth-watering family deals. Cooked fresh on order!',
+            offerPill: 'FLAT 25% OFF ON LARGE PIZZAS',
+            primaryBtnText: 'Order Deals Now',
+            primaryTarget: 'deals',
+            secondaryBtnText: 'Explore Full Menu',
+            secondaryTarget: 'menu',
+            imageUrl: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=800&h=600&q=80',
+            bgImageUrl: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&w=1920&q=85',
+            cardTag: '🔥 CROWN CRUST PIZZA',
+            cardTitle: 'Cheesy Crown Supreme Pizza',
+            cardPrice: 1650,
+            cardOriginalPrice: 2199,
+            rating: '4.9★'
+        },
+        {
+            id: 2,
+            badge: 'SMASHED & GRILLED TO PERFECTION',
+            badgeIcon: '🍔',
+            titleMain: 'Bite Into Pure',
+            titleHighlight: 'Juicy & Crispy',
+            titleEnd: 'Gourmet Burgers',
+            description: 'Double smashed beef patties, crispy tender chicken fillets, secret spicy mayo, and melted golden cheddar packed inside freshly toasted brioche buns.',
+            offerPill: 'FREE CRISPY FRIES + DIP WITH COMBOS',
+            primaryBtnText: 'Grab Burger Deal',
+            primaryTarget: 'deals',
+            secondaryBtnText: 'View All Burgers',
+            secondaryTarget: 'menu',
+            imageUrl: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=800&h=600&q=80',
+            bgImageUrl: 'https://images.unsplash.com/photo-1572802419224-296b0aeee0d9?auto=format&fit=crop&w=1920&q=85',
+            cardTag: '⭐ BEST SELLER',
+            cardTitle: 'Double Smashed Monster Burger',
+            cardPrice: 890,
+            cardOriginalPrice: 1150,
+            rating: '4.8★'
+        },
+        {
+            id: 3,
+            badge: 'SMOKY CHARCOAL & AUTHENTIC TASTE',
+            badgeIcon: '🍢',
+            titleMain: 'Sizzling Live',
+            titleHighlight: 'Smoky BBQ',
+            titleEnd: '& Kebab Platters',
+            description: 'Tender chicken boti, melt-in-mouth seekh kebabs, and grilled reshmi tikka marinated in rich spices and served with piping-hot kulchas and mint raita.',
+            offerPill: 'FAMILY PLATTER SPECIAL SAVE PKR 800',
+            primaryBtnText: 'Taste The BBQ',
+            primaryTarget: 'menu',
+            secondaryBtnText: 'View BBQ Platters',
+            secondaryTarget: 'menu',
+            imageUrl: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=800&h=600&q=80',
+            bgImageUrl: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=1920&q=85',
+            cardTag: '👑 SIGNATURE SPECIAL',
+            cardTitle: 'Royal Charcoal Mixed BBQ Platter',
+            cardPrice: 2450,
+            cardOriginalPrice: 3250,
+            rating: '4.9★'
+        },
+        {
+            id: 4,
+            badge: 'MEGA VALUE PACKS & CELEBRATIONS',
+            badgeIcon: '🎉',
+            titleMain: 'Gather Round For',
+            titleHighlight: 'Mega Family',
+            titleEnd: 'Feast Combos',
+            description: 'The ultimate party solution! 2 Large Specialty Pizzas, 10 pcs Crispy Wings, Cheesy Garlic Bread, and a chilled 1.5L drink for the whole squad.',
+            offerPill: 'MEGA SAVINGS UP TO PKR 1,200',
+            primaryBtnText: 'Get Family Feast',
+            primaryTarget: 'deals',
+            secondaryBtnText: 'See All Combos',
+            secondaryTarget: 'deals',
+            imageUrl: 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=800&h=600&q=80',
+            bgImageUrl: 'https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?auto=format&fit=crop&w=1920&q=85',
+            cardTag: '⚡ JUMBO COMBO',
+            cardTitle: 'Ultimate Family Feast Box',
+            cardPrice: 3499,
+            cardOriginalPrice: 4699,
+            rating: '5.0★'
+        },
+        {
+            id: 5,
+            badge: 'PIPING HOT DELIVERY GUARANTEE',
+            badgeIcon: '⚡',
+            titleMain: 'Delivered In',
+            titleHighlight: '30-45 Mins',
+            titleEnd: 'Right To Your Door',
+            description: 'Experience lightning-fast express delivery with insulated heat bags. Live rider GPS tracking keeps you informed every step of the way from grill to table.',
+            offerPill: 'FREE EXPRESS DELIVERY TODAY',
+            primaryBtnText: 'Order Online Now',
+            primaryTarget: 'menu',
+            secondaryBtnText: 'Track Active Order',
+            secondaryTarget: 'deals',
+            imageUrl: 'https://images.unsplash.com/photo-1617347454431-f49d7ff5c3b1?auto=format&fit=crop&w=800&h=600&q=80',
+            bgImageUrl: 'https://images.unsplash.com/photo-1617347454431-f49d7ff5c3b1?auto=format&fit=crop&w=1920&q=85',
+            cardTag: '🚀 EXPRESS DELIVERY',
+            cardTitle: 'Fresh, Steaming & Fast To Doorstep',
+            cardPrice: 1200,
+            cardOriginalPrice: 1500,
+            rating: '4.9★'
+        }
+    ];
+
+    private async loadHeroSlides(branchId: number): Promise<void> {
+        try {
+            const slides = await this.onlineOrderHeroSlideService.getActiveByBranch(branchId);
+            if (slides?.length) {
+                this.heroSlides = slides.map((s) => ({
+                    id: s.id,
+                    badge: s.badge || '',
+                    badgeIcon: s.badgeIcon || '🔥',
+                    titleMain: s.titleMain || '',
+                    titleHighlight: s.titleHighlight || '',
+                    titleEnd: s.titleEnd || '',
+                    description: s.description || '',
+                    offerPill: s.offerPill || '',
+                    primaryBtnText: s.primaryBtnText || 'Order Now',
+                    primaryTarget: s.primaryTarget || 'menu',
+                    secondaryBtnText: s.secondaryBtnText || 'Explore Full Menu',
+                    secondaryTarget: s.secondaryTarget || 'menu',
+                    imageUrl: this.onlineOrderHeroSlideService.getImageUrl(s.imagePath),
+                    bgImageUrl:
+                        this.onlineOrderHeroSlideService.getImageUrl(s.bgImagePath || s.imagePath) ||
+                        this.onlineOrderHeroSlideService.getImageUrl(s.imagePath),
+                    rating: s.rating || '4.9★',
+                }));
             } else {
-                this.handleMissingBranchId();
+                this.heroSlides = [...this.defaultHeroSlides];
             }
+        } catch {
+            this.heroSlides = [...this.defaultHeroSlides];
+        }
+
+        this.currentHeroSlide = 0;
+        if (this.heroSlides.length > 1) {
+            this.startHeroSlider();
+        } else {
+            this.stopHeroSlider();
+        }
+    }
+
+    startHeroSlider(): void {
+        this.stopHeroSlider();
+        // Interval longer than CSS crossfade (~0.85s) so each transition can finish.
+        this.heroSlideTimer = setInterval(() => {
+            this.nextHeroSlide();
+        }, 4500);
+    }
+
+    stopHeroSlider(): void {
+        if (this.heroSlideTimer) {
+            clearInterval(this.heroSlideTimer);
+            this.heroSlideTimer = null;
+        }
+    }
+
+    nextHeroSlide(): void {
+        this.currentHeroSlide = (this.currentHeroSlide + 1) % this.heroSlides.length;
+    }
+
+    prevHeroSlide(): void {
+        this.currentHeroSlide = (this.currentHeroSlide - 1 + this.heroSlides.length) % this.heroSlides.length;
+    }
+
+    goToHeroSlide(index: number): void {
+        this.currentHeroSlide = index;
+        this.startHeroSlider();
+    }
+
+    ngOnInit(): void {
+        // History/profile deep-link: /online-order?branchId=…&openProfile=1
+        if (this.route.snapshot.queryParamMap.get('openProfile') === '1') {
+            setTimeout(() => this.openCustomerProfile(), 0);
+        }
+
+        this.heroSlides = [...this.defaultHeroSlides];
+        this.checkScreenSize();
+        this.checkAuthSession();
+        this.loadFavorites();
+
+        this.route.queryParams.subscribe((params) => {
+            void this.applyBranchFromRoute(params);
         });
+    }
+
+    private async applyBranchFromRoute(params: Record<string, string>): Promise<void> {
+        const storefront = await this.storefrontHost.ensureResolved();
+        if (storefront?.branchId) {
+            const brand = (
+                storefront.storefrontTitle ||
+                storefront.branchName ||
+                ''
+            ).trim();
+            if (brand) {
+                this.seo.setBrandOverride(brand);
+            }
+        }
+
+        const forcedBranchId = storefront?.branchId || null;
+        const paramBranchId = params['branchId'];
+        const paramProductId = params['productId'];
+        const resolvedId =
+            forcedBranchId ||
+            (paramBranchId && !isNaN(Number(paramBranchId))
+                ? Number(paramBranchId)
+                : null);
+
+        if (resolvedId && resolvedId > 0) {
+            if (forcedBranchId && Number(paramBranchId) !== forcedBranchId) {
+                await this.router.navigate([], {
+                    relativeTo: this.route,
+                    queryParams: { branchId: forcedBranchId },
+                    queryParamsHandling: 'merge',
+                    replaceUrl: true,
+                });
+                return;
+            }
+            this.branchId = resolvedId;
+            this.branchMissingError = false;
+            this.rememberLastOnlineBranchId(this.branchId);
+            await this.ensurePublicBranchesLoaded();
+            await this.resolveBranchName(this.branchId!);
+            void this.loadHeroSlides(this.branchId);
+            this.loadCatalog(
+                this.branchId,
+                paramProductId ? Number(paramProductId) : undefined
+            );
+            void this.refreshActiveOrders();
+            void this.hydrateCustomerProfile();
+            void this.loadBranchFeedbacks(this.branchId);
+            return;
+        }
+
+        this.activeOrders = [];
+        this.branchFeedbacks = [];
+        this.averageBranchRating = 0;
+        this.feedbackMarqueePaused = false;
+        await this.handleMissingBranchId();
+    }
+
+    async refreshActiveOrders(): Promise<void> {
+        const saved = this.myOnlineOrders.getForBranch(this.branchId).slice(0, 6);
+        if (!saved.length) {
+            this.activeOrders = [];
+            return;
+        }
+
+        this.loadingActiveOrders = true;
+        try {
+            const refreshed = await Promise.all(
+                saved.map(async (ref) => {
+                    try {
+                        const live = await this.customerOrderService.trackOrder(
+                            ref.orderNo
+                        );
+                        if (live) {
+                            this.myOnlineOrders.updateStatus(
+                                ref.orderNo,
+                                live.status,
+                                live.statusName
+                            );
+                            return {
+                                ...ref,
+                                status: live.status,
+                                statusName: live.statusName || ref.statusName,
+                                totalAmount:
+                                    live.totalAmount ?? ref.totalAmount,
+                                branchName:
+                                    live.branchName || ref.branchName,
+                            } as MyOnlineOrderRef;
+                        }
+                    } catch {
+                        // Keep cached ref if live lookup fails.
+                    }
+                    return ref;
+                })
+            );
+
+            this.activeOrders = refreshed.filter((o) =>
+                this.myOnlineOrders.isActiveStatus(o.status)
+            );
+        } finally {
+            this.loadingActiveOrders = false;
+        }
+    }
+
+    activeOrderStatusLabel(order: MyOnlineOrderRef): string {
+        if (order.status === CustomerOrderStatus.InProgress) return 'Preparing';
+        if (order.status === CustomerOrderStatus.Approved) return 'Accepted';
+        if (order.status === CustomerOrderStatus.Pending || order.status == null) {
+            return 'Pending';
+        }
+        return order.statusName || 'Active';
+    }
+
+    openOrderHistory(): void {
+        const phone =
+            this.profilePhone?.trim() ||
+            this.readLocal('smartpos_customer_phone') ||
+            '';
+        this.router.navigate(['/online-order/history'], {
+            queryParams: {
+                ...(this.branchId ? { branchId: this.branchId } : {}),
+                ...(phone ? { phone } : {}),
+            },
+        });
+    }
+
+    openCustomerProfile(): void {
+        this.profileModalVisible = true;
+        void this.hydrateCustomerProfile();
+    }
+
+    get hasCustomerProfile(): boolean {
+        return !!(this.profileName?.trim() && this.profilePhone?.trim());
+    }
+
+    /** Two-letter initials for the compact customer avatar (photo preferred when available). */
+    get customerProfileInitials(): string {
+        const name = (this.profileName || '').trim();
+        if (!name) {
+            return 'ME';
+        }
+        const parts = name.split(/\s+/).filter(Boolean);
+        if (parts.length >= 2) {
+            return (parts[0].charAt(0) + parts[1].charAt(0)).toUpperCase();
+        }
+        return name.substring(0, 2).toUpperCase();
+    }
+
+    async hydrateCustomerProfile(): Promise<void> {
+        const savedPhone = this.readLocal('smartpos_customer_phone');
+        const savedName = this.readLocal('smartpos_customer_name');
+        const savedEmail = this.readLocal('smartpos_customer_email');
+        const savedAddress = this.readLocal('smartpos_customer_address');
+        const savedImage = this.readLocal('smartpos_customer_image');
+
+        // Always show last local profile immediately when opening Account.
+        this.profileName = savedName || this.profileName;
+        this.profilePhone = savedPhone || this.profilePhone;
+        this.profileEmail = savedEmail || this.profileEmail;
+        this.profileAddress = savedAddress || this.profileAddress;
+        if (savedImage && !this.profileImagePath) {
+            this.profileImagePath = savedImage;
+        }
+
+        const lookupPhone = (this.profilePhone || savedPhone || '').trim();
+        if (!this.branchId || lookupPhone.replace(/\D/g, '').length < 7) {
+            return;
+        }
+
+        this.profileLoading = true;
+        try {
+            const profile = await this.customerOrderService.getOnlineCustomerProfile(
+                lookupPhone,
+                this.branchId
+            );
+            if (profile) {
+                this.applyProfileToForm(profile);
+                await this.syncFavoritesFromServer();
+            }
+        } catch {
+            /* keep local draft */
+        } finally {
+            this.profileLoading = false;
+        }
+    }
+
+    applyProfileToForm(profile: {
+        id?: number;
+        name?: string;
+        phone?: string;
+        email?: string;
+        address?: string;
+        latitude?: number | null;
+        longitude?: number | null;
+        imagePath?: string;
+        savedAddresses?: CustomerSavedAddressDto[];
+    }): void {
+        this.profileId = profile.id ?? this.profileId;
+        this.profileName = (profile.name || this.profileName || '').trim();
+        this.profilePhone = (profile.phone || this.profilePhone || '').trim();
+        this.profileEmail = (profile.email || this.profileEmail || '').trim();
+        this.profileAddress = (profile.address || this.profileAddress || '').trim();
+        if (profile.latitude != null && profile.longitude != null) {
+            this.profileLatitude = Number(profile.latitude);
+            this.profileLongitude = Number(profile.longitude);
+        }
+        if (profile.imagePath) {
+            this.profileImagePath = profile.imagePath;
+            this.profilePhotoBroken = false;
+        }
+        // Keep camera preview only while uploading a new photo; after save use server path.
+        if (!this.profileImageBase64) {
+            this.profileImagePreview = null;
+        }
+        this.profileClearImage = false;
+        if (profile.savedAddresses) {
+            this.savedAddresses = profile.savedAddresses;
+        }
+        this.persistLocalProfile();
+    }
+
+    async loadSavedAddresses(phone?: string): Promise<void> {
+        const mobile = (phone || this.customerMobile || this.profilePhone || '').trim();
+        if (!this.branchId || mobile.replace(/\D/g, '').length < 7) {
+            this.savedAddresses = [];
+            return;
+        }
+        this.loadingSavedAddresses = true;
+        try {
+            this.savedAddresses = await this.customerOrderService.getSavedAddresses({
+                phone: mobile,
+                branchId: this.branchId,
+            });
+            const def = this.savedAddresses.find((a) => a.isDefault) || this.savedAddresses[0];
+            if (def && !this.deliveryAddress?.trim()) {
+                this.applySavedAddress(def);
+            }
+        } catch {
+            /* keep empty list */
+        } finally {
+            this.loadingSavedAddresses = false;
+        }
+    }
+
+    applySavedAddress(addr: CustomerSavedAddressDto | null): void {
+        if (!addr) {
+            this.selectedSavedAddressId = null;
+            return;
+        }
+        this.selectedSavedAddressId = addr.id;
+        this.deliveryAddress = addr.address || '';
+        this.deliveryLandmark = addr.landmark || '';
+        if (addr.deliveryAreaId && this.deliveryAreas.some((a) => a.id === addr.deliveryAreaId)) {
+            this.onDeliveryAreaChange(addr.deliveryAreaId);
+        }
+        if (addr.latitude != null && addr.longitude != null) {
+            this.latitude = Number(addr.latitude);
+            this.longitude = Number(addr.longitude);
+            this.locationCaptured = true;
+            this.googleMapsLink = `https://www.google.com/maps?q=${this.latitude},${this.longitude}`;
+        }
+        if (!this.profileAddress?.trim()) {
+            this.profileAddress = addr.address || '';
+        }
+    }
+
+    onCheckoutPhoneBlur(): void {
+        void this.loadSavedAddresses(this.customerMobile);
+    }
+
+    async removeSavedAddress(addr: CustomerSavedAddressDto, event?: Event): Promise<void> {
+        event?.stopPropagation();
+        if (!addr?.id) return;
+        try {
+            await this.customerOrderService.deleteSavedAddress(
+                addr.id,
+                this.customerMobile || this.profilePhone,
+                this.branchId
+            );
+            this.savedAddresses = this.savedAddresses.filter((a) => a.id !== addr.id);
+            if (this.selectedSavedAddressId === addr.id) {
+                this.selectedSavedAddressId = null;
+            }
+        } catch (err: any) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Delete failed',
+                detail: err?.message || 'Could not remove saved address.',
+            });
+        }
+    }
+
+    savedAddressLabel(addr: CustomerSavedAddressDto): string {
+        const zone = addr.deliveryAreaName ? ` · ${addr.deliveryAreaName}` : '';
+        const label = addr.label ? `${addr.label}: ` : '';
+        return `${label}${addr.address || 'Address'}${zone}`;
+    }
+
+    useCurrentLocationForProfile(): void {
+        if (!navigator.geolocation) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'GPS not supported',
+                detail: 'Please type your address manually.',
+            });
+            return;
+        }
+
+        this.profileLocating = true;
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                const lat = Number(pos.coords.latitude.toFixed(6));
+                const lng = Number(pos.coords.longitude.toFixed(6));
+                this.profileLatitude = lat;
+                this.profileLongitude = lng;
+                void this.fillProfileAddressFromCoords(lat, lng).finally(() => {
+                    this.profileLocating = false;
+                });
+            },
+            (err) => {
+                this.profileLocating = false;
+                let detail = 'Location access denied. Please type your address.';
+                if (err.code === err.TIMEOUT) {
+                    detail = 'GPS timed out. Please type your address.';
+                } else if (err.code === err.POSITION_UNAVAILABLE) {
+                    detail = 'GPS unavailable. Please type your address.';
+                }
+                this.messageService.add({
+                    severity: 'warn',
+                    summary: 'Location',
+                    detail,
+                    life: 4000,
+                });
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0,
+            }
+        );
+    }
+
+    private async fillProfileAddressFromCoords(lat: number, lng: number): Promise<void> {
+        try {
+            const res = await fetch(
+                `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
+                { headers: { Accept: 'application/json' } }
+            );
+            if (res.ok) {
+                const data = await res.json();
+                if (data?.display_name) {
+                    const parts = String(data.display_name).split(',').slice(0, 4).join(', ');
+                    this.profileAddress = parts.trim();
+                    this.messageService.add({
+                        severity: 'success',
+                        summary: 'Address filled',
+                        detail: 'Current location added. Tap Save Profile to keep it.',
+                        life: 3000,
+                    });
+                    return;
+                }
+            }
+        } catch {
+            /* fall through */
+        }
+
+        // Still keep coords even if reverse geocode fails — user can type address.
+        this.messageService.add({
+            severity: 'info',
+            summary: 'Location ready',
+            detail: 'GPS saved. Please type your street / area if the address is empty.',
+            life: 3500,
+        });
+    }
+
+    onProfilePhotoSelected(event: Event): void {
+        const input = event.target as HTMLInputElement;
+        const file = input?.files?.[0];
+        if (!file) return;
+        if (!file.type.startsWith('image/')) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Invalid file',
+                detail: 'Please choose an image file.',
+            });
+            return;
+        }
+        if (file.size > 3 * 1024 * 1024) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Too large',
+                detail: 'Photo must be under 3 MB.',
+            });
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = () => {
+            const result = String(reader.result || '');
+            this.profileImageBase64 = result;
+            this.profileImagePreview = result;
+            this.profileClearImage = false;
+            this.profilePhotoBroken = false;
+        };
+        reader.readAsDataURL(file);
+        input.value = '';
+    }
+
+    clearProfilePhoto(): void {
+        this.profileImageBase64 = null;
+        this.profileImagePreview = null;
+        if (this.profileImagePath) {
+            this.profileClearImage = true;
+            this.profileImagePath = null;
+        }
+    }
+
+    get profilePhotoUrl(): string {
+        if (this.profilePhotoBroken) return '';
+        if (this.profileImagePreview) return this.profileImagePreview;
+        if (this.profileImagePath) {
+            const url = this.getImageUrl(this.profileImagePath);
+            // Cache-bust so a newly uploaded photo shows immediately.
+            const sep = url.includes('?') ? '&' : '?';
+            return `${url}${sep}v=${encodeURIComponent(this.profileImagePath)}`;
+        }
+        return '';
+    }
+
+    onProfilePhotoError(): void {
+        // Show initials instead of a broken-image icon.
+        this.profilePhotoBroken = true;
+    }
+
+    async saveCustomerProfile(): Promise<void> {
+        const name = (this.profileName || '').trim();
+        const phone = (this.profilePhone || '').trim();
+        if (!name) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Name required',
+                detail: 'Please enter your full name.',
+            });
+            return;
+        }
+        if (phone.replace(/\D/g, '').length < 7) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Phone required',
+                detail: 'Please enter a valid phone / WhatsApp number (digits).',
+            });
+            return;
+        }
+        if (phone.includes('@')) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Check phone number',
+                detail: 'Mobile field needs your phone number. Put email in the Email field.',
+            });
+            return;
+        }
+        if (!this.branchId) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Select branch',
+                detail: 'Please choose a store location first.',
+            });
+            return;
+        }
+
+        this.profileSaving = true;
+        try {
+            const saved = await this.customerOrderService.upsertOnlineCustomerProfile({
+                branchId: this.branchId,
+                name,
+                phone,
+                email: (this.profileEmail || '').trim() || undefined,
+                address: (this.profileAddress || '').trim() || undefined,
+                latitude: this.profileLatitude,
+                longitude: this.profileLongitude,
+                imageBase64: this.profileImageBase64 || undefined,
+                clearImage: this.profileClearImage,
+            });
+            // Drop local preview so the saved server photo path is used.
+            this.profileImageBase64 = null;
+            this.profileImagePreview = null;
+            this.applyProfileToForm(saved);
+            this.cartService.setCheckoutDraft({
+                customerName: saved.name,
+                customerMobile: saved.phone,
+                deliveryAddress: saved.address,
+            });
+            await this.syncFavoritesFromServer();
+            this.messageService.add({
+                severity: 'success',
+                summary: 'Profile saved',
+                detail: 'Your name, phone, and photo are saved. Open Account anytime to see them.',
+                life: 4000,
+            });
+            // Keep dialog open so the user can see the saved profile immediately.
+            this.profileModalVisible = true;
+        } catch (err: any) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Save failed',
+                detail: err?.message || 'Could not save your profile.',
+            });
+        } finally {
+            this.profileSaving = false;
+        }
+    }
+
+    private persistLocalProfile(): void {
+        try {
+            if (this.profilePhone) {
+                localStorage.setItem('smartpos_customer_phone', this.profilePhone);
+            }
+            if (this.profileName) {
+                localStorage.setItem('smartpos_customer_name', this.profileName);
+            }
+            if (this.profileEmail) {
+                localStorage.setItem('smartpos_customer_email', this.profileEmail);
+            } else {
+                localStorage.removeItem('smartpos_customer_email');
+            }
+            if (this.profileAddress) {
+                localStorage.setItem('smartpos_customer_address', this.profileAddress);
+            } else {
+                localStorage.removeItem('smartpos_customer_address');
+            }
+            if (this.profileImagePath) {
+                localStorage.setItem('smartpos_customer_image', this.profileImagePath);
+            } else {
+                localStorage.removeItem('smartpos_customer_image');
+            }
+        } catch {
+            /* ignore */
+        }
+    }
+
+    openActiveOrder(order: MyOnlineOrderRef): void {
+        if (!order?.orderNo) {
+            return;
+        }
+        this.goToTracking(order.orderNo);
+    }
+
+    ngOnDestroy(): void {
+        this.stopHeroSlider();
+        this.stopProductMarqueeAutoScroll();
+        this.browserTitle.clearStorefrontBranchName();
+    }
+
+    @HostListener('window:resize')
+    onResize(): void {
+        this.checkScreenSize();
+    }
+
+    @HostListener('window:scroll', [])
+    onWindowScroll(): void {
+        const y =
+            window.scrollY ||
+            document.documentElement.scrollTop ||
+            document.body.scrollTop ||
+            0;
+        this.isScrolled = y > 24;
+    }
+
+    private checkScreenSize(): void {
+        this.isMobile = window.innerWidth < 768;
+    }
+
+    private checkAuthSession(): void {
+        this.sessionService
+            .getCurrentLoginInformations()
+            .then((res) => {
+                if (res?.user) {
+                    this.isLoggedIn = true;
+                    this.userName = res.user.name || res.user.userName || 'Customer';
+                    const parts = this.userName.trim().split(' ');
+                    this.userInitials =
+                        parts.length > 1
+                            ? (parts[0][0] + parts[1][0]).toUpperCase()
+                            : this.userName.substring(0, 2).toUpperCase();
+                }
+            })
+            .catch(() => {
+                this.isLoggedIn = false;
+            });
+    }
+
+    async loadBranchFeedbacks(branchId: number): Promise<void> {
+        if (!branchId || branchId <= 0) {
+            this.branchFeedbacks = [];
+            this.averageBranchRating = 0;
+            return;
+        }
+
+        this.loadingBranchFeedbacks = true;
+        try {
+            const rows = await this.customerOrderService.getBranchFeedbacks(branchId, 5);
+            this.feedbackPhotoBroken.clear();
+            this.branchFeedbacks = rows || [];
+            this.feedbackMarqueePaused = false;
+            if (this.branchFeedbacks.length) {
+                const sum = this.branchFeedbacks.reduce((acc, f) => acc + (f.rating || 0), 0);
+                this.averageBranchRating = Math.round((sum / this.branchFeedbacks.length) * 10) / 10;
+            } else {
+                this.averageBranchRating = 0;
+            }
+        } catch {
+            this.branchFeedbacks = [];
+            this.averageBranchRating = 0;
+        } finally {
+            this.loadingBranchFeedbacks = false;
+        }
+    }
+
+    /** Duplicate once so the LTR marquee (-50% → 0) loops seamlessly on desktop + mobile. */
+    get feedbackMarqueeItems(): typeof this.branchFeedbacks {
+        if (!this.branchFeedbacks.length) {
+            return [];
+        }
+        if (!this.feedbackMarqueeEnabled) {
+            return this.branchFeedbacks;
+        }
+        return [...this.branchFeedbacks, ...this.branchFeedbacks];
+    }
+
+    get feedbackMarqueeEnabled(): boolean {
+        return this.branchFeedbacks.length >= 1;
+    }
+
+    /** ~4.5s per card, clamped for readability. */
+    get feedbackMarqueeDuration(): string {
+        const n = Math.max(2, this.branchFeedbacks.length);
+        const seconds = Math.min(45, Math.max(16, n * 4.5));
+        return `${seconds}s`;
+    }
+
+    /** Product strip items (static / manually scrolled — no loop duplication). */
+    productMarqueeItems(items: any[] | null | undefined): any[] {
+        return items || [];
+    }
+
+    stopProductMarqueeAutoScroll(): void {
+        if (this.productMarqueeRafId != null) {
+            cancelAnimationFrame(this.productMarqueeRafId);
+            this.productMarqueeRafId = null;
+        }
+    }
+
+    onProductMarqueePointerDown(event: PointerEvent): void {
+        const target = event.target as HTMLElement | null;
+        if (target?.closest('button, a, input, textarea, .btn-add-cart, .btn-add-deal')) {
+            return;
+        }
+        // Touch/pen: native overflow scroll; mouse: custom drag.
+        if (event.pointerType && event.pointerType !== 'mouse') {
+            return;
+        }
+        const el = event.currentTarget as HTMLElement;
+        this.productMarqueeDragging = true;
+        this.productMarqueeDidDrag = false;
+        this.productMarqueeDragEl = el;
+        this.productMarqueeDragStartX = event.clientX;
+        this.productMarqueeDragScrollLeft = el.scrollLeft;
+        try {
+            el.setPointerCapture(event.pointerId);
+        } catch {
+            /* ignore */
+        }
+    }
+
+    onProductMarqueePointerMove(event: PointerEvent): void {
+        if (!this.productMarqueeDragging || !this.productMarqueeDragEl) {
+            return;
+        }
+        const dx = event.clientX - this.productMarqueeDragStartX;
+        if (Math.abs(dx) > 4) {
+            this.productMarqueeDidDrag = true;
+        }
+        this.productMarqueeDragEl.scrollLeft = this.productMarqueeDragScrollLeft - dx;
+    }
+
+    onProductMarqueePointerUp(event: PointerEvent): void {
+        if (!this.productMarqueeDragging) {
+            return;
+        }
+        const el = this.productMarqueeDragEl;
+        this.productMarqueeDragging = false;
+        this.productMarqueeDragEl = null;
+        if (el) {
+            try {
+                el.releasePointerCapture(event.pointerId);
+            } catch {
+                /* ignore */
+            }
+        }
+        if (this.productMarqueeDidDrag) {
+            this.suppressProductClickAfterDrag = true;
+            setTimeout(() => {
+                this.suppressProductClickAfterDrag = false;
+            }, 0);
+            event.preventDefault();
+            event.stopPropagation();
+        }
+    }
+
+    pauseFeedbackMarquee(): void {
+        this.feedbackMarqueePaused = true;
+    }
+
+    resumeFeedbackMarquee(): void {
+        this.feedbackMarqueePaused = false;
+    }
+
+    feedbackStars(rating: number): number[] {
+        const n = Math.max(0, Math.min(5, Math.round(rating || 0)));
+        return Array.from({ length: n }, (_, i) => i + 1);
+    }
+
+    feedbackEmptyStars(rating: number): number[] {
+        const filled = Math.max(0, Math.min(5, Math.round(rating || 0)));
+        return Array.from({ length: 5 - filled }, (_, i) => i + 1);
+    }
+
+    feedbackInitial(name?: string): string {
+        const n = (name || 'C').trim();
+        return (n.charAt(0) || 'C').toUpperCase();
+    }
+
+    feedbackPhotoUrl(fb: { orderId: number; customerImagePath?: string | null }): string {
+        if (!fb?.customerImagePath || this.feedbackPhotoBroken.has(fb.orderId)) {
+            return '';
+        }
+        return this.getImageUrl(fb.customerImagePath);
+    }
+
+    onFeedbackPhotoError(orderId: number): void {
+        if (orderId) {
+            this.feedbackPhotoBroken.add(orderId);
+        }
     }
 
     async resolveBranchName(bId: number): Promise<void> {
         try {
+            // Prefer the public branch list when already loaded (avoids stale header cache).
+            const listed = (this.availableBranches || []).find(
+                (b) => Number(b?.id) === Number(bId)
+            );
+            const listedName = listed?.name?.trim();
+            const listedImage = (listed?.imagePath || '').toString().trim();
+            if (listedName) {
+                this.branchName = listedName;
+                this.browserTitle.setStorefrontBranchName(listedName);
+                this.applyStorefrontSeo();
+            }
+            if (listedImage) {
+                this.branchImagePath = listedImage;
+                this.branchLogoBroken = false;
+                this.syncStorefrontChromeLogo();
+            }
+
+            this.customerOrderService.clearHeaderCache(bId);
             const info = await this.customerOrderService.getOnlineStoreHeader(bId);
             if (info) {
-                if (info.branchName) this.branchName = info.branchName;
+                const headerName = (info.branchName || info.BranchName || '').trim();
+                // Keep the longer/complete branch name when list and header disagree.
+                if (headerName && (!listedName || headerName.length >= listedName.length)) {
+                    this.branchName = headerName;
+                } else if (listedName) {
+                    this.branchName = listedName;
+                } else if (headerName) {
+                    this.branchName = headerName;
+                }
+                if (info.address) this.branchAddress = info.address;
+                if (info.phone) this.branchPhone = info.phone;
                 if (info.currencyFormat) this.currencyFormat = info.currencyFormat;
                 if (info.dateFormat) this.dateFormat = info.dateFormat;
+                this.facebookUrl = info.facebookUrl || '';
+                this.instagramUrl = info.instagramUrl || '';
+                this.youtubeUrl = info.youtubeUrl || '';
+                const headerImage = (
+                    info.imagePath ||
+                    info.ImagePath ||
+                    listedImage ||
+                    ''
+                )
+                    .toString()
+                    .trim();
+                this.branchImagePath = headerImage;
+                this.branchLogoBroken = false;
+                this.isRestaurant = !!info.isRestaurant || info.businessType === 2;
+                if (info.latitude != null) this.branchLatitude = Number(info.latitude);
+                if (info.longitude != null) this.branchLongitude = Number(info.longitude);
+                if (info.categories && Array.isArray(info.categories) && info.categories.length > 0) {
+                    this.backendCategories = info.categories;
+                    this.extractCategories();
+                    this.applyFilter();
+                }
+                if (this.locationCaptured) {
+                    this.calculateDistance();
+                }
+                this.browserTitle.setStorefrontBranchName(this.branchName);
+                this.syncStorefrontChromeLogo();
+                this.applyStorefrontSeo();
                 return;
             }
         } catch {
             // Ignore error
         }
         this.branchName = '';
+        this.branchAddress = '';
+        this.branchPhone = '';
+        this.branchImagePath = '';
+        this.branchLogoBroken = false;
+        this.facebookUrl = '';
+        this.instagramUrl = '';
+        this.youtubeUrl = '';
+        this.isRestaurant = false;
+        this.branchLatitude = null;
+        this.branchLongitude = null;
+        this.browserTitle.clearStorefrontBranchName();
+    }
+
+    get branchLogoUrl(): string {
+        if (!this.branchImagePath || this.branchLogoBroken) {
+            return '';
+        }
+        const path = this.branchImagePath;
+        if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('data:')) {
+            return path;
+        }
+        return `${environment.apiUrl}${path.startsWith('/') ? '' : '/'}${path}`;
+    }
+
+    /** Logo URL for a branch row in the picker dialogs. */
+    getBranchPickerLogoUrl(branch: { id?: number; imagePath?: string } | null | undefined): string {
+        const id = Number(branch?.id);
+        if (id && this.branchPickerLogoBrokenIds.has(id)) {
+            return this.ajFallbackLogoUrl;
+        }
+        const path = (branch?.imagePath || '').toString().trim();
+        if (!path) {
+            return this.ajFallbackLogoUrl;
+        }
+        if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('data:')) {
+            return path;
+        }
+        return `${environment.apiUrl}${path.startsWith('/') ? '' : '/'}${path}`;
+    }
+
+    onBranchPickerLogoError(branch: { id?: number } | null | undefined): void {
+        const id = Number(branch?.id);
+        if (!id || this.branchPickerLogoBrokenIds.has(id)) {
+            return;
+        }
+        this.branchPickerLogoBrokenIds.add(id);
+    }
+
+    /** AJ mark when the branch has no logo. */
+    get ajFallbackLogoUrl(): string {
+        return AppBrowserTitleService.AJ_FAVICON_PNG;
+    }
+
+    /** Header image: branch logo, else AJ. */
+    get headerBrandLogoUrl(): string {
+        return this.branchLogoUrl || this.ajFallbackLogoUrl;
+    }
+
+    private syncStorefrontChromeLogo(): void {
+        this.browserTitle.setStorefrontBranchLogoUrl(this.branchLogoUrl || null);
+    }
+
+    private applyStorefrontSeo(): void {
+        const brand =
+            this.storefrontHost.getStorefrontTitle() || this.branchName;
+        this.seo.setStorefrontBranch({
+            branchName: this.branchName || brand,
+            brandTitle: brand,
+            branchAddress: this.branchAddress,
+            branchPhone: this.branchPhone,
+            path: '/online-order',
+            image: this.branchLogoUrl || null,
+        });
+    }
+
+    onBranchLogoError(): void {
+        // Only fall back once when the branch image fails; AJ fallback should not re-trigger.
+        if (!this.branchLogoBroken && this.branchImagePath) {
+            this.branchLogoBroken = true;
+            this.syncStorefrontChromeLogo();
+        }
+    }
+
+    get socialFacebookHref(): string {
+        return this.facebookUrl || 'https://www.facebook.com/';
+    }
+
+    get socialInstagramHref(): string {
+        return this.instagramUrl || 'https://www.instagram.com/';
+    }
+
+    get socialYoutubeHref(): string {
+        return this.youtubeUrl || 'https://www.youtube.com/';
+    }
+
+    async ensurePublicBranchesLoaded(): Promise<void> {
+        try {
+            const publicBranches = await this.customerOrderService.getOnlineBranches();
+            this.branchPickerLogoBrokenIds.clear();
+            this.availableBranches = (publicBranches || []).map((b) => ({
+                id: b.id,
+                name: b.name,
+                address: b.address,
+                isRestaurant: !!b.isRestaurant,
+                imagePath: (b.imagePath || '').toString().trim() || undefined,
+            }));
+        } catch {
+            // Keep whatever list we already have.
+        }
     }
 
     async handleMissingBranchId(): Promise<void> {
-        // 1. Check if BranchContext has an active branch
-        const ctxBranchId = this.branchContext.getBranchId();
-        if (ctxBranchId) {
-            this.setBranchInUrl(ctxBranchId);
+        const forced = await this.storefrontHost.ensureResolved();
+        if (forced?.branchId) {
+            this.setBranchInUrl(forced.branchId);
             return;
         }
 
-        // 2. Otherwise try loading available branches
+        this.branchId = null;
+        this.branchName = '';
+        this.branchImagePath = '';
+        this.branchLogoBroken = false;
+        this.browserTitle.clearStorefrontBranchName();
+        this.products = [];
+        this.filteredProducts = [];
+        this.categorySections = [];
+        this.heroSlides = [...this.defaultHeroSlides];
+
         try {
             this.loading = true;
-            await this.branchContext.ensureLoaded();
-            const allowed = this.branchContext.getAllowedBranches();
-            if (allowed && allowed.length > 0) {
-                this.setBranchInUrl(allowed[0].id);
-                return;
+            await this.ensurePublicBranchesLoaded();
+
+            if (!this.availableBranches.length) {
+                try {
+                    await this.branchContext.ensureLoaded();
+                    const allowed = this.branchContext.getAllowedBranches();
+                    if (allowed?.length) {
+                        this.availableBranches = allowed.map((b) => ({
+                            id: b.id,
+                            name: b.name,
+                            address: (b as any).address,
+                            isRestaurant: !!(b as any).isRestaurant,
+                            imagePath: ((b as any).imagePath || '').toString().trim() || undefined,
+                        }));
+                    }
+                } catch {
+                    // ignore
+                }
             }
 
-            const branches = await this.branchService.getLookup();
-            this.availableBranches = branches || [];
-            if (this.availableBranches.length === 1) {
-                this.setBranchInUrl(this.availableBranches[0].id);
-                return;
-            } else if (this.availableBranches.length > 1) {
-                this.branchMissingError = true;
-                return;
+            if (!this.availableBranches.length) {
+                try {
+                    const branches = await this.branchService.getLookup();
+                    this.availableBranches = (branches || []).map((b: any) => ({
+                        id: b.id,
+                        name: b.name,
+                        address: b.address,
+                        code: b.code,
+                        isRestaurant: !!b.isRestaurant,
+                        imagePath: (b.imagePath || '').toString().trim() || undefined,
+                    }));
+                } catch {
+                    // ignore
+                }
             }
         } catch {
-            // Error loading branches
+            // Fallback below
         } finally {
             this.loading = false;
         }
 
+        // Returning visitor: land on last branch if it is still available.
+        const lastBranchId = this.readLastOnlineBranchId();
+        if (lastBranchId) {
+            const stillAvailable = (this.availableBranches || []).some(
+                (b) => Number(b?.id) === lastBranchId
+            );
+            if (stillAvailable) {
+                this.setBranchInUrl(lastBranchId);
+                return;
+            }
+            this.clearLastOnlineBranchId();
+        }
+
+        this.selectedBranchIdForModal = null;
         this.branchMissingError = true;
+        this.mobileBranchModal = false;
     }
 
     setBranchInUrl(bId: number): void {
+        this.branchMissingError = false;
+        this.mobileBranchModal = false;
+        const listed = (this.availableBranches || []).find((b) => Number(b?.id) === Number(bId));
+        if (listed?.name) {
+            this.branchName = String(listed.name).trim();
+            this.browserTitle.setStorefrontBranchName(this.branchName);
+        }
+        const listedImage = (listed?.imagePath || '').toString().trim();
+        this.branchImagePath = listedImage;
+        this.branchLogoBroken = false;
+        this.syncStorefrontChromeLogo();
+        this.applyStorefrontSeo();
+        this.rememberLastOnlineBranchId(bId);
         this.router.navigate([], {
             relativeTo: this.route,
             queryParams: { branchId: bId },
             queryParamsHandling: 'merge',
         });
+    }
+
+    /** Clear branch selection and show the full branch list again. */
+    showAllBranches(): void {
+        // Single-branch / custom-domain storefronts stay locked.
+        if (!this.canSwitchOnlineBranch) {
+            return;
+        }
+        this.branchId = null;
+        this.branchName = '';
+        this.branchImagePath = '';
+        this.branchLogoBroken = false;
+        this.browserTitle.clearStorefrontBranchName();
+        this.branchMissingError = true;
+        this.mobileBranchModal = false;
+        this.selectedBranchIdForModal = null;
+        this.cartService.clearCart();
+        // Clear memory so we don't immediately auto-redirect back into the old branch.
+        this.clearLastOnlineBranchId();
+        this.router.navigate(['/online-order'], { queryParams: {} });
+        void this.ensurePublicBranchesLoaded().then(() => {
+            this.branchMissingError = true;
+        });
+    }
+
+    openBranchPicker(): void {
+        if (!this.canSwitchOnlineBranch) {
+            return;
+        }
+        if (this.availableBranches.length) {
+            this.mobileBranchModal = true;
+        } else {
+            this.showAllBranches();
+        }
+    }
+
+    private rememberLastOnlineBranchId(branchId: number): void {
+        if (!branchId || branchId <= 0) {
+            return;
+        }
+        try {
+            localStorage.setItem(LAST_ONLINE_BRANCH_KEY, String(branchId));
+        } catch {
+            /* private mode / blocked storage */
+        }
+    }
+
+    private readLastOnlineBranchId(): number | null {
+        try {
+            const raw = (localStorage.getItem(LAST_ONLINE_BRANCH_KEY) || '').trim();
+            if (!raw || isNaN(Number(raw))) {
+                return null;
+            }
+            const id = Number(raw);
+            return id > 0 ? id : null;
+        } catch {
+            return null;
+        }
+    }
+
+    private clearLastOnlineBranchId(): void {
+        try {
+            localStorage.removeItem(LAST_ONLINE_BRANCH_KEY);
+        } catch {
+            /* ignore */
+        }
     }
 
     onSelectBranchFromModal(): void {
@@ -142,26 +1632,75 @@ export class OnlineOrderComponent implements OnInit {
         this.setBranchInUrl(this.selectedBranchIdForModal);
     }
 
+    selectBranchCard(branch: { id: number }): void {
+        if (!branch?.id) {
+            return;
+        }
+        this.setBranchInUrl(branch.id);
+    }
+
+    logoutAndShowBranches(): void {
+        this.authService.logout();
+        this.tenantContext.setTenantId(undefined);
+        this.tenantContext.setTenantInfo(null);
+        this.branchContext.clear();
+        this.isLoggedIn = false;
+        this.userName = '';
+        this.userInitials = '';
+        this.messageService.add({
+            severity: 'success',
+            summary: 'Logged out',
+            detail: 'Choose a branch to continue ordering.',
+            life: 2500,
+        });
+        this.showAllBranches();
+    }
+
+    /** Staff / Admin card: login when guest, home/dashboard when already signed in. */
+    onStaffAdminCardClick(): void {
+        this.mobileBranchModal = false;
+        if (this.isLoggedIn) {
+            this.router.navigateByUrl(this.authService.getHomeRoute());
+            return;
+        }
+        this.router.navigateByUrl('/auth/login');
+    }
+
     async loadCatalog(bId?: number, selectProductId?: number): Promise<void> {
         try {
             this.loading = true;
-            this.products = await this.customerOrderService.getOnlineCatalog(bId || undefined);
+            const promises: Promise<any>[] = [
+                this.customerOrderService.getOnlineCatalog(bId || undefined),
+            ];
+            if (bId && (!this.backendCategories || this.backendCategories.length === 0)) {
+                promises.push(this.customerOrderService.getOnlineCategories(bId).catch(() => []));
+            }
+            const results = await Promise.all(promises);
+            this.products = results[0] || [];
+            if (results.length > 1 && Array.isArray(results[1]) && results[1].length > 0) {
+                this.backendCategories = results[1];
+            }
+
             if (this.products && this.products.length > 0 && this.products[0].currencyFormat) {
                 this.currencyFormat = this.products[0].currencyFormat;
             }
+            this.organizeCarousels();
             this.extractCategories();
+            if (bId) {
+                this.loadDeliveryAreas(bId);
+            }
             this.applyFilter();
 
             if (selectProductId) {
                 const target = this.products.find((p) => p.id === selectProductId);
                 if (target) {
-                    this.openProductDetails(target);
+                    this.openProductModal(target);
                 }
             }
         } catch (error: any) {
             this.messageService.add({
                 severity: 'error',
-                summary: 'Error',
+                summary: 'Catalog Error',
                 detail: error?.message || 'Failed to load catalog products',
             });
         } finally {
@@ -171,44 +1710,1388 @@ export class OnlineOrderComponent implements OnInit {
 
     extractCategories(): void {
         const set = new Set<string>();
-        this.products.forEach((p) => {
-            if (p.categoryName) {
-                set.add(p.categoryName);
+
+        // 1. Add all categories configured by admin on backend
+        (this.backendCategories || []).forEach((c) => {
+            if (c && c.trim()) {
+                set.add(c.trim());
             }
         });
-        this.categories = ['All', ...Array.from(set)];
+
+        // 2. Also add any categories found on loaded products
+        (this.products || []).forEach((p) => {
+            if (p.categoryName && p.categoryName.trim()) {
+                set.add(p.categoryName.trim());
+            }
+        });
+
+        const allCats = Array.from(set);
+        const regularCats = allCats.filter(
+            (c) => c.toLowerCase() !== 'all' && !c.toLowerCase().includes('deal')
+        );
+
+        // Always provide 'All' first, then '🔥 Deals', then all admin-created categories
+        this.categories = ['All', '🔥 Deals', ...regularCats];
     }
 
-    selectCategory(cat: string): void {
-        this.selectedCategory = cat;
+    private organizeCarousels(): void {
+        // Find items that are deals or have deal category ONLY
+        const explicitDeals = (this.products || []).filter(
+            (p) => p.isDeal === true || (p.categoryName && p.categoryName.trim().toLowerCase().includes('deal'))
+        );
+        this.dealsList = explicitDeals; // Strictly deals only! No regular product fallback!
+        this.trendingDeals = explicitDeals;
+
+        // Popular: items with rating or top items
+        this.popularItems = (this.products || []).length > 4 ? (this.products || []).slice(3, 11) : (this.products || []);
+
+        // Group by category for dedicated rows
+        const catMap = new Map<string, any[]>();
+        (this.products || []).forEach((p) => {
+            const cat = (p.categoryName && p.categoryName.trim()) || 'Featured Menu';
+            if (!catMap.has(cat)) {
+                catMap.set(cat, []);
+            }
+            catMap.get(cat)!.push(p);
+        });
+
+        this.categorySections = [];
+        catMap.forEach((items, category) => {
+            this.categorySections.push({ category, items });
+        });
+
+    }
+
+    getCategorySectionId(category: string): string {
+        if (!category) return '';
+        const lower = category.toLowerCase().trim();
+        if (lower.includes('deal')) {
+            return 'storeDealsSection';
+        }
+        if (lower.includes('popular')) {
+            return 'storePopularSection';
+        }
+        if (lower.includes('trend')) {
+            return 'storeTrendingSection';
+        }
+        const clean = lower
+            .replace(/[^a-z0-9]/g, '-')
+            .replace(/-+/g, '-')
+            .replace(/^-|-$/g, '');
+        return 'cat-section-' + clean;
+    }
+
+    /**
+     * Logo / branch name: staff → their portal home; customer/guest → storefront home.
+     */
+    onBrandClick(event?: Event): void {
+        if (this.authService.isStaffPortalUser()) {
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            this.mobileNavOpen = false;
+            void this.router.navigateByUrl(this.authService.getHomeRoute());
+            return;
+        }
+        this.scrollToSection('home', event);
+    }
+
+    scrollToSection(sectionId: string, event?: Event): void {
+        if (event) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+        if (sectionId === 'home' || sectionId === 'menu' || sectionId === 'deals' || sectionId === 'contact') {
+            this.activeNav = sectionId as any;
+        }
+        this.mobileNavOpen = false;
+
+        if (sectionId === 'home') {
+            this.selectedCategories = [];
+            if (this.searchKeyword) {
+                this.searchKeyword = '';
+            }
+            this.applyFilter();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        } else if (sectionId === 'menu') {
+            const el = document.getElementById('storeMenuSection');
+            if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } else {
+                window.scrollTo({ top: 520, behavior: 'smooth' });
+            }
+        } else if (sectionId === 'deals') {
+            const el = document.getElementById('storeDealsSection');
+            if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } else {
+                this.selectCategory('🔥 Deals', event);
+            }
+        } else if (sectionId === 'contact') {
+            const el = document.getElementById('storeContactSection');
+            if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } else {
+                this.contactModalVisible = true;
+            }
+        }
+    }
+
+    selectCategory(cat: string, event?: Event): void {
+        if (event) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+
+        if (this.activeMobileTab === 'favorites') {
+            this.activeMobileTab = 'home';
+        }
+
+        const lower = (cat || '').toLowerCase().trim();
+        if (!cat || lower === 'all') {
+            this.selectedCategories = [];
+            this.applyFilter();
+            const menuEl = document.getElementById('storeMenuSection');
+            if (menuEl) {
+                menuEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+            return;
+        }
+
+        const idx = this.selectedCategories.indexOf(cat);
+        if (idx >= 0) {
+            this.selectedCategories = this.selectedCategories.filter((c) => c !== cat);
+        } else {
+            this.selectedCategories = [...this.selectedCategories, cat];
+        }
         this.applyFilter();
+
+        setTimeout(() => {
+            const activeChip = document.querySelector('.fp-cat-chip.active, .fp-circle-cat-item.active');
+            if (activeChip) {
+                activeChip.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+            }
+            const resultsEl = document.getElementById('storeFilteredMenu');
+            if (resultsEl && this.isMenuFiltering) {
+                resultsEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }, 50);
+    }
+    selectPill(pill: string): void {
+        if (this.selectedPill === pill) {
+            this.selectedPill = '';
+        } else {
+            this.selectedPill = pill;
+        }
+        if (this.activeMobileTab === 'favorites') {
+            this.activeMobileTab = 'home';
+        }
+        this.applyFilter();
+        setTimeout(() => {
+            const activePill = document.querySelector('.fp-pill-badge.active');
+            if (activePill) {
+                activePill.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+            }
+        }, 60);
+    }
+
+    clearFilter(): void {
+        this.selectedCategories = [];
+        this.selectedPill = '';
+        this.searchKeyword = '';
+        if (this.activeMobileTab === 'favorites') {
+            this.activeMobileTab = 'home';
+        }
+        this.applyFilter();
+    }
+
+    onMenuSearchChange(): void {
+        this.applyFilter();
+    }
+
+    toggleMobileSearch(): void {
+        this.mobileSearchOpen = !this.mobileSearchOpen;
+        if (this.mobileSearchOpen) {
+            setTimeout(() => {
+                const input = document.getElementById('fpMobileSearchInput') as HTMLInputElement;
+                if (input) {
+                    input.focus();
+                }
+            }, 100);
+        }
     }
 
     applyFilter(): void {
         const query = (this.searchKeyword || '').toLowerCase().trim();
-        this.filteredProducts = this.products.filter((p) => {
-            const matchesCat =
-                this.selectedCategory === 'All' ||
-                p.categoryName === this.selectedCategory;
+        const selectedCats = this.selectedCategories || [];
+        const pill = this.selectedPill;
+
+        this.filteredProducts = (this.products || []).filter((p) => {
+            // Favorites tab restriction
+            if (this.activeMobileTab === 'favorites') {
+                if (!this.favorites.has(p.id)) {
+                    return false;
+                }
+            }
+
+            // Multi-category: product must match at least one selected category
+            let matchesCat = true;
+            if (selectedCats.length > 0) {
+                const pCatLower = (p.categoryName || '').trim().toLowerCase();
+                matchesCat = selectedCats.some((cat) => {
+                    const target = (cat || '').trim().toLowerCase();
+                    if (!target || target === 'all') {
+                        return true;
+                    }
+                    if (cat === '🔥 Deals' || target.includes('deal')) {
+                        return p.isDeal === true || pCatLower.includes('deal');
+                    }
+                    if (cat === '✨ Popular') {
+                        return true;
+                    }
+                    return pCatLower === target;
+                });
+            }
+
+            // Pill filtering (Foodies Pakistan pills)
+            let matchesPill = true;
+            if (pill === '🔥 Top Deals') {
+                matchesPill = p.isDeal === true || ((p.categoryName || '').toLowerCase().includes('deal'));
+            } else if (pill === '⭐ Highly Rated') {
+                const rating = parseFloat(this.getProductRating(p));
+                matchesPill = rating >= 4.8;
+            } else if (pill === '🏷️ Budget Picks') {
+                matchesPill = !p.price || p.price <= 25000;
+            } else if (pill === '⚡ Fast Delivery') {
+                matchesPill = true;
+            } else if (pill === '📍 Near Me') {
+                matchesPill = true;
+            }
+
+            // Keyword search
             const matchesSearch =
                 !query ||
-                p.name.toLowerCase().includes(query) ||
-                (p.categoryName || '').toLowerCase().includes(query);
-            return matchesCat && matchesSearch;
+                (p.name || '').toLowerCase().includes(query) ||
+                (p.categoryName || '').toLowerCase().includes(query) ||
+                (p.brandName || '').toLowerCase().includes(query) ||
+                (p.barcode || '').toLowerCase().includes(query) ||
+                (p.code || '').toLowerCase().includes(query);
+
+            return matchesCat && matchesPill && matchesSearch;
         });
     }
 
-    openProductDetails(product: any): void {
-        this.router.navigate(['/online-order/product', product.id], {
-            queryParams: this.branchId ? { branchId: this.branchId } : {},
-        });
+    // 5-Tab Navigation Dock Actions
+    onMobileTabSelect(tab: 'home' | 'deals' | 'cart' | 'favorites' | 'account'): void {
+        this.activeMobileTab = tab;
+        if (tab === 'home') {
+            this.selectedCategories = [];
+            this.selectedPill = '';
+            this.searchKeyword = '';
+            this.applyFilter();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        } else if (tab === 'deals') {
+            this.selectedCategories = ['🔥 Deals'];
+            this.selectedPill = '🔥 Top Deals';
+            this.applyFilter();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        } else if (tab === 'cart') {
+            this.cartService.sidebarVisible = true;
+        } else if (tab === 'favorites') {
+            this.selectedCategories = [];
+            this.selectedPill = '';
+            this.applyFilter();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        } else if (tab === 'account') {
+            this.openCustomerProfile();
+        }
     }
 
+    // Favorites: local cache + server sync by phone/branch
+    private favoritesStorageKey(): string {
+        const branch = this.branchId || 0;
+        return `smartpos_store_favorites_${branch}`;
+    }
+
+    loadFavorites(): void {
+        try {
+            const raw =
+                localStorage.getItem(this.favoritesStorageKey()) ||
+                localStorage.getItem('smartpos_store_favorites');
+            if (raw) {
+                const arr = JSON.parse(raw);
+                if (Array.isArray(arr)) {
+                    this.favorites = new Set(
+                        arr.map((id: any) => Number(id)).filter((id: number) => id > 0)
+                    );
+                }
+            }
+        } catch {}
+        void this.syncFavoritesFromServer();
+    }
+
+    saveFavorites(): void {
+        try {
+            localStorage.setItem(
+                this.favoritesStorageKey(),
+                JSON.stringify(Array.from(this.favorites))
+            );
+            // Legacy key for older builds
+            localStorage.setItem(
+                'smartpos_store_favorites',
+                JSON.stringify(Array.from(this.favorites))
+            );
+        } catch {}
+    }
+
+    private resolveFavoritePhone(): string {
+        return (
+            this.profilePhone?.trim() ||
+            this.customerMobile?.trim() ||
+            this.readLocal('smartpos_customer_phone') ||
+            ''
+        ).trim();
+    }
+
+    async syncFavoritesFromServer(): Promise<void> {
+        const phone = this.resolveFavoritePhone();
+        if (!this.branchId || phone.replace(/\D/g, '').length < 7) {
+            return;
+        }
+        try {
+            const ids = await this.customerOrderService.getFavoriteProductIds({
+                phone,
+                branchId: this.branchId,
+                customerId: this.profileId || undefined,
+            });
+            // Merge local-only ids up to server, then prefer server as source of truth.
+            const localOnly = Array.from(this.favorites).filter((id) => !ids.includes(id));
+            for (const productId of localOnly) {
+                try {
+                    await this.customerOrderService.toggleFavorite({
+                        productId,
+                        phone,
+                        branchId: this.branchId,
+                        customerId: this.profileId || undefined,
+                    });
+                    ids.push(productId);
+                } catch {
+                    /* keep local if upload fails */
+                }
+            }
+            this.favorites = new Set(ids);
+            this.saveFavorites();
+            if (this.activeMobileTab === 'favorites') {
+                this.applyFilter();
+            }
+        } catch {
+            /* keep local cache */
+        }
+    }
+
+    async toggleFavorite(productId: number, event?: Event): Promise<void> {
+        if (event) {
+            event.stopPropagation();
+        }
+        if (!productId) {
+            return;
+        }
+
+        const phone = this.resolveFavoritePhone();
+        if (!this.branchId || phone.replace(/\D/g, '').length < 7) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Phone required',
+                detail: 'Open Account and save your phone number to sync favorites.',
+                life: 3200,
+            });
+            this.openCustomerProfile();
+            return;
+        }
+
+        const wasFavorite = this.favorites.has(productId);
+        // Optimistic UI
+        if (wasFavorite) {
+            this.favorites.delete(productId);
+        } else {
+            this.favorites.add(productId);
+        }
+        this.saveFavorites();
+        if (this.activeMobileTab === 'favorites') {
+            this.applyFilter();
+        }
+
+        try {
+            const result = await this.customerOrderService.toggleFavorite({
+                productId,
+                phone,
+                branchId: this.branchId,
+                customerId: this.profileId || undefined,
+            });
+            if (result.isFavorite) {
+                this.favorites.add(productId);
+                this.messageService.add({
+                    severity: 'success',
+                    summary: 'Saved',
+                    detail: 'Item added to your favorites',
+                    life: 1400,
+                });
+            } else {
+                this.favorites.delete(productId);
+                this.messageService.add({
+                    severity: 'info',
+                    summary: 'Removed',
+                    detail: 'Item removed from favorites',
+                    life: 1400,
+                });
+            }
+            this.saveFavorites();
+            if (this.activeMobileTab === 'favorites') {
+                this.applyFilter();
+            }
+        } catch (error: any) {
+            // Roll back optimistic change
+            if (wasFavorite) {
+                this.favorites.add(productId);
+            } else {
+                this.favorites.delete(productId);
+            }
+            this.saveFavorites();
+            if (this.activeMobileTab === 'favorites') {
+                this.applyFilter();
+            }
+            const message =
+                error?.error?.error?.message ||
+                error?.error?.message ||
+                error?.message ||
+                'Failed to update favorite';
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Favorites',
+                detail: message,
+                life: 4000,
+            });
+        }
+    }
+
+    isFavorite(productId: number): boolean {
+        return this.favorites.has(productId);
+    }
+
+    get favoriteCount(): number {
+        return this.favorites.size;
+    }
+
+    // Circular Category Visual Resolver
+    getCategoryVisual(cat: string): { icon: string; image?: string; color: string; label: string } {
+        const c = cat.toLowerCase();
+        if (c === 'all') {
+            return { icon: 'pi pi-compass', color: '#e23744', label: 'All' };
+        }
+        if (c.includes('deal') || c.includes('🔥')) {
+            return {
+                icon: 'pi pi-bolt',
+                color: '#ef4444',
+                label: 'Deals',
+                image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=150&q=80',
+            };
+        }
+        if (c.includes('popular') || c.includes('✨') || c.includes('top')) {
+            return {
+                icon: 'pi pi-star-fill',
+                color: '#f59e0b',
+                label: 'Popular',
+                image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=150&q=80',
+            };
+        }
+        if (c.includes('burger') || c.includes('burgur') || c.includes('fast')) {
+            return {
+                icon: 'pi pi-check',
+                color: '#f97316',
+                label: cat,
+                image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=150&q=80',
+            };
+        }
+        if (c.includes('showarma') || c.includes('shawarma') || c.includes('roll') || c.includes('wrap')) {
+            return {
+                icon: 'pi pi-bookmark',
+                color: '#d97706',
+                label: cat,
+                image: 'https://images.unsplash.com/photo-1529006557810-274b9b2fc783?auto=format&fit=crop&w=150&q=80',
+            };
+        }
+        if (c.includes('drink') || c.includes('beverage') || c.includes('cold drink') || c.includes('juice') || c.includes('soda')) {
+            return {
+                icon: 'pi pi-heart',
+                color: '#0284c7',
+                label: cat,
+                image: 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?auto=format&fit=crop&w=150&q=80',
+            };
+        }
+        if (c.includes('pizza')) {
+            return {
+                icon: 'pi pi-circle',
+                color: '#ea580c',
+                label: cat,
+                image: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&w=150&q=80',
+            };
+        }
+        if (c.includes('desi') || c.includes('karahi') || c.includes('handi') || c.includes('biryani')) {
+            return {
+                icon: 'pi pi-sun',
+                color: '#b91c1c',
+                label: cat,
+                image: 'https://images.unsplash.com/photo-1546833999-b9f581a1996d?auto=format&fit=crop&w=150&q=80',
+            };
+        }
+        if (c.includes('chinese') || c.includes('soup') || c.includes('noodle')) {
+            return {
+                icon: 'pi pi-th-large',
+                color: '#dc2626',
+                label: cat,
+                image: 'https://images.unsplash.com/photo-1552611052-33e04de081de?auto=format&fit=crop&w=150&q=80',
+            };
+        }
+        if (c.includes('cafe') || c.includes('coffee') || c.includes('tea') || c.includes('drink')) {
+            return {
+                icon: 'pi pi-heart',
+                color: '#78350f',
+                label: cat,
+                image: 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&w=150&q=80',
+            };
+        }
+        if (c.includes('sweet') || c.includes('mithai') || c.includes('cake') || c.includes('bakery')) {
+            return {
+                icon: 'pi pi-heart-fill',
+                color: '#db2777',
+                label: cat,
+                image: 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=150&q=80',
+            };
+        }
+        if (c.includes('panel') || c.includes('solar') || c.includes('mono') || c.includes('bifacial')) {
+            return {
+                icon: 'pi pi-sun',
+                color: '#2563eb',
+                label: cat,
+                image: 'https://images.unsplash.com/photo-1509391365360-2e959784a276?auto=format&fit=crop&w=150&q=80',
+            };
+        }
+        if (c.includes('inverter') || c.includes('ups') || c.includes('hybrid')) {
+            return {
+                icon: 'pi pi-bolt',
+                color: '#059669',
+                label: cat,
+                image: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=150&q=80',
+            };
+        }
+        if (c.includes('battery') || c.includes('lithium') || c.includes('tubular')) {
+            return {
+                icon: 'pi pi-box',
+                color: '#7c3aed',
+                label: cat,
+                image: 'https://images.unsplash.com/photo-1617788138017-80ad40651399?auto=format&fit=crop&w=150&q=80',
+            };
+        }
+        if (c.includes('accessory') || c.includes('cable') || c.includes('wire') || c.includes('structure')) {
+            return {
+                icon: 'pi pi-cog',
+                color: '#4b5563',
+                label: cat,
+                image: 'https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&w=150&q=80',
+            };
+        }
+        return {
+            icon: 'pi pi-tag',
+            color: '#e23744',
+            label: cat,
+            image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=150&q=80',
+        };
+    }
+
+    // Horizontal Scrolling Controls
+    scrollFilterBar(direction: 'left' | 'right'): void {
+        const container = document.getElementById('fpStoreFilterTrack');
+        if (container) {
+            const distance = direction === 'left' ? -220 : 220;
+            container.scrollBy({ left: distance, behavior: 'smooth' });
+        }
+    }
+
+    scrollCarousel(trackId: string, direction: 'left' | 'right'): void {
+        const container = document.getElementById(trackId) as HTMLElement | null;
+        if (!container) {
+            return;
+        }
+        const distance = direction === 'left' ? -340 : 340;
+        container.scrollBy({ left: distance, behavior: 'smooth' });
+    }
+
+    // Contextual Domain Detection & Foodies Visual Helpers
+    isSolarStore(): boolean {
+        const b = (this.branchName || '').toLowerCase();
+        return b.includes('solar') || b.includes('energy') || b.includes('power');
+    }
+
+    isRestaurantStore(): boolean {
+        if (this.isRestaurant) {
+            return true;
+        }
+        const b = (this.branchName || '').toLowerCase();
+        return (
+            b.includes('cafe') ||
+            b.includes('restaurant') ||
+            b.includes('food') ||
+            b.includes('burger') ||
+            b.includes('pizza') ||
+            b.includes('dining') ||
+            b.includes('kitchen') ||
+            b.includes('bite') ||
+            b.includes('bbq') ||
+            b.includes('fast food') ||
+            b.includes('dhaba') ||
+            b.includes('hotel')
+        );
+    }
+
+    getProductDomain(product: any): 'solar-panel' | 'inverter' | 'battery' | 'solar-accessory' | 'food' | 'retail' | 'general' {
+        const text = `${product?.name || ''} ${product?.categoryName || ''} ${product?.brandName || ''} ${product?.description || ''} ${this.branchName || ''}`.toLowerCase();
+
+        // Food & Beverages (Burgers, Pizzas, Pasta, Biryani, Wings, Fries, Karak Chai, Coffee, Drinks)
+        if (
+            text.includes('burger') ||
+            text.includes('pizza') ||
+            text.includes('pasta') ||
+            text.includes('biryani') ||
+            text.includes('tikka') ||
+            text.includes('wings') ||
+            text.includes('fries') ||
+            text.includes('chai') ||
+            text.includes('tea') ||
+            text.includes('coffee') ||
+            text.includes('latte') ||
+            text.includes('margarita') ||
+            text.includes('sweet') ||
+            text.includes('mithai') ||
+            text.includes('food') ||
+            text.includes('fast food') ||
+            text.includes('bakery') ||
+            text.includes('dessert') ||
+            text.includes('chicken')
+        ) {
+            return 'food';
+        }
+
+        // Retail & Supermarket items (Cold drinks, Mineral water, Packaged tea, Milk, Ketchup, Chips, Cookies, Soaps, Shampoo, Detergent)
+        if (
+            text.includes('coke') ||
+            text.includes('cola') ||
+            text.includes('pepsi') ||
+            text.includes('nestle') ||
+            text.includes('pure life') ||
+            text.includes('mineral water') ||
+            text.includes('water bottle') ||
+            text.includes('lipton') ||
+            text.includes('olper') ||
+            text.includes('milk') ||
+            text.includes('ketchup') ||
+            text.includes('lays') ||
+            text.includes('chips') ||
+            text.includes('oreo') ||
+            text.includes('biscuit') ||
+            text.includes('cookies') ||
+            text.includes('dettol') ||
+            text.includes('soap') ||
+            text.includes('shampoo') ||
+            text.includes('ariel') ||
+            text.includes('detergent') ||
+            text.includes('grocery')
+        ) {
+            return 'retail';
+        }
+
+        // Batteries
+        if (
+            text.includes('battery') ||
+            text.includes('batteries') ||
+            text.includes('lithium') ||
+            text.includes('tubular') ||
+            text.includes('gel battery') ||
+            text.includes('narada') ||
+            text.includes('phoenix') ||
+            text.includes('osaka') ||
+            text.includes('daewoo') ||
+            text.includes('volta')
+        ) {
+            return 'battery';
+        }
+
+        // Inverters
+        if (
+            text.includes('inverter') ||
+            text.includes('ups') ||
+            text.includes('inverex') ||
+            text.includes('growatt') ||
+            text.includes('fronus') ||
+            text.includes('knox') ||
+            text.includes('crown') ||
+            text.includes('hybrid') ||
+            text.includes('on-grid') ||
+            text.includes('off-grid')
+        ) {
+            return 'inverter';
+        }
+
+        // Solar Panels
+        if (
+            text.includes('panel') ||
+            text.includes('solar') ||
+            text.includes('jinko') ||
+            text.includes('longi') ||
+            text.includes('canadian') ||
+            text.includes('mono') ||
+            text.includes('poly') ||
+            text.includes('bifacial') ||
+            text.includes('watt') ||
+            text.includes('photovoltaic')
+        ) {
+            return 'solar-panel';
+        }
+
+        // Solar Accessories / Structures / Cables
+        if (
+            text.includes('cable') ||
+            text.includes('wire') ||
+            text.includes('breaker') ||
+            text.includes('structure') ||
+            text.includes('stand') ||
+            text.includes('charge controller') ||
+            text.includes('mc4') ||
+            text.includes('db box')
+        ) {
+            return 'solar-accessory';
+        }
+
+        if (this.isRestaurantStore()) {
+            return 'food';
+        }
+
+        if (this.isSolarStore()) {
+            return 'solar-panel';
+        }
+
+        return 'retail';
+    }
+
+    // Direct curated images matching exact catalog items (ID & name)
+    private static readonly CATALOG_IMAGES_BY_ID: { [id: number]: string } = {
+        1: 'https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=500&h=500&q=80', // Milk
+        2: 'https://images.unsplash.com/photo-1589985270826-4b7bb135bc9d?auto=format&fit=crop&w=500&h=500&q=80', // Butter
+        3: 'https://images.unsplash.com/photo-1628088062854-d1870b4553da?auto=format&fit=crop&w=500&h=500&q=80', // Desi Ghee
+        4: 'assets/menu-items/barfi.jpg', // Barfi (Pakistani silver vark barfi)
+        5: 'assets/menu-items/milk_bread.jpg', // Milk Bread Large
+        6: 'assets/menu-items/milk_bread.jpg', // Milk Bread Small
+        7: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=500&h=500&q=80', // Brown Bread
+        8: 'https://images.unsplash.com/photo-1549931319-a545dcf3bc73?auto=format&fit=crop&w=500&h=500&q=80', // Sandwich Bread
+        9: 'https://images.unsplash.com/photo-1586190848861-99aa4a171e90?auto=format&fit=crop&w=500&h=500&q=80', // Burger Bun Pack 4
+        10: 'https://images.unsplash.com/photo-1619740455993-9e612b1af08a?auto=format&fit=crop&w=500&h=500&q=80', // Hot Dog Bun Pack 4
+        11: 'https://images.unsplash.com/photo-1568254183919-78a4f43a2877?auto=format&fit=crop&w=500&h=500&q=80', // Dinner Rolls Pack 6
+        12: 'https://images.unsplash.com/photo-1619535860434-ba1d8fa12536?auto=format&fit=crop&w=500&h=500&q=80', // Garlic Bread Stick
+        13: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=500&h=500&q=80', // Fruit Bun
+        14: 'https://images.unsplash.com/photo-1601050690597-df0568f70950?auto=format&fit=crop&w=500&h=500&q=80', // Plain Kulcha Pack 4
+        15: 'https://images.unsplash.com/photo-1576618148400-f54bed99fcfd?auto=format&fit=crop&w=500&h=500&q=80', // Chocolate Cupcake
+        16: 'https://images.unsplash.com/photo-1587668178277-295251f900ce?auto=format&fit=crop&w=500&h=500&q=80', // Vanilla Cupcake
+        17: 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?auto=format&fit=crop&w=500&h=500&q=80', // Cream Donut
+        18: 'https://images.unsplash.com/photo-1551024601-bec78aea704b?auto=format&fit=crop&w=500&h=500&q=80', // Chocolate Donut
+        19: 'https://images.unsplash.com/photo-1555507036-ab1f4038808a?auto=format&fit=crop&w=500&h=500&q=80', // Croissant Plain
+        20: 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=500&h=500&q=80', // Chocolate Pastry
+        21: 'https://images.unsplash.com/photo-1565958011703-44f9829ba187?auto=format&fit=crop&w=500&h=500&q=80', // Pineapple Pastry
+        22: 'https://images.unsplash.com/photo-1586985289688-ca3cf47d3e6e?auto=format&fit=crop&w=500&h=500&q=80', // Muffin Chocolate
+        23: 'https://images.unsplash.com/photo-1586985289688-ca3cf47d3e6e?auto=format&fit=crop&w=500&h=500&q=80', // Muffin Blueberry
+        24: 'https://images.unsplash.com/photo-1606313564200-e75d5e30476c?auto=format&fit=crop&w=500&h=500&q=80', // Slice Cake Chocolate
+        25: 'https://images.unsplash.com/photo-1558961363-fa8fdf82db35?auto=format&fit=crop&w=500&h=500&q=80', // Sooper Biscuits Pack
+        26: 'https://images.unsplash.com/photo-1499636136210-6f4ee915583e?auto=format&fit=crop&w=500&h=500&q=80', // Chocolate Chip Cookies
+        27: 'https://images.unsplash.com/photo-1558961363-fa8fdf82db35?auto=format&fit=crop&w=500&h=500&q=80', // Butter Cookies Tin
+        28: 'https://images.unsplash.com/photo-1589367920969-ab8e050bbb04?auto=format&fit=crop&w=500&h=500&q=80', // Rusk Plain Large
+        29: 'https://images.unsplash.com/photo-1589367920969-ab8e050bbb04?auto=format&fit=crop&w=500&h=500&q=80', // Rusk Zeera
+        30: 'https://images.unsplash.com/photo-1558961363-fa8fdf82db35?auto=format&fit=crop&w=500&h=500&q=80', // Glucose Biscuits
+        31: 'https://images.unsplash.com/photo-1563729784474-d77dbb933a9e?auto=format&fit=crop&w=500&h=500&q=80', // Cream Biscuits Chocolate
+        32: 'https://images.unsplash.com/photo-1541781774459-bb2af2f05b55?auto=format&fit=crop&w=500&h=500&q=80', // Jam Sandwich Biscuits
+        33: 'https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=500&h=500&q=80', // Olper\'s Milk 1L
+        34: 'https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=500&h=500&q=80', // Olper\'s Milk 500ml
+        35: 'https://images.unsplash.com/photo-1563227812-0ea4c22e6cc8?auto=format&fit=crop&w=500&h=500&q=80', // Olper\'s Cream 200ml
+        36: 'https://images.unsplash.com/photo-1488477181946-6428a0291777?auto=format&fit=crop&w=500&h=500&q=80', // Nestle Yogurt Plain 400g
+        37: 'https://images.unsplash.com/photo-1488477181946-6428a0291777?auto=format&fit=crop&w=500&h=500&q=80', // Nestle Yogurt Sweet 400g
+        38: 'https://images.unsplash.com/photo-1589985270826-4b7bb135bc9d?auto=format&fit=crop&w=500&h=500&q=80', // Butter 200g
+        39: 'https://images.unsplash.com/photo-1486297678162-eb2a19b0a32d?auto=format&fit=crop&w=500&h=500&q=80', // Cheese Slices Pack 10
+        40: 'https://images.unsplash.com/photo-1582722872445-44dc5f7e3c8f?auto=format&fit=crop&w=500&h=500&q=80', // Eggs Farm Fresh Dozen
+        41: 'https://images.unsplash.com/photo-1576092768241-dec231879fc3?auto=format&fit=crop&w=500&h=500&q=80', // Tapal Danedar 900g
+        42: 'https://images.unsplash.com/photo-1544787219-7f47ccb76574?auto=format&fit=crop&w=500&h=500&q=80', // Tapal Danedar 200g
+        43: 'https://images.unsplash.com/photo-1597481499750-3e6b22637e12?auto=format&fit=crop&w=500&h=500&q=80', // Lipton Yellow Label 200g
+        44: 'https://images.unsplash.com/photo-1587735243615-c03f25aaff15?auto=format&fit=crop&w=500&h=500&q=80', // Nestle Everyday 400g
+        45: 'https://images.unsplash.com/photo-1587735243615-c03f25aaff15?auto=format&fit=crop&w=500&h=500&q=80', // Nestle Nido 400g
+        46: 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?auto=format&fit=crop&w=500&h=500&q=80', // Soft Drink 1.5L Cola
+        47: 'https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?auto=format&fit=crop&w=500&h=500&q=80', // Soft Drink 1.5L Lemon
+        48: 'https://images.unsplash.com/photo-1548839140-29a749e1bc4e?auto=format&fit=crop&w=500&h=500&q=80', // Mineral Water 1.5L
+        49: 'https://images.unsplash.com/photo-1613478223719-2ab802602423?auto=format&fit=crop&w=500&h=500&q=80', // Orange Juice 1L
+        50: 'https://images.unsplash.com/photo-1534353473418-4cfa6c56fd38?auto=format&fit=crop&w=500&h=500&q=80', // Mango Juice 1L
+        51: 'https://images.unsplash.com/photo-1566478989037-eec170784d0b?auto=format&fit=crop&w=500&h=500&q=80', // Lays Classic 30g
+        52: 'https://images.unsplash.com/photo-1566478989037-eec170784d0b?auto=format&fit=crop&w=500&h=500&q=80', // Lays Masala 30g
+        53: 'https://images.unsplash.com/photo-1566478989037-eec170784d0b?auto=format&fit=crop&w=500&h=500&q=80', // Lays French Cheese 30g
+        54: 'https://images.unsplash.com/photo-1599490659213-e2b9527bd087?auto=format&fit=crop&w=500&h=500&q=80', // Kurkure Chutney Chaska
+        55: 'https://images.unsplash.com/photo-1599490659213-e2b9527bd087?auto=format&fit=crop&w=500&h=500&q=80', // Kurkure Masala Munch
+        56: 'https://images.unsplash.com/photo-1601050690597-df0568f70950?auto=format&fit=crop&w=500&h=500&q=80', // Nimco Mix 200g
+        57: 'https://images.unsplash.com/photo-1578849278619-e73505e9610f?auto=format&fit=crop&w=500&h=500&q=80', // Popcorn Butter 100g
+        58: 'https://images.unsplash.com/photo-1567892324422-540bb9687e35?auto=format&fit=crop&w=500&h=500&q=80', // Peanuts Roasted 200g
+        59: 'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?auto=format&fit=crop&w=500&h=500&q=80', // Wheat Flour 5kg
+        60: 'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?auto=format&fit=crop&w=500&h=500&q=80', // Wheat Flour 10kg
+        61: 'https://images.unsplash.com/photo-1587735243615-c03f25aaff15?auto=format&fit=crop&w=500&h=500&q=80', // Sugar 1kg
+        62: 'https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&w=500&h=500&q=80', // Rice Basmati 5kg
+        63: 'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?auto=format&fit=crop&w=500&h=500&q=80', // Cooking Oil 1L
+        64: 'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?auto=format&fit=crop&w=500&h=500&q=80', // Cooking Oil 5L
+        65: 'https://images.unsplash.com/photo-1518110925495-5fe2fda0442c?auto=format&fit=crop&w=500&h=500&q=80', // Salt Iodized 800g
+        66: 'https://images.unsplash.com/photo-1596040033229-a9821ebd058d?auto=format&fit=crop&w=500&h=500&q=80', // National Red Chilli 200g
+        67: 'https://images.unsplash.com/photo-1615485290382-441e4d049cb5?auto=format&fit=crop&w=500&h=500&q=80', // National Turmeric 200g
+        68: 'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?auto=format&fit=crop&w=500&h=500&q=80', // Shan Biryani Masala
+        69: 'https://images.unsplash.com/photo-1589301760014-d929f3979dbc?auto=format&fit=crop&w=500&h=500&q=80', // Shan Chicken Masala
+        70: 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?auto=format&fit=crop&w=500&h=500&q=80', // National Ketchup 500g
+        71: 'https://images.unsplash.com/photo-1568909344668-6f14a07b56a0?auto=format&fit=crop&w=500&h=500&q=80', // Mitchell\'s Jam Mixed Fruit 450g
+        72: 'https://images.unsplash.com/photo-1521483451569-e33803c0330c?auto=format&fit=crop&w=500&h=500&q=80', // Cornflakes 250g
+        73: 'https://images.unsplash.com/photo-1584776296944-ab6fb57b0bdd?auto=format&fit=crop&w=500&h=500&q=80', // Oats 500g
+        74: 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?auto=format&fit=crop&w=500&h=500&q=80', // Honey 250g
+        75: 'https://images.unsplash.com/photo-1589733955941-5eeaf752f6dd?auto=format&fit=crop&w=500&h=500&q=80', // Peanut Butter 340g
+        76: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&w=500&h=500&q=80', // Chocolate Spread 350g
+        77: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=500&h=500&q=80', // Instant Noodles Pack
+        78: 'https://images.unsplash.com/photo-1612927601601-6638404737ce?auto=format&fit=crop&w=500&h=500&q=80', // Instant Noodles Family 5
+        79: 'https://images.unsplash.com/photo-1585421514738-01798e348b17?auto=format&fit=crop&w=500&h=500&q=80', // Surf Excel 1kg
+        80: 'https://images.unsplash.com/photo-1585421514738-01798e348b17?auto=format&fit=crop&w=500&h=500&q=80', // Surf Excel 500g
+        81: 'https://images.unsplash.com/photo-1585421514738-01798e348b17?auto=format&fit=crop&w=500&h=500&q=80', // Dishwashing Liquid 500ml
+        82: 'https://images.unsplash.com/photo-1584556812952-905ffd0c611a?auto=format&fit=crop&w=500&h=500&q=80', // Floor Cleaner 1L
+        83: 'https://images.unsplash.com/photo-1584556812952-905ffd0c611a?auto=format&fit=crop&w=500&h=500&q=80', // Tissue Roll Pack 4
+        84: 'https://images.unsplash.com/photo-1584556812952-905ffd0c611a?auto=format&fit=crop&w=500&h=500&q=80', // Kitchen Tissue Pack
+        85: 'https://images.unsplash.com/photo-1610557892470-55d9e80c0bce?auto=format&fit=crop&w=500&h=500&q=80', // Garbage Bags Medium
+        86: 'https://images.unsplash.com/photo-1518110925495-5fe2fda0442c?auto=format&fit=crop&w=500&h=500&q=80', // Match Box Pack 10
+        87: 'https://images.unsplash.com/photo-1600857544200-b2f666a9a2ec?auto=format&fit=crop&w=500&h=500&q=80', // Lux Soap 115g
+        88: 'https://images.unsplash.com/photo-1600857544200-b2f666a9a2ec?auto=format&fit=crop&w=500&h=500&q=80', // Lux Soap Pack 3
+        89: 'https://images.unsplash.com/photo-1535585209827-a15fcdbc4c2d?auto=format&fit=crop&w=500&h=500&q=80', // Shampoo 180ml
+        90: 'https://images.unsplash.com/photo-1559591937-e10220268595?auto=format&fit=crop&w=500&h=500&q=80', // Toothpaste 100g
+        91: 'https://images.unsplash.com/photo-1559591937-e10220268595?auto=format&fit=crop&w=500&h=500&q=80', // Toothbrush Soft
+        92: 'https://images.unsplash.com/photo-1600857544200-b2f666a9a2ec?auto=format&fit=crop&w=500&h=500&q=80', // Hand Wash 250ml
+        93: 'https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=500&h=500&q=80', // Face Wash 100ml
+        94: 'https://images.unsplash.com/photo-1584556812952-905ffd0c611a?auto=format&fit=crop&w=500&h=500&q=80', // Tissue Pocket Pack
+    };
+
+    getProductImage(product: any, index: number): string {
+        if (product?.imagePath && !product.imagePath.includes('placeholder.png')) {
+            return this.getImageUrl(product.imagePath);
+        }
+
+        // Direct matching by Product ID (exact 1-to-1 match for all 94 catalog items)
+        if (product?.id && OnlineOrderComponent.CATALOG_IMAGES_BY_ID[product.id]) {
+            return OnlineOrderComponent.CATALOG_IMAGES_BY_ID[product.id];
+        }
+
+        const name = (product?.name || '').toLowerCase().trim();
+        const cat = (product?.categoryName || '').toLowerCase().trim();
+        const desc = (product?.description || '').toLowerCase().trim();
+
+        // 1. Cheezious-style Pizza Deals & Combos
+        if (name.includes('small pizza') || (name.includes('pizza') && name.includes('small'))) {
+            return 'assets/menu-items/pizza_small.jpg';
+        }
+        if (name.includes('regular pizza') || (name.includes('pizza') && name.includes('regular'))) {
+            return 'assets/menu-items/pizza_regular.jpg';
+        }
+        if (name.includes('large pizza') || (name.includes('pizza') && (name.includes('large') || name.includes('family')))) {
+            return 'assets/menu-items/pizza_large.jpg';
+        }
+        if (name.includes('pizza') || desc.includes('pizza')) {
+            return 'assets/menu-items/pizza_regular.jpg';
+        }
+
+        // 2. Cheezious-style Burger Combos & Deals
+        if (name.includes('burger deal') || name.includes('somewhat') || name.includes('combo') || name.includes('bazinga') || name.includes('amazing') || name.includes('cheezious') || name.includes('fast food deal')) {
+            return 'assets/menu-items/burger_combo.jpg';
+        }
+
+        // 3. Specific Bakery Item Names (Match against product name FIRST, NOT category!)
+        if (name.includes('barfi')) return 'assets/menu-items/barfi.jpg';
+        if (name.includes('milk bread') || name.includes('sandwich bread')) return 'assets/menu-items/milk_bread.jpg';
+        if (name.includes('brown bread')) return 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=500&h=500&q=80';
+        if (name.includes('burger bun')) return 'https://images.unsplash.com/photo-1586190848861-99aa4a171e90?auto=format&fit=crop&w=500&h=500&q=80';
+        if (name.includes('hot dog')) return 'https://images.unsplash.com/photo-1619740455993-9e612b1af08a?auto=format&fit=crop&w=500&h=500&q=80';
+        if (name.includes('dinner roll') || name.includes('rolls')) return 'https://images.unsplash.com/photo-1568254183919-78a4f43a2877?auto=format&fit=crop&w=500&h=500&q=80';
+        if (name.includes('garlic bread')) return 'https://images.unsplash.com/photo-1619535860434-ba1d8fa12536?auto=format&fit=crop&w=500&h=500&q=80';
+        if (name.includes('fruit bun')) return 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=500&h=500&q=80';
+        if (name.includes('kulcha') || name.includes('naan')) return 'https://images.unsplash.com/photo-1601050690597-df0568f70950?auto=format&fit=crop&w=500&h=500&q=80';
+
+        // 4. Sweets, Cakes, Donuts & Pastries
+        if (name.includes('donut')) return 'https://images.unsplash.com/photo-1551024601-bec78aea704b?auto=format&fit=crop&w=500&h=500&q=80';
+        if (name.includes('cupcake')) return 'https://images.unsplash.com/photo-1576618148400-f54bed99fcfd?auto=format&fit=crop&w=500&h=500&q=80';
+        if (name.includes('muffin')) return 'https://images.unsplash.com/photo-1586985289688-ca3cf47d3e6e?auto=format&fit=crop&w=500&h=500&q=80';
+        if (name.includes('croissant')) return 'https://images.unsplash.com/photo-1555507036-ab1f4038808a?auto=format&fit=crop&w=500&h=500&q=80';
+        if (name.includes('pastry') || name.includes('cake')) return 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=500&h=500&q=80';
+
+        // 5. Dairy
+        if (name.includes('cheese')) return 'https://images.unsplash.com/photo-1486297678162-eb2a19b0a32d?auto=format&fit=crop&w=500&h=500&q=80';
+        if (name.includes('ghee')) return 'https://images.unsplash.com/photo-1628088062854-d1870b4553da?auto=format&fit=crop&w=500&h=500&q=80';
+        if (name.includes('butter')) return 'https://images.unsplash.com/photo-1589985270826-4b7bb135bc9d?auto=format&fit=crop&w=500&h=500&q=80';
+        if (name.includes('yogurt')) return 'https://images.unsplash.com/photo-1488477181946-6428a0291777?auto=format&fit=crop&w=500&h=500&q=80';
+        if (name.includes('egg')) return 'https://images.unsplash.com/photo-1582722872445-44dc5f7e3c8f?auto=format&fit=crop&w=500&h=500&q=80';
+        if (name.includes('milk') || name.includes('cream')) return 'https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=500&h=500&q=80';
+
+        // Fast food fallback
+        if (name.includes('burger') || name.includes('zinger') || name.includes('chicken') || name.includes('fast food')) {
+            return 'assets/menu-items/burger_combo.jpg';
+        }
+
+        // Default domain fallback
+        const domain = this.getProductDomain(product);
+        const idx = Math.abs(product?.id || index || 0);
+        switch (domain) {
+            case 'food':
+                return 'assets/menu-items/burger_combo.jpg';
+            case 'solar-panel':
+                return this.solarPanelImages[idx % this.solarPanelImages.length];
+            case 'inverter':
+                return this.inverterImages[idx % this.inverterImages.length];
+            case 'battery':
+                return this.batteryImages[idx % this.batteryImages.length];
+            case 'solar-accessory':
+                return this.solarAccessoryImages[idx % this.solarAccessoryImages.length];
+            default:
+                return 'assets/menu-items/burger_combo.jpg';
+        }
+    }
+
+    /** When remote/DB image fails, swap to a local food asset so alt text never overlaps the badge. */
+    onProductImageError(event: Event, product?: any): void {
+        const img = event?.target as HTMLImageElement | null;
+        if (!img || img.dataset['fallbackApplied'] === '1') {
+            return;
+        }
+        img.dataset['fallbackApplied'] = '1';
+        const name = (product?.name || '').toLowerCase();
+        if (name.includes('pizza')) {
+            img.src = 'assets/menu-items/pizza_regular.jpg';
+        } else if (name.includes('burger') || name.includes('zinger')) {
+            img.src = 'assets/menu-items/burger_combo.jpg';
+        } else if (name.includes('barfi')) {
+            img.src = 'assets/menu-items/barfi.jpg';
+        } else if (name.includes('bread') || name.includes('bun')) {
+            img.src = 'assets/menu-items/milk_bread.jpg';
+        } else {
+            img.src = 'assets/menu-items/burger_combo.jpg';
+        }
+        img.alt = '';
+    }
+
+    getProductRating(product: any): string {
+        const val = 4.7 + ((Math.abs(product?.id || 1) % 4) * 0.1);
+        return val.toFixed(1);
+    }
+
+    getProductTag(product: any, _index?: number): string {
+        const tag = (product?.cardTag ?? product?.CardTag ?? '').toString().trim();
+        return tag;
+    }
+
+    getProductDescription(product: any): string {
+        if (product?.description && product.description.trim()) {
+            return product.description;
+        }
+        const domain = this.getProductDomain(product);
+        if (domain === 'solar-panel') {
+            return 'High-efficiency Tier-1 Monocrystalline solar module engineered with advanced half-cut multi-busbar technology for maximum energy yield even in low-light and high-temperature environments. Certified with 25-year linear performance warranty.';
+        }
+        if (domain === 'inverter') {
+            return 'Smart hybrid solar inverter featuring high-efficiency MPPT charge controller, pure sine wave AC output, zero-transfer time UPS functionality, and real-time WiFi mobile app monitoring.';
+        }
+        if (domain === 'battery') {
+            return 'Heavy-duty deep-cycle energy storage battery built with thick reinforced plates for exceptional cycle life, deep discharge recovery, and consistent high-power backup.';
+        }
+        if (domain === 'solar-accessory') {
+            return 'Certified high-grade solar infrastructure equipment designed for extreme outdoor weather conditions, electrical safety, and seamless system integration.';
+        }
+        return 'Authentic, premium-quality branded product with official manufacturer warranty and guaranteed durability.';
+    }
+
+    hasVariants(product: any): boolean {
+        if (!product) return false;
+        if (product.hasVariants != null) return !!product.hasVariants;
+        if (product.variants && product.variants.length > 0) return true;
+        if (product.sizes && product.sizes.length > 0) return true;
+        return false;
+    }
+
+    getOriginalPrice(product: any): number {
+        const price = product.price || 0;
+        return Math.round(price * 1.15);
+    }
+
+    // FoodiesPakistan Product Detail Modal / Bottom Sheet
+    async openProductModal(product: any, event?: Event): Promise<void> {
+        if (this.suppressProductClickAfterDrag) {
+            this.suppressProductClickAfterDrag = false;
+            return;
+        }
+        if (event) {
+            event.stopPropagation();
+        }
+        this.selectedProduct = product;
+        this.detailQuantity = 1;
+        this.productModifierGroups = [];
+        this.selectedModifierOptions = {};
+        this.dealCustomiseItems = [];
+        this.detailModalVisible = true;
+        this.loadingModifiers = true;
+        this.loadingDeal = false;
+
+        const isDealCandidate =
+            !!product.isDeal ||
+            !!product.dealId ||
+            (product.categoryName || '').toLowerCase().includes('deal') ||
+            (product.name || '').toLowerCase().includes('deal');
+
+        const promises: Promise<any>[] = [];
+
+        // 1. Product modifiers — skip for deals (options were fixed when the deal was created).
+        if (!isDealCandidate) {
+            promises.push(
+                this.productModifierService
+                    .getByProduct(product.id)
+                    .then((groups) => {
+                        this.productModifierGroups = (groups || []).filter(
+                            (g) => g.options && g.options.length > 0
+                        );
+                        for (const g of this.productModifierGroups) {
+                            this.selectedModifierOptions[g.id] = [];
+                            const defaultOpt = g.options.find((o) => o.isDefault);
+                            if (defaultOpt) {
+                                this.selectedModifierOptions[g.id] = [defaultOpt.id];
+                            }
+                        }
+                    })
+                    .catch((err) => {
+                        console.warn('Failed to load modifiers for product', err);
+                        this.productModifierGroups = [];
+                    })
+                    .finally(() => {
+                        this.loadingModifiers = false;
+                    })
+            );
+        } else {
+            this.productModifierGroups = [];
+            this.selectedModifierOptions = {};
+            this.loadingModifiers = false;
+        }
+
+        // 2. Deal items: show included products + preset options (read-only, no re-select).
+        if (isDealCandidate) {
+            this.loadingDeal = true;
+            promises.push(
+                (async () => {
+                    try {
+                        let deal: DealDto | null = null;
+                        if (product.dealId) {
+                            deal = await this.dealService.get(product.dealId);
+                        } else {
+                            deal = await this.dealService.getByProductId(product.id);
+                        }
+
+                        if (deal && deal.items && deal.items.length > 0) {
+                            const seenIds = new Set<number>();
+                            const distinctItems = deal.items.filter((it) => {
+                                if (it.id && seenIds.has(it.id)) return false;
+                                if (it.id) seenIds.add(it.id);
+                                return true;
+                            });
+
+                            this.dealCustomiseItems = distinctItems.map((item) => ({
+                                productId: item.productId,
+                                productName: item.productName || 'Product #' + item.productId,
+                                quantity: item.quantity,
+                                unitPrice: item.unitPrice,
+                                presetModifiers: (item.selectedModifiers || '').trim() || undefined,
+                                modifierGroups: [],
+                                selectedOptions: {},
+                            }));
+                        }
+                    } catch (err) {
+                        console.warn('Failed to load deal items for product', product.id, err);
+                        this.dealCustomiseItems = [];
+                    } finally {
+                        this.loadingDeal = false;
+                    }
+                })()
+            );
+        }
+
+        await Promise.all(promises);
+    }
+
+    closeProductModal(): void {
+        this.detailModalVisible = false;
+        this.selectedProduct = null;
+        this.productModifierGroups = [];
+        this.selectedModifierOptions = {};
+        this.dealCustomiseItems = [];
+        this.loadingModifiers = false;
+        this.loadingDeal = false;
+    }
+
+    updateDetailQuantity(change: number): void {
+        const next = this.detailQuantity + change;
+        if (next >= 1) {
+            this.detailQuantity = next;
+        }
+    }
+
+
+    isPizzaProduct(product?: any): boolean {
+        if (!product) return false;
+        const cat = (product.categoryName || '').trim().toLowerCase();
+        if (cat.includes('pizza')) return true;
+        const name = (product.name || product.productName || '').trim().toLowerCase();
+        if (name.includes('pizza')) return true;
+        return false;
+    }
+
+    isOptionSelected(group: ProductModifierGroupDto, option: ProductModifierOptionDto): boolean {
+        const selected = this.selectedModifierOptions[group.id] || [];
+        return selected.includes(option.id);
+    }
+
+    toggleOption(group: ProductModifierGroupDto, option: ProductModifierOptionDto): void {
+        const isMulti = group.allowMultiple || (group.maxSelection != null && group.maxSelection > 1);
+        const current = [...(this.selectedModifierOptions[group.id] || [])];
+        const idx = current.indexOf(option.id);
+
+        if (isMulti) {
+            if (idx > -1) {
+                if (group.isRequired && current.length <= 1) {
+                    return;
+                }
+                current.splice(idx, 1);
+            } else {
+                if (group.maxSelection && current.length >= group.maxSelection) {
+                    current.shift();
+                }
+                current.push(option.id);
+            }
+            this.selectedModifierOptions[group.id] = current;
+        } else {
+            if (idx > -1) {
+                if (!group.isRequired) {
+                    this.selectedModifierOptions[group.id] = [];
+                }
+            } else {
+                this.selectedModifierOptions[group.id] = [option.id];
+            }
+        }
+    }
+
+    isDealItemOptionSelected(item: OnlineDealCustomiseItem, groupId: number, optionId: number): boolean {
+        const selected = item.selectedOptions[groupId] || [];
+        return selected.includes(optionId);
+    }
+
+    toggleDealItemOption(
+        item: OnlineDealCustomiseItem,
+        group: ProductModifierGroupDto,
+        option: ProductModifierOptionDto
+    ): void {
+        const isMulti = group.allowMultiple || (group.maxSelection != null && group.maxSelection > 1);
+        if (!item.selectedOptions[group.id]) {
+            item.selectedOptions[group.id] = [];
+        }
+        const current = [...item.selectedOptions[group.id]];
+        const idx = current.indexOf(option.id);
+
+        if (isMulti) {
+            if (idx > -1) {
+                if (group.isRequired && current.length <= 1) {
+                    return;
+                }
+                current.splice(idx, 1);
+            } else {
+                if (group.maxSelection && current.length >= group.maxSelection) {
+                    current.shift();
+                }
+                current.push(option.id);
+            }
+            item.selectedOptions[group.id] = current;
+        } else {
+            if (idx > -1) {
+                if (!group.isRequired) {
+                    item.selectedOptions[group.id] = [];
+                }
+            } else {
+                item.selectedOptions[group.id] = [option.id];
+            }
+        }
+    }
+
+    getOptionPrice(opt: ProductModifierOptionDto): number {
+        return opt.price ?? opt.extraPrice ?? 0;
+    }
+
+    /** Empty box → included (no +). Typed >0 (even sale) → +extra. 0 → free. */
+    hasModifierPlusSign(opt: ProductModifierOptionDto | null | undefined): boolean {
+        const price = this.getOptionPrice(opt as ProductModifierOptionDto);
+        if (price <= 0) return false;
+        if (opt?.isIncludedInBasePrice) return false;
+        return true;
+    }
+
+    formatOptionDisplayPrice(opt: ProductModifierOptionDto): string {
+        const price = this.getOptionPrice(opt);
+        if (price <= 0) {
+            return '';
+        }
+        const formatted = price.toLocaleString(undefined, {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 2,
+        });
+        if (opt?.isIncludedInBasePrice) {
+            return `PKR ${formatted}`;
+        }
+        return `+PKR ${formatted}`;
+    }
+
+    getDetailUnitPrice(): number {
+        if (!this.selectedProduct) return 0;
+        let price = this.selectedProduct.price || 0;
+
+        for (const g of this.productModifierGroups) {
+            const selectedIds = this.selectedModifierOptions[g.id] || [];
+            for (const optId of selectedIds) {
+                const opt = g.options.find((o) => o.id === optId);
+                if (opt) {
+                    const optPrice = this.getOptionPrice(opt);
+                    if (optPrice > 0 && this.hasModifierPlusSign(opt)) {
+                        price += optPrice;
+                    }
+                }
+            }
+        }
+        for (const item of this.dealCustomiseItems) {
+            for (const g of item.modifierGroups || []) {
+                const selectedIds = item.selectedOptions[g.id] || [];
+                for (const optId of selectedIds) {
+                    const opt = g.options.find((o) => o.id === optId);
+                    if (opt) {
+                        const optPrice = this.getOptionPrice(opt);
+                        if (optPrice > 0 && this.hasModifierPlusSign(opt)) {
+                            price += optPrice;
+                        }
+                    }
+                }
+            }
+        }
+        return price;
+    }
+
+    getDetailTotalPrice(): number {
+        return this.getDetailUnitPrice() * this.detailQuantity;
+    }
+
+    addDetailToCart(): void {
+        if (!this.selectedProduct) return;
+
+        for (const g of this.productModifierGroups) {
+            if (g.isRequired) {
+                const selected = this.selectedModifierOptions[g.id] || [];
+                if (!selected.length) {
+                    this.messageService.add({
+                        severity: 'warn',
+                        summary: 'Option Required',
+                        detail: `Please select an option for "${g.name}"`,
+                    });
+                    return;
+                }
+            }
+        }
+
+        const selectedOptionNames: string[] = [];
+        const allSelectedIds: number[] = [];
+
+        for (const g of this.productModifierGroups) {
+            const selectedIds = this.selectedModifierOptions[g.id] || [];
+            for (const optId of selectedIds) {
+                const opt = g.options.find((o) => o.id === optId);
+                if (opt) {
+                    allSelectedIds.push(opt.id);
+                    const extra = this.getOptionPrice(opt);
+                    const hasPlus = this.hasModifierPlusSign(opt);
+                    selectedOptionNames.push(hasPlus ? `${opt.name} (+PKR ${extra})` : opt.name);
+                }
+            }
+        }
+
+        if (this.dealCustomiseItems.length > 0) {
+            for (const item of this.dealCustomiseItems) {
+                const preset = (item.presetModifiers || '').trim();
+                if (preset) {
+                    selectedOptionNames.push(`${item.quantity}x ${item.productName} (${preset})`);
+                } else {
+                    selectedOptionNames.push(`${item.quantity}x ${item.productName}`);
+                }
+            }
+        }
+
+        const unitPrice = this.getDetailUnitPrice();
+        const optionsText = selectedOptionNames.join(', ');
+
+        this.cartService.addToCart(this.selectedProduct, this.detailQuantity, {
+            unitPrice,
+            optionsText: optionsText || undefined,
+            selectedOptionIds: allSelectedIds,
+        });
+        this.appSound.playAddToCartChime();
+
+        const detailImg =
+            document.querySelector<HTMLImageElement>('.hero-img') ||
+            findProductImageNear(document.querySelector('.btn-submit-cart'));
+        flyToCart(document.querySelector('.btn-submit-cart'), {
+            imageEl: detailImg,
+            imageUrl: this.getProductImage(this.selectedProduct, 0),
+        });
+
+        this.closeProductModal();
+    }
+
+    // Cart Actions
     getCartQuantityForProduct(productId: number): number {
         return this.cartService.getItemQuantity(productId);
     }
 
-    addToCart(product: any, qty: number = 1, event?: Event): void {
+    /** True when the customer must pick modifiers / deal options before cart. */
+    private isDealProduct(product: any): boolean {
+        return (
+            !!product?.isDeal ||
+            !!product?.dealId ||
+            (product?.categoryName || '').toLowerCase().includes('deal') ||
+            (product?.name || '').toLowerCase().includes('deal')
+        );
+    }
+
+    private async productNeedsCustomise(product: any): Promise<boolean> {
+        if (!product?.id) {
+            return false;
+        }
+        if (this.isDealProduct(product)) {
+            return true;
+        }
+        try {
+            const groups = await this.productModifierService.getByProduct(product.id);
+            return (groups || []).some((g) => (g.options || []).length > 0);
+        } catch {
+            return false;
+        }
+    }
+
+    async addToCart(product: any, qty: number = 1, event?: Event): Promise<void> {
         if (event) {
             event.stopPropagation();
         }
@@ -221,13 +3104,19 @@ export class OnlineOrderComponent implements OnInit {
             return;
         }
 
+        // Products with modifiers (or deals): ask the customer to choose options first.
+        if (await this.productNeedsCustomise(product)) {
+            await this.openProductModal(product);
+            return;
+        }
+
         const countToAdd = Math.max(1, qty || 1);
         this.cartService.addToCart(product, countToAdd);
-        this.messageService.add({
-            severity: 'success',
-            summary: 'Added to Cart',
-            detail: `${countToAdd > 1 ? countToAdd + 'x ' : ''}${product.name} added to your order`,
-            life: 1800,
+        this.appSound.playAddToCartChime();
+        const source = event ?? document.querySelector('.btn-add-cart');
+        flyToCart(source, {
+            imageEl: findProductImageNear(source),
+            imageUrl: this.getProductImage(product, 0),
         });
     }
 
@@ -240,8 +3129,254 @@ export class OnlineOrderComponent implements OnInit {
             });
             return;
         }
+        this.applyCheckoutDraft();
         this.cartService.sidebarVisible = false;
         this.checkoutModalVisible = true;
+        void this.loadSavedAddresses(this.customerMobile);
+    }
+
+    /** Prefill name / phone / address from profile, reorder draft, or local storage. */
+    private applyCheckoutDraft(): void {
+        const draft = this.cartService.getCheckoutDraft();
+
+        if (!this.customerName?.trim()) {
+            this.customerName =
+                this.profileName?.trim() ||
+                draft?.customerName?.trim() ||
+                this.readLocal('smartpos_customer_name') ||
+                '';
+        }
+        if (!this.customerMobile?.trim()) {
+            this.customerMobile =
+                this.profilePhone?.trim() ||
+                draft?.customerMobile?.trim() ||
+                this.readLocal('smartpos_customer_phone') ||
+                '';
+        }
+        if (!this.deliveryAddress?.trim()) {
+            this.deliveryAddress =
+                this.profileAddress?.trim() ||
+                draft?.deliveryAddress ||
+                this.readLocal('smartpos_customer_address') ||
+                '';
+        }
+        if (!this.deliveryLandmark?.trim() && draft?.deliveryLandmark) {
+            this.deliveryLandmark = draft.deliveryLandmark;
+        }
+        if (draft?.paymentMethod === 'OnlinePayment' || draft?.paymentMethod === 'CashOnDelivery') {
+            this.paymentMethod = draft.paymentMethod;
+        }
+        if (
+            !this.selectedDeliveryAreaId &&
+            draft?.deliveryAreaId &&
+            this.deliveryAreas.some((a) => a.id === draft.deliveryAreaId)
+        ) {
+            this.selectedDeliveryAreaId = draft.deliveryAreaId;
+            this.onDeliveryAreaChange(draft.deliveryAreaId);
+        }
+    }
+
+    private readLocal(key: string): string {
+        try {
+            return localStorage.getItem(key) || '';
+        } catch {
+            return '';
+        }
+    }
+
+    captureCurrentLocation(): void {
+        if (!navigator.geolocation) {
+            this.locationError = 'Geolocation is not supported by your browser.';
+            this.messageService.add({
+                severity: 'error',
+                summary: 'GPS Not Supported',
+                detail: 'Geolocation is not supported by your browser. Please enter your address manually.',
+            });
+            return;
+        }
+
+        this.locating = true;
+        this.locationError = null;
+
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                this.latitude = Number(pos.coords.latitude.toFixed(6));
+                this.longitude = Number(pos.coords.longitude.toFixed(6));
+                this.locationAccuracy = Math.round(pos.coords.accuracy);
+                this.googleMapsLink = `https://maps.google.com/?q=${this.latitude},${this.longitude}`;
+                this.locationCaptured = true;
+                this.locating = false;
+
+                this.messageService.add({
+                    severity: 'success',
+                    summary: 'Location Captured',
+                    detail: '✓ Live GPS location captured successfully',
+                    life: 2500,
+                });
+
+                this.reverseGeocode(this.latitude, this.longitude);
+                this.calculateDistance();
+            },
+            (err) => {
+                this.locating = false;
+                let msg = 'Location access denied. Please enter your address manually.';
+                if (err.code === err.TIMEOUT) {
+                    msg = 'GPS signal timed out. Please enter your address manually.';
+                } else if (err.code === err.POSITION_UNAVAILABLE) {
+                    msg = 'GPS position unavailable. Please enter your address manually.';
+                }
+                this.locationError = msg;
+                this.messageService.add({
+                    severity: 'warn',
+                    summary: 'GPS Location',
+                    detail: msg,
+                    life: 4000,
+                });
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0,
+            }
+        );
+    }
+
+    clearLocation(): void {
+        this.locationCaptured = false;
+        this.latitude = null;
+        this.longitude = null;
+        this.googleMapsLink = null;
+        this.locationAccuracy = null;
+        this.locationError = null;
+        this.distanceKm = null;
+        this.estimatedDeliveryMins = null;
+    }
+
+    calculateDistance(): void {
+        if (
+            this.latitude != null &&
+            this.longitude != null &&
+            this.branchLatitude != null &&
+            this.branchLongitude != null
+        ) {
+            const R = 6371; // Earth radius in km
+            const lat1 = (this.branchLatitude * Math.PI) / 180;
+            const lat2 = (this.latitude * Math.PI) / 180;
+            const dLat = ((this.latitude - this.branchLatitude) * Math.PI) / 180;
+            const dLon = ((this.longitude - this.branchLongitude) * Math.PI) / 180;
+
+            const a =
+                Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            const km = R * c;
+
+            this.distanceKm = Number(km.toFixed(1));
+
+            if (this.distanceKm <= 3) {
+                this.estimatedDeliveryMins = '20 - 30 mins';
+            } else if (this.distanceKm <= 7) {
+                this.estimatedDeliveryMins = '30 - 45 mins';
+            } else if (this.distanceKm <= 15) {
+                this.estimatedDeliveryMins = '45 - 60 mins';
+            } else {
+                this.estimatedDeliveryMins = '60 - 90 mins';
+            }
+        } else {
+            this.distanceKm = null;
+            this.estimatedDeliveryMins = null;
+        }
+    }
+
+    get routeDirectionsLink(): string | null {
+        if (
+            this.latitude != null &&
+            this.longitude != null &&
+            this.branchLatitude != null &&
+            this.branchLongitude != null
+        ) {
+            return `https://www.google.com/maps/dir/?api=1&origin=${this.branchLatitude},${this.branchLongitude}&destination=${this.latitude},${this.longitude}`;
+        }
+        return this.googleMapsLink;
+    }
+
+    private async reverseGeocode(lat: number, lng: number): Promise<void> {
+        try {
+            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`, {
+                headers: { Accept: 'application/json' },
+            });
+            if (res.ok) {
+                const data = await res.json();
+                if (data?.display_name && !this.deliveryAddress.trim()) {
+                    const parts = data.display_name.split(',').slice(0, 3).join(', ');
+                    this.deliveryAddress = parts.trim();
+                }
+            }
+        } catch {
+            // Best effort reverse geocode
+        }
+    }
+
+    async loadDeliveryAreas(bId: number): Promise<void> {
+        try {
+            // Header is TTL + in-flight deduped in CustomerOrderService; safe to
+            // call again after resolveBranchName without a duplicate network hit.
+            const [areas, header] = await Promise.all([
+                this.deliveryAreaService.getActiveAreasForBranch(bId),
+                this.customerOrderService.getOnlineStoreHeader(bId),
+            ]);
+            this.deliveryAreas = areas || [];
+            if (header) {
+                this.baseDeliveryFee = header.baseDeliveryFee ?? 100;
+                this.freeDeliveryThreshold = header.freeDeliveryThreshold ?? 1500;
+            }
+            if (this.deliveryAreas.length > 0 && !this.selectedDeliveryAreaId) {
+                this.selectedDeliveryAreaId = this.deliveryAreas[0].id;
+                this.selectedDeliveryArea = this.deliveryAreas[0];
+            }
+        } catch (e) {
+            console.error('Failed to load delivery areas/header info', e);
+        }
+    }
+
+    getDeliveryFee(): number {
+        if (this.isFreeDeliveryEligible()) {
+            return 0;
+        }
+        if (this.selectedDeliveryArea) {
+            return this.selectedDeliveryArea.deliveryFee ?? 0;
+        }
+        return this.deliveryAreas.length > 0 ? this.deliveryAreas[0].deliveryFee : this.baseDeliveryFee;
+    }
+
+    isFreeDeliveryEligible(): boolean {
+        const subtotal = this.cartService.cartSubtotal;
+        if (subtotal >= this.freeDeliveryThreshold) {
+            return true;
+        }
+        if (this.cartService.items.some((item) => {
+            const product = this.products.find((p) => p.id === item.productId);
+            return (product as any)?.isFreeDelivery;
+        })) {
+            return true;
+        }
+        return false;
+    }
+
+    getGrandTotal(): number {
+        return Math.max(0, this.cartService.cartSubtotal + this.getDeliveryFee());
+    }
+
+    onDeliveryAreaChange(areaId: number): void {
+        this.selectedDeliveryAreaId = areaId;
+        this.selectedDeliveryArea = this.deliveryAreas.find((a) => a.id === areaId) || null;
+    }
+
+    isMinOrderSatisfied(): boolean {
+        if (!this.selectedDeliveryArea || !this.selectedDeliveryArea.minimumOrderAmount) {
+            return true;
+        }
+        return this.cartService.cartSubtotal >= this.selectedDeliveryArea.minimumOrderAmount;
     }
 
     async submitOrder(): Promise<void> {
@@ -264,11 +3399,48 @@ export class OnlineOrderComponent implements OnInit {
 
         try {
             this.submitting = true;
+
+            // Compile delivery address, landmarks, GPS, and special instructions into formatted notes for POS
+            const addressParts: string[] = [];
+            if (this.deliveryAddress.trim()) {
+                addressParts.push(`📍 Addr: ${this.deliveryAddress.trim()}`);
+            }
+            if (this.deliveryLandmark.trim()) {
+                addressParts.push(`🏛️ Landmark: ${this.deliveryLandmark.trim()}`);
+            }
+            if (this.googleMapsLink) {
+                addressParts.push(`🗺️ Maps: ${this.googleMapsLink}`);
+            }
+            if (this.distanceKm != null) {
+                addressParts.push(`📏 Distance: ${this.distanceKm} km from store`);
+            }
+            if (this.notes.trim()) {
+                addressParts.push(`📝 Notes: ${this.notes.trim()}`);
+            }
+            const itemsWithOptions = this.cartService.items.filter((i) => i.optionsText);
+            if (itemsWithOptions.length > 0) {
+                const optLines = itemsWithOptions
+                    .map((i) => `${i.quantity}x ${i.name} [${i.optionsText}]`)
+                    .join(' | ');
+                addressParts.push(`Options: ${optLines}`);
+            }
+
+            const formattedNotes = addressParts.length > 0 ? addressParts.join(' | ').substring(0, 510) : this.notes.trim();
+
             const input: CreateCustomerOrderDto = {
                 customerName: this.customerName.trim(),
                 customerMobile: this.customerMobile.trim(),
                 branchId: this.branchId || undefined,
-                notes: this.notes.trim(),
+                notes: formattedNotes,
+                latitude: this.latitude ?? undefined,
+                longitude: this.longitude ?? undefined,
+                distanceKm: this.distanceKm ?? undefined,
+                googleMapsLink: this.googleMapsLink ?? undefined,
+                google_maps_link: this.googleMapsLink ?? undefined,
+                deliveryAddress: this.deliveryAddress.trim() || undefined,
+                deliveryLandmark: this.deliveryLandmark.trim() || undefined,
+                deliveryAreaId: this.selectedDeliveryAreaId ?? (this.selectedDeliveryArea?.id || undefined),
+                paymentMethod: this.paymentMethod || 'CashOnDelivery',
                 lines: this.cartService.items.map((c) => ({
                     productId: c.productId,
                     quantity: c.quantity,
@@ -278,18 +3450,46 @@ export class OnlineOrderComponent implements OnInit {
 
             const createdOrder = await this.customerOrderService.createOnlineOrder(input);
 
+            // Refresh saved addresses after purchaser checkout (server also auto-saves).
+            void this.loadSavedAddresses(input.customerMobile);
+
             this.confirmedOrderNo = createdOrder.orderNo || `ORD-${createdOrder.id}`;
             this.confirmedTotal = createdOrder.totalAmount;
 
-            // Reset cart & checkout modal
+            this.myOnlineOrders.remember({
+                orderNo: this.confirmedOrderNo,
+                branchId: this.branchId || createdOrder.branchId || null,
+                branchName: this.branchName || createdOrder.branchName || '',
+                totalAmount: createdOrder.totalAmount,
+                customerName: input.customerName,
+                customerMobile: input.customerMobile,
+                placedAt: new Date().toISOString(),
+                status: createdOrder.status ?? CustomerOrderStatus.Pending,
+                statusName: createdOrder.statusName || 'Pending',
+            });
+            this.cartService.setCheckoutDraft({
+                customerName: input.customerName,
+                customerMobile: input.customerMobile,
+                deliveryAddress: input.deliveryAddress,
+                deliveryLandmark: input.deliveryLandmark,
+                paymentMethod: this.paymentMethod,
+                deliveryAreaId: input.deliveryAreaId ?? null,
+            });
+            void this.refreshActiveOrders();
+
+            // Reset cart & checkout modal state (keep saved draft for next order / reorder)
             this.cartService.clearCart();
             this.customerName = '';
             this.customerMobile = '';
+            this.deliveryAddress = '';
+            this.deliveryLandmark = '';
             this.notes = '';
+            this.paymentMethod = 'CashOnDelivery';
+            this.clearLocation();
             this.checkoutModalVisible = false;
             this.cartService.sidebarVisible = false;
 
-            // Show success modal
+            // Show success confirmation
             this.successModalVisible = true;
         } catch (error: any) {
             this.messageService.add({
@@ -306,15 +3506,6 @@ export class OnlineOrderComponent implements OnInit {
         if (!path) return 'assets/demo/images/product/placeholder.png';
         if (path.startsWith('http://') || path.startsWith('https://')) return path;
         return `${environment.apiUrl}${path.startsWith('/') ? '' : '/'}${path}`;
-    }
-
-    getInitials(name: string): string {
-        if (!name) return 'PR';
-        const parts = name.trim().split(' ');
-        if (parts.length >= 2) {
-            return (parts[0][0] + parts[1][0]).toUpperCase();
-        }
-        return name.slice(0, 2).toUpperCase();
     }
 
     getQuickSpecs(raw?: string): { key: string; value: string }[] {
@@ -342,5 +3533,72 @@ export class OnlineOrderComponent implements OnInit {
             return [];
         }
         return [];
+    }
+
+    copyOrderNo(orderNo: string): void {
+        if (!orderNo) return;
+        if (navigator?.clipboard?.writeText) {
+            navigator.clipboard.writeText(orderNo).then(() => {
+                this.orderCopied = true;
+                this.messageService?.add({
+                    severity: 'success',
+                    summary: 'Copied',
+                    detail: `Order number ${orderNo} copied to clipboard!`,
+                    life: 2500,
+                });
+                setTimeout(() => {
+                    this.orderCopied = false;
+                }, 2500);
+            }).catch(() => {
+                this.fallbackCopy(orderNo);
+            });
+        } else {
+            this.fallbackCopy(orderNo);
+        }
+    }
+
+    private fallbackCopy(text: string): void {
+        try {
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            textArea.style.position = 'fixed';
+            textArea.style.left = '-999999px';
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textArea);
+            this.orderCopied = true;
+            this.messageService?.add({
+                severity: 'success',
+                summary: 'Copied',
+                detail: `Order number ${text} copied to clipboard!`,
+                life: 2500,
+            });
+            setTimeout(() => {
+                this.orderCopied = false;
+            }, 2500);
+        } catch {
+            // Ignore
+        }
+    }
+
+    goToTracking(orderNo?: string): void {
+        this.successModalVisible = false;
+        if (!orderNo) {
+            this.openOrderHistory();
+            return;
+        }
+        const phone =
+            this.profilePhone?.trim() ||
+            this.readLocal('smartpos_customer_phone') ||
+            '';
+        this.router.navigate(['/online-order/history'], {
+            queryParams: {
+                ...(this.branchId ? { branchId: this.branchId } : {}),
+                ...(phone ? { phone } : {}),
+                orderNo,
+            },
+        });
     }
 }

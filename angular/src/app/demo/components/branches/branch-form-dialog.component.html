@@ -56,6 +56,48 @@
             </div>
         </div>
 
+        <div class="flex flex-column gap-2 mb-3">
+            <label for="branchBusinessType" class="font-medium">Business / Store Type</label>
+            <p-dropdown
+                inputId="branchBusinessType"
+                [options]="businessTypeOptions"
+                [(ngModel)]="branch.businessType"
+                optionLabel="label"
+                optionValue="value"
+                placeholder="Select Type"
+                styleClass="w-full"
+                [disabled]="saving"
+            ></p-dropdown>
+            <small class="text-500">
+                Switch to <strong>🍽️ Restaurant & Cafe</strong> to enable Dining Tables, Kitchen Order Tickets (KOT), Table Bills, and Waiter Tabs.
+            </small>
+        </div>
+
+        <div class="flex flex-column gap-2 mb-3" *ngIf="branch.businessType === 2">
+            <label for="branchServiceCharge" class="font-medium">Dine-In Service Charge %</label>
+            <p-inputNumber
+                inputId="branchServiceCharge"
+                [(ngModel)]="branch.serviceChargePercent"
+                [min]="0"
+                [max]="100"
+                [minFractionDigits]="0"
+                [maxFractionDigits]="2"
+                suffix="%"
+                styleClass="w-full"
+                [disabled]="saving"
+            ></p-inputNumber>
+            <small class="text-500">Default service fee automatically applied to dine-in orders at this branch.</small>
+        </div>
+        <div class="field flex align-items-center gap-3 mb-3" *ngIf="branch.businessType === 2">
+            <p-inputSwitch
+                inputId="autoAssignWaiterDialog"
+                [(ngModel)]="branch.autoAssignWaiterToTables"
+            ></p-inputSwitch>
+            <label for="autoAssignWaiterDialog" class="font-medium cursor-pointer mb-0">
+                Auto Assign Waiter to Tables
+            </label>
+        </div>
+
             <div class="flex flex-column gap-3 surface-50 border-round p-3" *ngIf="isCreateMode">
             <div class="flex flex-column gap-2">
                 <label for="companyType" class="font-medium">
@@ -167,6 +209,101 @@
             ></textarea>
         </div>
 
+        <!-- 📍 Shop Location / GPS Coordinates -->
+        <div class="surface-50 border-1 surface-border border-round-xl p-3 flex flex-column gap-3 mb-2">
+            <div class="flex align-items-center justify-content-between flex-wrap gap-2">
+                <div class="flex align-items-center gap-2">
+                    <div class="w-2rem h-2rem border-round bg-primary-50 text-primary flex align-items-center justify-content-center">
+                        <i class="pi pi-map-marker text-lg"></i>
+                    </div>
+                    <div>
+                        <span class="font-bold text-900 block">Shop / Store GPS Location</span>
+                        <small class="text-500">Defines store coordinates to calculate customer distance (km) on online orders</small>
+                    </div>
+                </div>
+                <div class="flex align-items-center gap-2 gps-action-btns">
+                    <button
+                        type="button"
+                        class="p-button p-button-outlined p-button-sm p-button-success text-decoration-none inline-flex align-items-center justify-content-center gap-1 gps-action-btn"
+                        [disabled]="locating || saving"
+                        (click)="detectCurrentLocation()"
+                        title="Detect this device's GPS coordinates as shop location"
+                    >
+                        <i class="pi" [ngClass]="locating ? 'pi-spin pi-spinner' : 'pi-compass'"></i>
+                        <span>{{ locating ? 'Detecting...' : 'Pin Current Location' }}</span>
+                    </button>
+                    <a
+                        *ngIf="googleMapsShopLink"
+                        [href]="googleMapsShopLink"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="p-button p-button-outlined p-button-sm p-button-info text-decoration-none inline-flex align-items-center justify-content-center gap-1 gps-action-btn"
+                        title="Open store pin on Google Maps"
+                    >
+                        <i class="pi pi-external-link"></i>
+                        <span>View Map</span>
+                    </a>
+                    <button
+                        *ngIf="branch.latitude != null || branch.longitude != null"
+                        pButton
+                        type="button"
+                        icon="pi pi-times"
+                        class="p-button-text p-button-danger p-button-sm"
+                        (click)="clearShopLocation()"
+                        title="Clear coordinates"
+                    ></button>
+                </div>
+            </div>
+
+            <div class="formgrid grid mb-0">
+                <div class="field col-12 md:col-4 mb-0 flex flex-column gap-2">
+                    <label for="dialogBranchLatitude" class="font-medium text-sm">Store Latitude</label>
+                    <p-inputNumber
+                        inputId="dialogBranchLatitude"
+                        [(ngModel)]="branch.latitude"
+                        mode="decimal"
+                        [minFractionDigits]="2"
+                        [maxFractionDigits]="8"
+                        placeholder="e.g. 31.4869"
+                        styleClass="w-full"
+                        [disabled]="saving"
+                    ></p-inputNumber>
+                </div>
+                <div class="field col-12 md:col-4 mb-0 flex flex-column gap-2">
+                    <label for="dialogBranchLongitude" class="font-medium text-sm">Store Longitude</label>
+                    <p-inputNumber
+                        inputId="dialogBranchLongitude"
+                        [(ngModel)]="branch.longitude"
+                        mode="decimal"
+                        [minFractionDigits]="2"
+                        [maxFractionDigits]="8"
+                        placeholder="e.g. 74.2316"
+                        styleClass="w-full"
+                        [disabled]="saving"
+                    ></p-inputNumber>
+                </div>
+                <div class="field col-12 md:col-4 mb-0 flex flex-column gap-2">
+                    <label for="dialogAttendanceRadius" class="font-medium text-sm">Auto check-in radius (feet)</label>
+                    <p-inputNumber
+                        inputId="dialogAttendanceRadius"
+                        [(ngModel)]="branch.attendanceAutoCheckInRadiusFeet"
+                        [min]="1"
+                        [max]="100000"
+                        [useGrouping]="false"
+                        placeholder="200"
+                        styleClass="w-full"
+                        [disabled]="saving"
+                    ></p-inputNumber>
+                    <small class="text-500">Waiter/rider marked Present only if within this distance (default 200 feet).</small>
+                </div>
+            </div>
+
+            <div *ngIf="branch.latitude != null && branch.longitude != null" class="text-xs text-green-700 bg-green-50 border-round p-2 flex align-items-center gap-2">
+                <i class="pi pi-check-circle"></i>
+                <span>Store pin active: <strong>{{ branch.latitude | number: '1.4-6' }}, {{ branch.longitude | number: '1.4-6' }}</strong> &bull; Auto check-in within <strong>{{ branch.attendanceAutoCheckInRadiusFeet || 200 }} feet</strong></span>
+            </div>
+        </div>
+
         <div class="flex flex-column gap-2">
             <label for="invoiceContactEmail" class="font-medium">Invoice Contact Email</label>
             <input
@@ -267,6 +404,90 @@
             />
         </div>
 
+        <div
+            *ngIf="canEditCustomDomain"
+            class="surface-ground border-round p-3 flex flex-column gap-3"
+        >
+            <div class="font-semibold">Custom domain storefront</div>
+            <div class="grid">
+                <div class="col-12 md:col-6 flex flex-column gap-2">
+                    <label for="dlgCustomDomain" class="font-medium">Custom domain</label>
+                    <input
+                        id="dlgCustomDomain"
+                        type="text"
+                        pInputText
+                        class="w-full"
+                        maxlength="256"
+                        placeholder="almeezanfoods.com"
+                        [(ngModel)]="branch.customDomain"
+                        [disabled]="saving"
+                    />
+                    <small class="text-color-secondary">
+                        Hostname only. Bind DNS + MonsterASP hostname to site105439, then save here.
+                    </small>
+                </div>
+                <div class="col-12 md:col-6 flex flex-column gap-2">
+                    <label for="dlgStorefrontTitle" class="font-medium">Public store name (SEO)</label>
+                    <input
+                        id="dlgStorefrontTitle"
+                        type="text"
+                        pInputText
+                        class="w-full"
+                        maxlength="256"
+                        placeholder="Al Meezan Foods"
+                        [(ngModel)]="branch.storefrontTitle"
+                        [disabled]="saving"
+                    />
+                </div>
+            </div>
+            <div *ngIf="customStorefrontUrl" class="text-sm">
+                Live storefront:
+                <a [href]="customStorefrontUrl" target="_blank" rel="noopener">{{ customStorefrontUrl }}</a>
+            </div>
+        </div>
+
+        <div class="grid">
+            <div class="col-12 md:col-4 flex flex-column gap-2">
+                <label for="facebookUrl" class="font-medium">Facebook URL</label>
+                <input
+                    id="facebookUrl"
+                    type="url"
+                    pInputText
+                    class="w-full"
+                    maxlength="512"
+                    placeholder="https://facebook.com/..."
+                    [(ngModel)]="branch.facebookUrl"
+                    [disabled]="saving"
+                />
+            </div>
+            <div class="col-12 md:col-4 flex flex-column gap-2">
+                <label for="instagramUrl" class="font-medium">Instagram URL</label>
+                <input
+                    id="instagramUrl"
+                    type="url"
+                    pInputText
+                    class="w-full"
+                    maxlength="512"
+                    placeholder="https://instagram.com/..."
+                    [(ngModel)]="branch.instagramUrl"
+                    [disabled]="saving"
+                />
+            </div>
+            <div class="col-12 md:col-4 flex flex-column gap-2">
+                <label for="youtubeUrl" class="font-medium">YouTube URL</label>
+                <input
+                    id="youtubeUrl"
+                    type="url"
+                    pInputText
+                    class="w-full"
+                    maxlength="512"
+                    placeholder="https://youtube.com/..."
+                    [(ngModel)]="branch.youtubeUrl"
+                    [disabled]="saving"
+                />
+            </div>
+        </div>
+
         <div class="flex flex-column gap-2">
             <label for="invoiceFooter" class="font-medium">Invoice Footer</label>
             <textarea
@@ -278,6 +499,132 @@
                 [(ngModel)]="branch.invoiceFooter"
                 [disabled]="saving"
             ></textarea>
+        </div>
+
+        <div class="surface-50 border-1 surface-border border-round-xl p-3 flex flex-column gap-3 mb-2">
+            <div class="flex align-items-center gap-2">
+                <i class="pi pi-comments text-primary text-lg"></i>
+                <div>
+                    <span class="font-bold text-900 block">Product page feedback</span>
+                    <small class="text-500">Shown on aljannatapp.com/product when enabled</small>
+                </div>
+            </div>
+
+            <div class="flex align-items-center gap-2">
+                <p-checkbox
+                    [binary]="true"
+                    [(ngModel)]="branch.showCustomerFeedback"
+                    inputId="dlgShowCustomerFeedback"
+                    [disabled]="saving"
+                ></p-checkbox>
+                <label for="dlgShowCustomerFeedback">Show this feedback publicly</label>
+            </div>
+
+            <div class="grid">
+                <div class="col-12 md:col-6 flex flex-column gap-2">
+                    <label for="dlgFeedbackName" class="font-medium">Customer / owner name</label>
+                    <input
+                        id="dlgFeedbackName"
+                        type="text"
+                        pInputText
+                        class="w-full"
+                        maxlength="128"
+                        [(ngModel)]="branch.customerFeedbackName"
+                        [disabled]="saving"
+                    />
+                </div>
+                <div class="col-12 md:col-3 flex flex-column gap-2">
+                    <label for="dlgFeedbackRole" class="font-medium">Role</label>
+                    <input
+                        id="dlgFeedbackRole"
+                        type="text"
+                        pInputText
+                        class="w-full"
+                        maxlength="128"
+                        placeholder="Owner"
+                        [(ngModel)]="branch.customerFeedbackRole"
+                        [disabled]="saving"
+                    />
+                </div>
+                <div class="col-12 md:col-3 flex flex-column gap-2">
+                    <label for="dlgFeedbackCity" class="font-medium">City</label>
+                    <input
+                        id="dlgFeedbackCity"
+                        type="text"
+                        pInputText
+                        class="w-full"
+                        maxlength="128"
+                        [(ngModel)]="branch.customerFeedbackCity"
+                        [disabled]="saving"
+                    />
+                </div>
+                <div class="col-12 md:col-3 flex flex-column gap-2">
+                    <label for="dlgFeedbackRating" class="font-medium">Rating (1–5)</label>
+                    <p-inputNumber
+                        inputId="dlgFeedbackRating"
+                        [(ngModel)]="branch.customerFeedbackRating"
+                        [min]="0"
+                        [max]="5"
+                        [useGrouping]="false"
+                        styleClass="w-full"
+                        [disabled]="saving"
+                    ></p-inputNumber>
+                </div>
+                <div class="col-12 flex flex-column gap-2">
+                    <label for="dlgFeedbackComment" class="font-medium">Feedback quote</label>
+                    <textarea
+                        id="dlgFeedbackComment"
+                        pInputTextarea
+                        rows="3"
+                        class="w-full"
+                        maxlength="1000"
+                        [(ngModel)]="branch.customerFeedbackComment"
+                        [disabled]="saving"
+                    ></textarea>
+                </div>
+            </div>
+        </div>
+
+        <div
+            *ngIf="canEditSoftwareDeveloper"
+            class="surface-50 border-1 surface-border border-round-xl p-3 flex flex-column gap-3 mb-2"
+        >
+            <div class="flex align-items-center gap-2">
+                <i class="pi pi-receipt text-primary text-lg"></i>
+                <div>
+                    <span class="font-bold text-900 block">Receipt Footer / Developer Branding</span>
+                    <small class="text-500">Host / super admin only — printed at the bottom of thermal receipts</small>
+                </div>
+            </div>
+
+            <div class="grid">
+                <div class="col-12 md:col-7 flex flex-column gap-2">
+                    <label for="softwareDeveloperName" class="font-medium">Software Developed By</label>
+                    <input
+                        id="softwareDeveloperName"
+                        type="text"
+                        pInputText
+                        class="w-full"
+                        maxlength="256"
+                        placeholder="Software develop by AlNawabTech"
+                        [(ngModel)]="branch.softwareDeveloperName"
+                        [disabled]="saving"
+                    />
+                </div>
+                <div class="col-12 md:col-5 flex flex-column gap-2">
+                    <label for="softwareDeveloperPhone" class="font-medium">Developer Phone / Contact</label>
+                    <input
+                        id="softwareDeveloperPhone"
+                        type="text"
+                        pInputText
+                        class="w-full"
+                        maxlength="64"
+                        placeholder="03167854606"
+                        [(ngModel)]="branch.softwareDeveloperPhone"
+                        [disabled]="saving"
+                    />
+                </div>
+            </div>
         </div>
 
         <div class="flex flex-column gap-2">

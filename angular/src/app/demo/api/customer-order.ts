@@ -2,6 +2,10 @@ export enum CustomerOrderStatus {
     Pending = 0,
     Approved = 1,
     Rejected = 2,
+    InProgress = 3,
+    Delivered = 4,
+    /** Admin posted payment / sale into the system. */
+    Completed = 5,
 }
 
 export interface CustomerOrderLineDto {
@@ -12,21 +16,165 @@ export interface CustomerOrderLineDto {
     quantity: number;
     unitPrice: number;
     lineTotal: number;
+    isDeal?: boolean;
+    dealItems?: string[];
 }
 
 export interface CustomerOrderDto {
     id: number;
     customerId: number;
     customerName?: string;
+    customerPhone?: string;
+    customerAddress?: string;
     orderDate: string | Date;
     orderNo?: string;
+    tokenNo?: number | null;
     status: number;
     statusName?: string;
+    subTotal?: number;
+    deliveryFee?: number;
+    deliveryAreaId?: number;
+    deliveryAreaName?: string;
+    isFreeDelivery?: boolean;
+    freeDeliveryReason?: string;
+    originalDeliveryFee?: number;
+    deliveryFeeOverrideReason?: string;
+    deliveryFeeOverriddenByName?: string;
+    deliveryFeeOverrideTime?: string | Date;
     totalAmount: number;
     notes?: string;
+    paymentMethod?: string;
+    deliveryRating?: number | null;
+    customerRating?: number | null;
+    customerFeedbackComment?: string | null;
+    latitude?: number;
+    longitude?: number;
+    distanceKm?: number;
     saleId?: number;
     saleInvoiceNo?: string;
+    paidAmount?: number;
+    dueAmount?: number;
+    branchId?: number;
+    branchName?: string;
+    riderId?: number | null;
+    riderName?: string;
+    riderPhone?: string;
+    riderAssignedTime?: string | Date;
     lines?: CustomerOrderLineDto[];
+}
+
+export interface RateCustomerOrderInput {
+    orderNo: string;
+    rating: number;
+    comment?: string;
+}
+
+export interface CustomerOrderHistoryInput {
+    phone: string;
+    branchId?: number | null;
+    maxResultCount?: number;
+}
+
+export interface CustomerSavedAddressDto {
+    id: number;
+    customerId: number;
+    label?: string;
+    address: string;
+    landmark?: string;
+    deliveryAreaId?: number | null;
+    deliveryAreaName?: string;
+    latitude?: number | null;
+    longitude?: number | null;
+    isDefault?: boolean;
+}
+
+export interface SaveCustomerAddressInput {
+    id?: number | null;
+    customerId?: number | null;
+    branchId?: number | null;
+    phone?: string;
+    label?: string;
+    address: string;
+    landmark?: string;
+    deliveryAreaId?: number | null;
+    deliveryAreaName?: string;
+    latitude?: number | null;
+    longitude?: number | null;
+    isDefault?: boolean;
+}
+
+export interface GetCustomerSavedAddressesInput {
+    customerId?: number | null;
+    branchId?: number | null;
+    phone?: string;
+}
+
+export interface OnlineCustomerProfileDto {
+    id: number;
+    branchId: number;
+    name?: string;
+    phone?: string;
+    email?: string;
+    address?: string;
+    latitude?: number | null;
+    longitude?: number | null;
+    imagePath?: string;
+    savedAddresses?: CustomerSavedAddressDto[];
+}
+
+export interface BranchFeedbackDto {
+    orderId: number;
+    customerId?: number;
+    orderNo?: string;
+    tokenNo?: number | null;
+    customerName?: string;
+    customerImagePath?: string | null;
+    rating: number;
+    orderDate: string | Date;
+    branchName?: string;
+    comment?: string;
+    itemNames?: string[];
+    itemsSummary?: string;
+}
+
+export interface UpsertOnlineCustomerProfileInput {
+    branchId?: number | null;
+    name: string;
+    phone: string;
+    email?: string;
+    address?: string;
+    latitude?: number | null;
+    longitude?: number | null;
+    imageBase64?: string;
+    clearImage?: boolean;
+}
+
+export interface AssignRiderDto {
+    orderId: number;
+    riderId: number;
+    riderName: string;
+    riderPhone?: string;
+}
+
+export interface DeliveryRiderStatusDto {
+    riderId: number;
+    riderName: string;
+    riderPhone?: string;
+    employeeCode?: string;
+    isBusy: boolean;
+    busyOrderNo?: string;
+    busyOrderId?: number | null;
+    lastOrderTime?: string | Date | null;
+    lastOrderTimeText?: string;
+    idleMinutes?: number;
+    todayDeliveredCount: number;
+    todayDeliveredText: string;
+}
+
+export interface OverrideDeliveryFeeInput {
+    orderId: number;
+    newDeliveryFee: number;
+    reason: string;
 }
 
 export interface CreateCustomerOrderLineDto {
@@ -42,6 +190,19 @@ export interface CreateCustomerOrderDto {
     branchId?: number;
     orderDate?: string | Date;
     notes?: string;
+    latitude?: number;
+    longitude?: number;
+    distanceKm?: number;
+    googleMapsLink?: string;
+    google_maps_link?: string;
+    deliveryAddress?: string;
+    deliveryLandmark?: string;
+    deliveryAreaId?: number;
+    deliveryArea?: string;
+    subtotal?: number;
+    deliveryCharges?: number;
+    grandTotal?: number;
+    paymentMethod?: string;
     lines: CreateCustomerOrderLineDto[];
 }
 

@@ -1,0 +1,84 @@
+<p-dialog
+    [header]="dialogTitle"
+    [visible]="visible"
+    [modal]="true"
+    appendTo="body"
+    [blockScroll]="true"
+    styleClass="dialog-sm"
+    [breakpoints]="{ '960px': '75vw', '640px': '95vw' }"
+    [draggable]="false"
+    [resizable]="false"
+    (visibleChange)="onVisibleChange($event)"
+>
+    <div class="flex flex-column gap-3" *ngIf="!loading; else loadingTpl">
+        <div class="flex flex-column gap-2">
+            <label for="departmentName" class="font-medium">Name <span class="p-error">*</span></label>
+            <input
+                id="departmentName"
+                type="text"
+                pInputText
+                class="w-full"
+                minlength="2"
+                maxlength="128"
+                [(ngModel)]="department.name"
+                [disabled]="saving"
+                (keyup.enter)="save()"
+                placeholder="e.g. Fast Food, Beverages, Kitchen, Bakery"
+            />
+            <small class="text-500">At least 2 characters, including one letter (not symbols only).</small>
+        </div>
+
+        <div class="flex flex-column gap-2">
+            <label for="departmentDescription" class="font-medium">Description</label>
+            <textarea
+                id="departmentDescription"
+                pInputTextarea
+                rows="3"
+                class="w-full"
+                maxlength="512"
+                [(ngModel)]="department.description"
+                [disabled]="saving"
+                (keydown.control.enter)="save()"
+                placeholder="Optional department notes or description"
+            ></textarea>
+        </div>
+
+        <div class="flex align-items-center gap-2">
+            <p-inputSwitch
+                inputId="departmentActive"
+                [(ngModel)]="department.isActive"
+                [disabled]="saving"
+            ></p-inputSwitch>
+            <label for="departmentActive" class="font-medium cursor-pointer">Active</label>
+        </div>
+    </div>
+
+    <ng-template #loadingTpl>
+        <div class="flex align-items-center justify-content-center p-4">
+            <i class="pi pi-spin pi-spinner text-2xl"></i>
+        </div>
+    </ng-template>
+
+    <ng-template pTemplate="footer">
+        <button
+            pButton
+            pRipple
+            type="button"
+            label="Cancel"
+            class="p-button-text"
+            (click)="onHide()"
+            [disabled]="saving"
+        ></button>
+        <button
+            pButton
+            pRipple
+            type="button"
+            label="Save"
+            icon="pi pi-check"
+            (click)="save()"
+            [disabled]="saving || loading || !canSave"
+            [loading]="saving"
+        ></button>
+    </ng-template>
+</p-dialog>
+

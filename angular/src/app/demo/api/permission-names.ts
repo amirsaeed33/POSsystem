@@ -16,6 +16,11 @@ export const PermissionNames = {
     RolesEdit: 'Pages.Roles.Edit',
     RolesDelete: 'Pages.Roles.Delete',
 
+    Departments: 'Pages.Departments',
+    DepartmentsCreate: 'Pages.Departments.Create',
+    DepartmentsEdit: 'Pages.Departments.Edit',
+    DepartmentsDelete: 'Pages.Departments.Delete',
+
     Categories: 'Pages.Categories',
     CategoriesCreate: 'Pages.Categories.Create',
     CategoriesEdit: 'Pages.Categories.Edit',
@@ -103,6 +108,12 @@ export const PermissionNames = {
     CustomerOrdersCreate: 'Pages.CustomerOrders.Create',
     CustomerOrdersEdit: 'Pages.CustomerOrders.Edit',
     CustomerOrdersDelete: 'Pages.CustomerOrders.Delete',
+    CustomerOrdersOverrideDeliveryFee: 'Pages.CustomerOrders.OverrideDeliveryFee',
+
+    DeliveryAreas: 'Pages.DeliveryAreas',
+    DeliveryAreasCreate: 'Pages.DeliveryAreas.Create',
+    DeliveryAreasEdit: 'Pages.DeliveryAreas.Edit',
+    DeliveryAreasDelete: 'Pages.DeliveryAreas.Delete',
 
     EmailTemplates: 'Pages.EmailTemplates',
     EmailTemplatesCreate: 'Pages.EmailTemplates.Create',
@@ -119,6 +130,39 @@ export const PermissionNames = {
     HostCatalogEdit: 'Pages.HostCatalog.Edit',
     HostCatalogDelete: 'Pages.HostCatalog.Delete',
 
+    /** Host / super admin only */
+    Developers: 'Pages.Developers',
+    DevelopersCreate: 'Pages.Developers.Create',
+    DevelopersEdit: 'Pages.Developers.Edit',
+    DevelopersDelete: 'Pages.Developers.Delete',
+
+    Sellers: 'Pages.Sellers',
+    SellersApprove: 'Pages.Sellers.Approve',
+    SellersEdit: 'Pages.Sellers.Edit',
+    SellersDelete: 'Pages.Sellers.Delete',
+
+    Subscriptions: 'Pages.Subscriptions',
+    Billing: 'Pages.Billing',
+
+    Packages: 'Pages.Packages',
+    PackagesCreate: 'Pages.Packages.Create',
+    PackagesEdit: 'Pages.Packages.Edit',
+    PackagesDelete: 'Pages.Packages.Delete',
+
     NotificationSettings: 'Pages.NotificationSettings',
     NotificationSettingsEdit: 'Pages.NotificationSettings.Edit',
+
+    Rider: 'Pages.Rider',
+    RiderDashboard: 'Pages.Rider.Dashboard',
+    RiderOrderHistory: 'Pages.Rider.OrderHistory',
+
+    Pos: 'Pages.Pos',
+    PosCreate: 'Pages.Pos.Create',
+    PosEdit: 'Pages.Pos.Edit',
+    PosDelete: 'Pages.Pos.Delete',
+
+    DiningTables: 'Pages.DiningTables',
+    DiningTablesCreate: 'Pages.DiningTables.Create',
+    DiningTablesEdit: 'Pages.DiningTables.Edit',
+    DiningTablesDelete: 'Pages.DiningTables.Delete',
 } as const;

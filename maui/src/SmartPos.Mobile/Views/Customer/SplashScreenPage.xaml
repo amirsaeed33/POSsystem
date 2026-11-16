@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="SmartPos.Mobile.Views.Customer.SplashScreenPage"
+             Shell.NavBarIsVisible="False"
+             Shell.TabBarIsVisible="False"
+             NavigationPage.HasNavigationBar="False"
+             BackgroundColor="#1A0C06">
+
+    <Grid>
+        <!-- Full-bleed cinematic diagonal gradient -->
+        <Grid.Background>
+            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                <GradientStop Color="#1A0C06" Offset="0.0" />
+                <GradientStop Color="#8F3006" Offset="0.52" />
+                <GradientStop Color="#C84B11" Offset="1.0" />
+            </LinearGradientBrush>
+        </Grid.Background>
+
+        <!-- Soft radial candlelight glow behind brand lockup -->
+        <Ellipse WidthRequest="300"
+                 HeightRequest="300"
+                 HorizontalOptions="Center"
+                 VerticalOptions="Center"
+                 InputTransparent="True">
+            <Ellipse.Fill>
+                <RadialGradientBrush Center="0.5,0.5" Radius="0.5">
+                    <GradientStop Color="#38E89B3C" Offset="0.0" />
+                    <GradientStop Color="#00E89B3C" Offset="1.0" />
+                </RadialGradientBrush>
+            </Ellipse.Fill>
+        </Ellipse>
+
+        <!-- Concentric hairline Mughal rings -->
+        <Border WidthRequest="270"
+                HeightRequest="270"
+                Stroke="#1AE89B3C"
+                StrokeThickness="1"
+                BackgroundColor="Transparent"
+                HorizontalOptions="Center"
+                VerticalOptions="Center"
+                InputTransparent="True">
+            <Border.StrokeShape>
+                <RoundRectangle CornerRadius="135" />
+            </Border.StrokeShape>
+        </Border>
+        <Border WidthRequest="220"
+                HeightRequest="220"
+                Stroke="#1AE89B3C"
+                StrokeThickness="1"
+                BackgroundColor="Transparent"
+                HorizontalOptions="Center"
+                VerticalOptions="Center"
+                InputTransparent="True">
+            <Border.StrokeShape>
+                <RoundRectangle CornerRadius="110" />
+            </Border.StrokeShape>
+        </Border>
+
+        <!-- Centerpiece brand lockup -->
+        <VerticalStackLayout x:Name="BrandCenterStack"
+                             VerticalOptions="Center"
+                             HorizontalOptions="Center"
+                             Spacing="0"
+                             Opacity="1">
+
+            <!-- Architectural emblem medallion -->
+            <Border x:Name="EmblemBadge"
+                    WidthRequest="92"
+                    HeightRequest="92"
+                    BackgroundColor="#1AFFFFFF"
+                    Stroke="#4DE89B3C"
+                    StrokeThickness="1.2"
+                    HorizontalOptions="Center"
+                    Opacity="1"
+                    Scale="1">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="28" />
+                </Border.StrokeShape>
+                <Grid WidthRequest="56"
+                      HeightRequest="56"
+                      HorizontalOptions="Center"
+                      VerticalOptions="Center">
+                    <!-- Mughal arch -->
+                    <Path Aspect="Uniform"
+                          Stroke="#E89B3C"
+                          StrokeThickness="2"
+                          Fill="Transparent"
+                          HorizontalOptions="Center"
+                          VerticalOptions="Center"
+                          Data="M8,48 L8,22 Q8,8 28,4 Q48,8 48,22 L48,48" />
+                    <!-- Rising spice flame -->
+                    <Path Aspect="Uniform"
+                          Fill="#E89B3C"
+                          HorizontalOptions="Center"
+                          VerticalOptions="Center"
+                          TranslationY="-4"
+                          Data="M28,38 Q34,30 32,22 Q38,26 36,16 Q30,20 28,12 Q26,20 20,16 Q18,26 24,22 Q22,30 28,38 Z" />
+                    <!-- Royal culinary cloche dome -->
+                    <Path Aspect="Uniform"
+                          Fill="#FAF5F0"
+                          HorizontalOptions="Center"
+                          VerticalOptions="End"
+                          Margin="0,0,0,2"
+                          Data="M14,42 Q28,30 42,42 L42,46 L14,46 Z M26,30 Q28,26 30,30" />
+                </Grid>
+            </Border>
+
+            <Label x:Name="WordmarkLabel"
+                   Text="ALJANNAT"
+                   FontSize="34"
+                   FontAttributes="Bold"
+                   CharacterSpacing="6"
+                   TextColor="#FAF5F0"
+                   HorizontalTextAlignment="Center"
+                   Margin="0,22,0,0"
+                   Opacity="1"
+                   TranslationY="0" />
+
+            <BoxView x:Name="GoldDivider"
+                     WidthRequest="56"
+                     HeightRequest="1.5"
+                     Color="#E89B3C"
+                     CornerRadius="1"
+                     HorizontalOptions="Center"
+                     Margin="0,14,0,14"
+                     Opacity="1"
+                     TranslationY="0" />
+
+            <Label x:Name="TaglineLabel"
+                   Text="CRAFTED FLAVORS, ROYAL HOSPITALITY"
+                   FontSize="11"
+                   FontAttributes="Bold"
+                   CharacterSpacing="2.4"
+                   TextColor="#F9E0D2"
+                   HorizontalTextAlignment="Center"
+                   Opacity="1"
+                   TranslationY="0" />
+        </VerticalStackLayout>
+
+        <!-- Minimalist bottom footer -->
+        <VerticalStackLayout x:Name="FooterStack"
+                             VerticalOptions="End"
+                             HorizontalOptions="Center"
+                             Margin="0,0,0,34"
+                             Spacing="0"
+                             Opacity="1">
+            <Border WidthRequest="128"
+                    HeightRequest="2.5"
+                    BackgroundColor="#33FFFFFF"
+                    StrokeThickness="0"
+                    HorizontalOptions="Center"
+                    Padding="0">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="1.5" />
+                </Border.StrokeShape>
+                <BoxView x:Name="ProgressFill"
+                         WidthRequest="36"
+                         HeightRequest="2.5"
+                         Color="#E89B3C"
+                         CornerRadius="1.5"
+                         HorizontalOptions="Start"
+                         VerticalOptions="Fill" />
+            </Border>
+
+            <Label Text="LAHORE  •  ISLAMABAD  •  FAISALABAD"
+                   FontSize="9.5"
+                   CharacterSpacing="2.2"
+                   TextColor="#D9C5B8"
+                   Opacity="0.85"
+                   HorizontalTextAlignment="Center"
+                   Margin="0,12,0,0" />
+        </VerticalStackLayout>
+    </Grid>
+</ContentPage>

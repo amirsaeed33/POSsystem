@@ -1,15 +1,25 @@
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Abp.Application.Services;
 using Abp.Application.Services.Dto;
+using Abp.Authorization;
 using SmartPos.Branches.Dto;
 
 namespace SmartPos.Branches
 {
     public interface IBranchAppService : IAsyncCrudAppService<BranchDto, int, PagedBranchResultRequestDto, CreateBranchDto, BranchDto>
     {
+        /// <summary>Anonymous: branch testimonials for the public product landing page.</summary>
+        [AbpAllowAnonymous]
+        Task<List<BranchPublicFeedbackDto>> GetPublicFeedbacksAsync();
+
         Task<ListResultDto<BranchDto>> GetLookupAsync();
 
-        Task<BranchDto> GetInvoiceInfoAsync();
+        /// <summary>
+        /// Branch header for printed invoices (logo, address, contacts).
+        /// Prefers <paramref name="branchId"/>, then request branch header, then user's branch.
+        /// </summary>
+        Task<BranchDto> GetInvoiceInfoAsync(int? branchId = null);
 
         /// <summary>Host-only: pending tenant branches awaiting approval.</summary>
         Task<ListResultDto<BranchDto>> GetPendingApprovalsAsync();

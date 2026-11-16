@@ -7,6 +7,8 @@ namespace SmartPos.Sales.Dto
 {
     public class CreateSaleDto
     {
+        public int? BranchId { get; set; }
+
         [Required]
         public int CustomerId { get; set; }
 
@@ -14,6 +16,8 @@ namespace SmartPos.Sales.Dto
 
         [StringLength(Sale.MaxInvoiceNoLength)]
         public string InvoiceNo { get; set; }
+
+        public int? TokenNo { get; set; }
 
         [StringLength(Sale.MaxNotesLength)]
         public string Notes { get; set; }
@@ -35,6 +39,15 @@ namespace SmartPos.Sales.Dto
 
         [Range(0, double.MaxValue)]
         public decimal CardAmount { get; set; }
+
+        [Range(0, double.MaxValue)]
+        public decimal CreditAmount { get; set; }
+
+        [Range(0, double.MaxValue)]
+        public decimal DeliveryCharges { get; set; }
+
+        [StringLength(128)]
+        public string DeliveryAreaName { get; set; }
 
         [Required]
         [MinLength(1)]

@@ -8,6 +8,7 @@ using Abp.Domain.Repositories;
 using Abp.Linq.Extensions;
 using Abp.Timing;
 using Microsoft.EntityFrameworkCore;
+using SmartPos.Accounts;
 using SmartPos.Branches;
 using SmartPos.Dashboard.Dto;
 using SmartPos.Expenses;
@@ -26,6 +27,8 @@ namespace SmartPos.Dashboard
 
         private readonly IRepository<Product> _productRepository;
         private readonly IRepository<Sale> _saleRepository;
+        private readonly IRepository<SaleReturn> _saleReturnRepository;
+        private readonly IRepository<SaleReturnLine> _saleReturnLineRepository;
         private readonly IRepository<Purchase> _purchaseRepository;
         private readonly IRepository<Expense> _expenseRepository;
         private readonly IRepository<CustomerOrder> _customerOrderRepository;
@@ -34,10 +37,14 @@ namespace SmartPos.Dashboard
         private readonly IRepository<BranchStock> _branchStockRepository;
         private readonly IBranchAccessChecker _branchAccessChecker;
         private readonly IBranchStockManager _branchStockManager;
+        private readonly ISaleAppService _saleAppService;
+        private readonly IRepository<LedgerEntry> _ledgerRepository;
 
         public DashboardAppService(
             IRepository<Product> productRepository,
             IRepository<Sale> saleRepository,
+            IRepository<SaleReturn> saleReturnRepository,
+            IRepository<SaleReturnLine> saleReturnLineRepository,
             IRepository<Purchase> purchaseRepository,
             IRepository<Expense> expenseRepository,
             IRepository<CustomerOrder> customerOrderRepository,
@@ -45,10 +52,14 @@ namespace SmartPos.Dashboard
             IRepository<Branch> branchRepository,
             IRepository<BranchStock> branchStockRepository,
             IBranchAccessChecker branchAccessChecker,
-            IBranchStockManager branchStockManager)
+            IBranchStockManager branchStockManager,
+            ISaleAppService saleAppService,
+            IRepository<LedgerEntry> ledgerRepository)
         {
             _productRepository = productRepository;
             _saleRepository = saleRepository;
+            _saleReturnRepository = saleReturnRepository;
+            _saleReturnLineRepository = saleReturnLineRepository;
             _purchaseRepository = purchaseRepository;
             _expenseRepository = expenseRepository;
             _customerOrderRepository = customerOrderRepository;
@@ -57,11 +68,14 @@ namespace SmartPos.Dashboard
             _branchStockRepository = branchStockRepository;
             _branchAccessChecker = branchAccessChecker;
             _branchStockManager = branchStockManager;
+            _saleAppService = saleAppService;
+            _ledgerRepository = ledgerRepository;
         }
 
         public async Task<DashboardDto> GetAsync()
         {
             var branchId = await _branchAccessChecker.GetEffectiveBranchIdAsync();
+            await _saleAppService.SyncDeliveredCustomerOrderSalesAsync(branchId);
 
             var productQuery = _productRepository.GetAllIncluding(x => x.Category, x => x.Brand, x=>x.Unit)
                 .AsNoTracking();
@@ -91,12 +105,43 @@ namespace SmartPos.Dashboard
             var previousPeriodStart = currentPeriodStart.AddMonths(-1);
             var previousPeriodEnd = EquivalentPreviousPeriodEnd(now, currentPeriodStart, previousPeriodStart);
 
+            var fifteenDaysAgo = todayStart.AddDays(-14);
+            var sevenDaysAgo = todayStart.AddDays(-6);
+            var recentSalesStart = previousPeriodStart < fifteenDaysAgo ? previousPeriodStart : fifteenDaysAgo;
+
             var sales = await _saleRepository.GetAll()
                 .AsNoTracking()
                 .Where(x => x.SaleDate >= startMonth)
                 .WhereIf(branchId.HasValue, x => x.BranchId == branchId.Value)
-                .Select(x => new { x.SaleDate, x.TotalAmount })
+                .Select(x => new { x.Id, x.SaleDate, x.TotalAmount, x.CashAmount, x.CardAmount, x.CreditAmount })
                 .ToListAsync();
+
+            var saleIdsInWindow = sales.Select(x => x.Id).ToList();
+            var returnsBySaleId = new Dictionary<int, decimal>();
+            if (saleIdsInWindow.Count > 0)
+            {
+                returnsBySaleId = await _saleReturnRepository.GetAll()
+                    .AsNoTracking()
+                    .Where(x => saleIdsInWindow.Contains(x.SaleId))
+                    .GroupBy(x => x.SaleId)
+                    .Select(g => new { SaleId = g.Key, TotalReturned = g.Sum(r => r.TotalAmount) })
+                    .ToDictionaryAsync(x => x.SaleId, x => x.TotalReturned);
+            }
+
+            var netSales = sales.Select(s =>
+            {
+                var returned = returnsBySaleId.GetValueOrDefault(s.Id, 0m);
+                var netAmount = Math.Max(0m, s.TotalAmount - returned);
+                var paidAmount = Math.Max(0m, (s.CashAmount + s.CardAmount) - returned);
+                return new
+                {
+                    s.Id,
+                    s.SaleDate,
+                    TotalAmount = netAmount,
+                    PaidAmount = paidAmount,
+                    IsFullyReturned = returned >= s.TotalAmount
+                };
+            }).ToList();
 
             var purchases = await _purchaseRepository.GetAll()
                 .AsNoTracking()
@@ -112,9 +157,18 @@ namespace SmartPos.Dashboard
                 .Select(x => new { x.ExpenseDate, x.Amount })
                 .ToListAsync();
 
-            var todaySales = sales
+            var olderSaleIds = sales.Where(x => x.SaleDate < todayStart).Select(x => x.Id).ToList();
+            var todayLaterCollectedPayments = olderSaleIds.Count == 0 ? 0m : await _ledgerRepository.GetAll()
+                .AsNoTracking()
+                .Where(x => x.TransactionDate >= todayStart && x.TransactionDate < tomorrow)
+                .Where(x => x.VoucherType == "SalePayment" && x.Debit > 0 && x.VoucherId.HasValue && olderSaleIds.Contains(x.VoucherId.Value))
+                .WhereIf(branchId.HasValue, x => x.BranchId == branchId.Value)
+                .SumAsync(x => (decimal?)x.Debit) ?? 0m;
+
+            // Only actual received amounts (rider collections + admin collections), pending credit/due excluded!
+            var todaySales = netSales
                 .Where(x => x.SaleDate >= todayStart && x.SaleDate < tomorrow)
-                .Sum(x => x.TotalAmount);
+                .Sum(x => x.PaidAmount) + todayLaterCollectedPayments;
 
             var todayPurchases = purchases
                 .Where(x => x.PurchaseDate >= todayStart && x.PurchaseDate < tomorrow)
@@ -128,23 +182,79 @@ namespace SmartPos.Dashboard
                 p => p.Id,
                 p => branchInfoByProductId.TryGetValue(p.Id, out var info) ? info.CostPrice : p.CostPrice);
 
-            var todaySaleLines = await _saleRepository.GetAllIncluding(x => x.Lines)
+            // Fetch all sales with lines covering the full 12-month cashFlow window AND the recent 15-day
+            // trend window in a single query. recentSalesStart goes back to startMonth for monthly COGS.
+            var recentSalesWithLines = await _saleRepository.GetAllIncluding(x => x.Lines)
                 .AsNoTracking()
-                .Where(x => x.SaleDate >= todayStart && x.SaleDate < tomorrow)
+                .Where(x => x.SaleDate >= startMonth && x.SaleDate < currentPeriodEnd)
                 .WhereIf(branchId.HasValue, x => x.BranchId == branchId.Value)
                 .ToListAsync();
+
+            var recentSaleIds = recentSalesWithLines.Select(s => s.Id).ToList();
+            var returnedQuantitiesByLineId = new Dictionary<int, decimal>();
+            if (recentSaleIds.Count > 0)
+            {
+                returnedQuantitiesByLineId = await _saleReturnLineRepository.GetAll()
+                    .AsNoTracking()
+                    .Where(x => recentSaleIds.Contains(x.SaleReturn.SaleId))
+                    .GroupBy(x => x.SaleLineId)
+                    .Select(g => new { SaleLineId = g.Key, ReturnedQuantity = g.Sum(r => r.Quantity) })
+                    .ToDictionaryAsync(x => x.SaleLineId, x => x.ReturnedQuantity);
+            }
+
+            foreach (var sale in recentSalesWithLines)
+            {
+                if (sale.Lines == null) continue;
+                foreach (var line in sale.Lines)
+                {
+                    if (returnedQuantitiesByLineId.TryGetValue(line.Id, out var returnedQty) && returnedQty > 0)
+                    {
+                        var remainingQty = Math.Max(0m, line.Quantity - returnedQty);
+                        if (line.Quantity > 0)
+                        {
+                            var unitPrice = line.UnitPrice > 0 ? line.UnitPrice : (line.LineTotal / line.Quantity);
+                            line.Quantity = remainingQty;
+                            line.LineTotal = Math.Max(0m, remainingQty * unitPrice);
+                        }
+                        else
+                        {
+                            line.Quantity = 0;
+                            line.LineTotal = 0;
+                        }
+                    }
+                }
+            }
+
+            var missingProductIds = recentSalesWithLines
+                .SelectMany(s => s.Lines ?? Enumerable.Empty<SaleLine>())
+                .Select(l => l.ProductId)
+                .Where(id => !costByProductId.ContainsKey(id))
+                .Distinct()
+                .ToList();
+
+            if (missingProductIds.Count > 0)
+            {
+                var extraCosts = await _productRepository.GetAll()
+                    .AsNoTracking()
+                    .Where(p => missingProductIds.Contains(p.Id))
+                    .Select(p => new { p.Id, p.CostPrice })
+                    .ToDictionaryAsync(p => p.Id, p => p.CostPrice);
+
+                foreach (var kvp in extraCosts)
+                {
+                    costByProductId[kvp.Key] = kvp.Value;
+                }
+            }
+
+            var todaySaleLines = recentSalesWithLines
+                .Where(x => x.SaleDate >= todayStart && x.SaleDate < tomorrow)
+                .ToList();
             var todayCogs = CalculateCostOfGoodsSold(todaySaleLines, costByProductId);
             var todayProfit = Math.Round(todaySales - todayCogs - todayExpenses, 2);
 
-            var marginSales = await _saleRepository.GetAllIncluding(x => x.Lines)
-                .AsNoTracking()
-                .Where(x => x.SaleDate >= previousPeriodStart && x.SaleDate < currentPeriodEnd)
-                .WhereIf(branchId.HasValue, x => x.BranchId == branchId.Value)
-                .ToListAsync();
-
-            var currentMarginSales = marginSales
+            var currentMarginSales = recentSalesWithLines
                 .Where(x => x.SaleDate >= currentPeriodStart && x.SaleDate < currentPeriodEnd);
-            var previousMarginSales = marginSales
+            var previousMarginSales = recentSalesWithLines
                 .Where(x => x.SaleDate >= previousPeriodStart && x.SaleDate < previousPeriodEnd);
 
             var averageProfitMargin = CalculateAverageProfitMargin(currentMarginSales, costByProductId);
@@ -157,7 +267,9 @@ namespace SmartPos.Dashboard
             for (var i = 0; i < 12; i++)
             {
                 var monthDate = startMonth.AddMonths(i);
-                var income = sales
+                var monthStart = new DateTime(monthDate.Year, monthDate.Month, 1);
+                var monthEnd = monthStart.AddMonths(1);
+                var income = netSales
                     .Where(x => x.SaleDate.Year == monthDate.Year && x.SaleDate.Month == monthDate.Month)
                     .Sum(x => x.TotalAmount);
                 var expense = expenses
@@ -166,6 +278,10 @@ namespace SmartPos.Dashboard
                 var monthPurchases = purchases
                     .Where(x => x.PurchaseDate.Year == monthDate.Year && x.PurchaseDate.Month == monthDate.Month)
                     .Sum(x => x.TotalAmount);
+                var monthSalesLines = recentSalesWithLines
+                    .Where(x => x.SaleDate >= monthStart && x.SaleDate < monthEnd);
+                var monthCogs = CalculateCostOfGoodsSold(monthSalesLines, costByProductId);
+                var monthProfit = Math.Round(income - monthCogs - expense, 2);
 
                 cashFlow.Add(new MonthlyCashFlowDto
                 {
@@ -174,17 +290,17 @@ namespace SmartPos.Dashboard
                     MonthLabel = monthDate.ToString("MMM", CultureInfo.InvariantCulture),
                     Income = income,
                     Expense = expense,
-                    Purchases = monthPurchases
+                    Purchases = monthPurchases,
+                    Profit = monthProfit
                 });
             }
 
             var last7Days = new List<DailyOverviewDto>();
-            var sevenDaysAgo = todayStart.AddDays(-6);
             for (var i = 0; i < 7; i++)
             {
                 var dayDate = sevenDaysAgo.AddDays(i);
                 var dayEnd = dayDate.AddDays(1);
-                var daySales = sales
+                var daySales = netSales
                     .Where(x => x.SaleDate >= dayDate && x.SaleDate < dayEnd)
                     .Sum(x => x.TotalAmount);
                 var dayPurchases = purchases
@@ -193,6 +309,10 @@ namespace SmartPos.Dashboard
                 var dayExpenses = expenses
                     .Where(x => x.ExpenseDate >= dayDate && x.ExpenseDate < dayEnd)
                     .Sum(x => x.Amount);
+                var daySalesWithLines = recentSalesWithLines
+                    .Where(x => x.SaleDate >= dayDate && x.SaleDate < dayEnd);
+                var dayCogs = CalculateCostOfGoodsSold(daySalesWithLines, costByProductId);
+                var dayProfit = Math.Round(daySales - dayCogs - dayExpenses, 2);
 
                 last7Days.Add(new DailyOverviewDto
                 {
@@ -201,17 +321,17 @@ namespace SmartPos.Dashboard
                     Sales = daySales,
                     Purchases = dayPurchases,
                     Expenses = dayExpenses,
-                    Profit = Math.Round(daySales - dayPurchases - dayExpenses, 2)
+                    CostOfGoodsSold = dayCogs,
+                    Profit = dayProfit
                 });
             }
 
             var last15Days = new List<DailyOverviewDto>();
-            var fifteenDaysAgo = todayStart.AddDays(-14);
             for (var i = 0; i < 15; i++)
             {
                 var dayDate = fifteenDaysAgo.AddDays(i);
                 var dayEnd = dayDate.AddDays(1);
-                var daySales = sales
+                var daySales = netSales
                     .Where(x => x.SaleDate >= dayDate && x.SaleDate < dayEnd)
                     .Sum(x => x.TotalAmount);
                 var dayPurchases = purchases
@@ -220,6 +340,10 @@ namespace SmartPos.Dashboard
                 var dayExpenses = expenses
                     .Where(x => x.ExpenseDate >= dayDate && x.ExpenseDate < dayEnd)
                     .Sum(x => x.Amount);
+                var daySalesWithLines = recentSalesWithLines
+                    .Where(x => x.SaleDate >= dayDate && x.SaleDate < dayEnd);
+                var dayCogs = CalculateCostOfGoodsSold(daySalesWithLines, costByProductId);
+                var dayProfit = Math.Round(daySales - dayCogs - dayExpenses, 2);
 
                 last15Days.Add(new DailyOverviewDto
                 {
@@ -228,7 +352,8 @@ namespace SmartPos.Dashboard
                     Sales = daySales,
                     Purchases = dayPurchases,
                     Expenses = dayExpenses,
-                    Profit = Math.Round(daySales - dayPurchases - dayExpenses, 2)
+                    CostOfGoodsSold = dayCogs,
+                    Profit = dayProfit
                 });
             }
 
@@ -326,12 +451,29 @@ namespace SmartPos.Dashboard
 
             var branchCount = await _branchRepository.CountAsync(x => x.IsActive);
 
-            var todaySalesCount = await _saleRepository.GetAll()
+            var todaySalesList = await _saleRepository.GetAll()
+                .AsNoTracking()
                 .Where(x => x.SaleDate >= todayStart && x.SaleDate < tomorrow)
                 .WhereIf(branchId.HasValue, x => x.BranchId == branchId.Value)
-                .CountAsync();
+                .Select(x => new { x.Id, x.TotalAmount })
+                .ToListAsync();
 
-            var recentSales = await _saleRepository.GetAllIncluding(x => x.Customer)
+            var todaySaleIds = todaySalesList.Select(x => x.Id).ToList();
+            var todayReturnsBySaleId = new Dictionary<int, decimal>();
+            if (todaySaleIds.Count > 0)
+            {
+                todayReturnsBySaleId = await _saleReturnRepository.GetAll()
+                    .AsNoTracking()
+                    .Where(x => todaySaleIds.Contains(x.SaleId))
+                    .GroupBy(x => x.SaleId)
+                    .Select(g => new { SaleId = g.Key, TotalReturned = g.Sum(r => r.TotalAmount) })
+                    .ToDictionaryAsync(x => x.SaleId, x => x.TotalReturned);
+            }
+
+            var todaySalesCount = todaySalesList
+                .Count(s => (s.TotalAmount - todayReturnsBySaleId.GetValueOrDefault(s.Id, 0m)) > 0);
+
+            var recentSalesRaw = await _saleRepository.GetAllIncluding(x => x.Customer)
                 .AsNoTracking()
                 .WhereIf(branchId.HasValue, x => x.BranchId == branchId.Value)
                 .OrderByDescending(x => x.CreationTime)
@@ -347,6 +489,37 @@ namespace SmartPos.Dashboard
                     CustomerName = x.Customer != null ? x.Customer.Name : null
                 })
                 .ToListAsync();
+
+            var recentSaleIds = recentSalesRaw.Select(x => x.Id).ToList();
+            var recentReturnsBySaleId = new Dictionary<int, decimal>();
+            if (recentSaleIds.Count > 0)
+            {
+                recentReturnsBySaleId = await _saleReturnRepository.GetAll()
+                    .AsNoTracking()
+                    .Where(x => recentSaleIds.Contains(x.SaleId))
+                    .GroupBy(x => x.SaleId)
+                    .Select(g => new { SaleId = g.Key, TotalReturned = g.Sum(r => r.TotalAmount) })
+                    .ToDictionaryAsync(x => x.SaleId, x => x.TotalReturned);
+            }
+
+            var recentSales = recentSalesRaw
+                .Select(x =>
+                {
+                    var returned = recentReturnsBySaleId.GetValueOrDefault(x.Id, 0m);
+                    return new
+                    {
+                        x.Id,
+                        x.InvoiceNo,
+                        x.SaleDate,
+                        x.CreationTime,
+                        TotalAmount = Math.Max(0m, x.TotalAmount - returned),
+                        x.CustomerId,
+                        x.CustomerName,
+                        IsFullyReturned = returned >= x.TotalAmount
+                    };
+                })
+                .Where(x => !x.IsFullyReturned)
+                .ToList();
 
             var recentPurchases = await _purchaseRepository.GetAll()
                 .AsNoTracking()
@@ -676,6 +849,33 @@ namespace SmartPos.Dashboard
                 .WhereIf(branchId.HasValue, x => x.BranchId == branchId.Value)
                 .ToListAsync();
 
+            var todaySaleIds = todaySalesList.Select(s => s.Id).ToList();
+            var todayReturnedQtyByLineId = new Dictionary<int, decimal>();
+            if (todaySaleIds.Count > 0)
+            {
+                todayReturnedQtyByLineId = await _saleReturnLineRepository.GetAll()
+                    .AsNoTracking()
+                    .Where(x => todaySaleIds.Contains(x.SaleReturn.SaleId))
+                    .GroupBy(x => x.SaleLineId)
+                    .Select(g => new { SaleLineId = g.Key, ReturnedQty = g.Sum(r => r.Quantity) })
+                    .ToDictionaryAsync(x => x.SaleLineId, x => x.ReturnedQty);
+            }
+
+            foreach (var s in todaySalesList)
+            {
+                if (s.Lines == null) continue;
+                foreach (var line in s.Lines)
+                {
+                    if (todayReturnedQtyByLineId.TryGetValue(line.Id, out var retQty) && retQty > 0)
+                    {
+                        var remQty = Math.Max(0m, line.Quantity - retQty);
+                        var unitPrice = line.UnitPrice > 0 ? line.UnitPrice : (line.Quantity > 0 ? line.LineTotal / line.Quantity : 0);
+                        line.Quantity = remQty;
+                        line.LineTotal = remQty * unitPrice;
+                    }
+                }
+            }
+
             var result = new List<PinnedProductOverviewDto>();
 
             foreach (var product in products)
@@ -714,6 +914,103 @@ namespace SmartPos.Dashboard
 
             return result;
         }
+
+        // ONLINE-PIPELINE START
+        public async Task<OnlineOrderPipelineDto> GetOnlineOrderPipelineAsync(GetOnlineOrderPipelineInput input = null)
+        {
+            int? branchId;
+            if (input?.BranchId.HasValue == true)
+            {
+                await _branchAccessChecker.EnsureCanAccessBranchAsync(input.BranchId.Value);
+                branchId = input.BranchId.Value;
+            }
+            else
+            {
+                branchId = await _branchAccessChecker.GetEffectiveBranchIdAsync();
+            }
+
+            var baseQuery = _customerOrderRepository.GetAll()
+                .AsNoTracking()
+                .WhereIf(branchId.HasValue, x => x.BranchId == branchId.Value);
+
+            var targetDate = input?.Date?.Date ?? Clock.Now.Date;
+            var nextDay = targetDate.AddDays(1);
+
+            var todayTotalOrders = await baseQuery
+                .Where(x => x.OrderDate >= targetDate && x.OrderDate < nextDay)
+                .CountAsync();
+
+            var statusGroups = await baseQuery
+                .GroupBy(x => x.Status)
+                .Select(g => new
+                {
+                    Status = g.Key,
+                    Count = g.Count()
+                })
+                .ToListAsync();
+
+            var countsByStatus = statusGroups.ToDictionary(x => x.Status, x => x.Count);
+
+            int pendingCount = countsByStatus.TryGetValue(CustomerOrderStatus.Pending, out var p) ? p : 0;
+            int approvedCount = countsByStatus.TryGetValue(CustomerOrderStatus.Approved, out var a) ? a : 0;
+            int rejectedCount = countsByStatus.TryGetValue(CustomerOrderStatus.Rejected, out var r) ? r : 0;
+            int inProgressCount = countsByStatus.TryGetValue(CustomerOrderStatus.InProgress, out var ip) ? ip : 0;
+            int deliveredCount = countsByStatus.TryGetValue(CustomerOrderStatus.Delivered, out var d) ? d : 0;
+
+            // Area-wise demand: last 30 days, exclude rejected, rank by order count.
+            var areaWindowStart = Clock.Now.Date.AddDays(-29);
+            var areaRows = await baseQuery
+                .Where(x => x.OrderDate >= areaWindowStart)
+                .Where(x => x.Status != CustomerOrderStatus.Rejected)
+                .Where(x => x.DeliveryAreaId != null || (x.DeliveryAreaName != null && x.DeliveryAreaName != ""))
+                .GroupBy(x => new { x.DeliveryAreaId, x.DeliveryAreaName })
+                .Select(g => new
+                {
+                    g.Key.DeliveryAreaId,
+                    g.Key.DeliveryAreaName,
+                    OrderCount = g.Count(),
+                    TotalAmount = g.Sum(x => x.TotalAmount)
+                })
+                .OrderByDescending(x => x.OrderCount)
+                .ThenByDescending(x => x.TotalAmount)
+                .Take(8)
+                .ToListAsync();
+
+            var areaOrdersInWindow = areaRows.Sum(x => x.OrderCount);
+            var topAreas = areaRows.Select((row, index) => new OrderAreaStatDto
+            {
+                DeliveryAreaId = row.DeliveryAreaId,
+                AreaName = string.IsNullOrWhiteSpace(row.DeliveryAreaName) ? "Unknown area" : row.DeliveryAreaName.Trim(),
+                OrderCount = row.OrderCount,
+                TotalAmount = row.TotalAmount,
+                SharePercent = areaOrdersInWindow > 0
+                    ? Math.Round((decimal)row.OrderCount * 100m / areaOrdersInWindow, 1)
+                    : 0,
+                IsTopArea = index == 0
+            }).ToList();
+
+            return new OnlineOrderPipelineDto
+            {
+                TodayTotalOrders = todayTotalOrders,
+                PendingCount = pendingCount,
+                ApprovedCount = approvedCount,
+                RejectedCount = rejectedCount,
+                InProgressCount = inProgressCount,
+                DeliveredCount = deliveredCount,
+                Stages = new List<OnlineOrderPipelineStageDto>
+                {
+                    new OnlineOrderPipelineStageDto { Status = (int)CustomerOrderStatus.Pending, StatusName = "Pending", Count = pendingCount },
+                    new OnlineOrderPipelineStageDto { Status = (int)CustomerOrderStatus.Approved, StatusName = "Accepted", Count = approvedCount },
+                    new OnlineOrderPipelineStageDto { Status = (int)CustomerOrderStatus.InProgress, StatusName = "Preparing", Count = inProgressCount },
+                    new OnlineOrderPipelineStageDto { Status = (int)CustomerOrderStatus.Delivered, StatusName = "Delivered", Count = deliveredCount },
+                    new OnlineOrderPipelineStageDto { Status = (int)CustomerOrderStatus.Rejected, StatusName = "Rejected", Count = rejectedCount }
+                },
+                TopAreas = topAreas,
+                TopAreaName = topAreas.FirstOrDefault()?.AreaName,
+                AreaOrdersInWindow = areaOrdersInWindow
+            };
+        }
+        // ONLINE-PIPELINE END
 
         private static DateTime EnsureUtc(DateTime dt)
         {

@@ -2,20 +2,29 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import {
+    CollectSalePaymentDto,
     CreateSaleDto,
     PagedResultDto,
     PagedSaleResultRequestDto,
     SaleDto,
     SaleLineDto,
+    GetDepartmentSalesInput,
+    DepartmentSalesReportDto,
 } from '../api/sale';
 import { ProductDto } from '../api/product';
 import { environment } from '../../../environments/environment';
+import { TtlCache, branchCacheKey } from './ttl-cache';
 
 @Injectable({
     providedIn: 'root',
 })
 export class SaleService {
     private readonly apiUrl = `${environment.apiUrl}/api/services/app/Sale`;
+    private readonly posProductsCache = new TtlCache<ProductDto[]>(2 * 60 * 1000);
+    private readonly topSellingCache = new TtlCache<ProductDto[]>(10 * 60 * 1000);
+    private readonly posCustomersCache = new TtlCache<
+        { id: number; name: string; customerType: number }[]
+    >(5 * 60 * 1000);
 
     constructor(private http: HttpClient) {}
 
@@ -28,6 +37,12 @@ export class SaleService {
         }
         if (input?.customerId !== undefined) {
             params.CustomerId = input.customerId;
+        }
+        if (input?.fromDate) {
+            params.FromDate = input.fromDate;
+        }
+        if (input?.toDate) {
+            params.ToDate = input.toDate;
         }
         if (input?.skipCount !== undefined) {
             params.SkipCount = input.skipCount;
@@ -51,6 +66,17 @@ export class SaleService {
         };
     }
 
+    async getUnpaidSales(): Promise<SaleDto[]> {
+        const res: any = await firstValueFrom(
+            this.http.get<any>(`${this.apiUrl}/GetUnpaidSales`)
+        );
+        const result = this.unwrap(res, 'Failed to load unpaid sales');
+        const items = result.items || result.Items || result || [];
+        return (Array.isArray(items) ? items : []).map((item: any) =>
+            this.mapSale(item)
+        );
+    }
+
     async get(id: number): Promise<SaleDto> {
         const res: any = await firstValueFrom(
             this.http.get<any>(`${this.apiUrl}/Get`, { params: { Id: id } })
@@ -64,6 +90,7 @@ export class SaleService {
                 customerId: input.customerId,
                 saleDate: this.toApiDate(input.saleDate),
                 invoiceNo: input.invoiceNo,
+                tokenNo: input.tokenNo ?? null,
                 notes: input.notes,
                 discountAmount: input.discountAmount || 0,
                 discountPercent: input.discountPercent || 0,
@@ -71,6 +98,8 @@ export class SaleService {
                 paymentType: input.paymentType,
                 cashAmount: input.cashAmount || 0,
                 cardAmount: input.cardAmount || 0,
+                deliveryCharges: input.deliveryCharges || 0,
+                deliveryAreaName: input.deliveryAreaName,
                 lines: (input.lines || []).map((line) => ({
                     productId: line.productId,
                     quantity: line.quantity,
@@ -91,6 +120,13 @@ export class SaleService {
             return;
         }
         this.unwrap(res, 'Failed to delete sale');
+    }
+
+    async collectPayment(input: CollectSalePaymentDto): Promise<SaleDto> {
+        const res: any = await firstValueFrom(
+            this.http.post<any>(`${this.apiUrl}/CollectPayment`, input)
+        );
+        return this.mapSale(this.unwrap(res, 'Failed to collect payment'));
     }
 
     async getProductByBarcode(barcode: string): Promise<ProductDto> {
@@ -114,11 +150,14 @@ export class SaleService {
         }
     }
 
-    async searchPosProducts(keyword: string): Promise<ProductDto[]> {
+    async searchPosProducts(keyword: string, categoryId?: number | null): Promise<ProductDto[]> {
         try {
             const params: any = {};
             if (keyword?.trim()) {
                 params.keyword = keyword.trim();
+            }
+            if (categoryId) {
+                params.categoryId = categoryId;
             }
             const res: any = await firstValueFrom(
                 this.http.get<any>(`${this.apiUrl}/GetPosProductSuggestions`, {
@@ -137,8 +176,48 @@ export class SaleService {
         }
     }
 
+    async getPosProducts(categoryId?: number | null): Promise<ProductDto[]> {
+        try {
+            const key = branchCacheKey(
+                this.readBranchId(),
+                `posProducts:${categoryId || 'all'}`
+            );
+            const hit = this.posProductsCache.get(key);
+            if (hit) {
+                return hit;
+            }
+
+            const params: any = {};
+            if (categoryId) {
+                params.categoryId = categoryId;
+            }
+            const res: any = await firstValueFrom(
+                this.http.get<any>(`${this.apiUrl}/GetPosProducts`, {
+                    params,
+                })
+            );
+            const result = this.unwrap(res, 'Failed to load POS products');
+            const items = result.items || result.Items || result || [];
+            const mapped = (Array.isArray(items) ? items : []).map((item: any) =>
+                this.mapProduct(item)
+            );
+            this.posProductsCache.set(key, mapped);
+            return mapped;
+        } catch (error) {
+            throw new Error(
+                this.extractErrorMessage(error, 'Failed to load POS products')
+            );
+        }
+    }
+
     async getTopSellingProducts(maxCount = 5): Promise<ProductDto[]> {
         try {
+            const key = branchCacheKey(this.readBranchId(), `top:${maxCount}`);
+            const hit = this.topSellingCache.get(key);
+            if (hit) {
+                return hit;
+            }
+
             const res: any = await firstValueFrom(
                 this.http.get<any>(`${this.apiUrl}/GetTopSellingProducts`, {
                     params: { maxCount },
@@ -146,39 +225,47 @@ export class SaleService {
             );
             const result = this.unwrap(res, 'Failed to load top selling products');
             const items = result.items || result.Items || result || [];
-            return (Array.isArray(items) ? items : []).map((item: any) =>
+            const mapped = (Array.isArray(items) ? items : []).map((item: any) =>
                 this.mapProduct(item)
             );
+            this.topSellingCache.set(key, mapped);
+            return mapped;
         } catch (error) {
             console.error('Failed to load top selling products:', error);
             return [];
         }
     }
 
-    private static posCustomersCache: {
-        data: { id: number; name: string; customerType: number }[];
-        timestamp: number;
-    } | null = null;
-    private readonly CACHE_DURATION_MS = 5 * 60 * 1000; // 5 minutes
+    private static sharedCustomersCache = new TtlCache<
+        { id: number; name: string; customerType: number }[]
+    >(5 * 60 * 1000);
 
     static clearPosCustomersCache(): void {
-        SaleService.posCustomersCache = null;
+        SaleService.sharedCustomersCache.clear();
     }
 
     clearPosCustomersCache(): void {
-        SaleService.posCustomersCache = null;
+        SaleService.sharedCustomersCache.clear();
+    }
+
+    clearPosCaches(): void {
+        this.posProductsCache.clear();
+        this.topSellingCache.clear();
+        this.posCustomersCache.clear();
+        SaleService.sharedCustomersCache.clear();
     }
 
     async getPosCustomers(forceRefresh = false): Promise<
         { id: number; name: string; customerType: number }[]
     > {
-        const now = Date.now();
-        if (
-            !forceRefresh &&
-            SaleService.posCustomersCache &&
-            now - SaleService.posCustomersCache.timestamp < this.CACHE_DURATION_MS
-        ) {
-            return SaleService.posCustomersCache.data;
+        const key = branchCacheKey(this.readBranchId(), 'posCustomers');
+        if (!forceRefresh) {
+            const hit =
+                this.posCustomersCache.get(key) ||
+                SaleService.sharedCustomersCache.get(key);
+            if (hit) {
+                return hit;
+            }
         }
 
         const res: any = await firstValueFrom(
@@ -191,20 +278,16 @@ export class SaleService {
             name: item.name ?? item.Name,
             customerType: item.customerType ?? item.CustomerType ?? 0,
         }));
-        SaleService.posCustomersCache = { data: mapped, timestamp: now };
+        this.posCustomersCache.set(key, mapped);
+        SaleService.sharedCustomersCache.set(key, mapped);
         return mapped;
     }
 
-    async getPosProducts(): Promise<ProductDto[]> {
-        const res: any = await firstValueFrom(
-            this.http.get<any>(`${this.apiUrl}/GetPosProducts`)
-        );
-        const result = this.unwrap(res, 'Failed to load products');
-        const items = result.items || result.Items || result || [];
-        return (Array.isArray(items) ? items : []).map((item: any) =>
-            this.mapProduct(item)
-        );
+    private readBranchId(): number | null {
+        const n = parseInt(localStorage.getItem('SmartPos.BranchId') || '', 10);
+        return Number.isFinite(n) && n > 0 ? n : null;
     }
+
 
     private mapProduct(item: any): ProductDto {
         return {
@@ -277,6 +360,7 @@ export class SaleService {
             customerName: item.customerName ?? item.CustomerName,
             saleDate: item.saleDate ?? item.SaleDate,
             invoiceNo: item.invoiceNo ?? item.InvoiceNo,
+            tokenNo: item.tokenNo ?? item.TokenNo ?? null,
             subTotal: item.subTotal ?? item.SubTotal ?? 0,
             discountAmount: item.discountAmount ?? item.DiscountAmount ?? 0,
             discountPercent: item.discountPercent ?? item.DiscountPercent ?? 0,
@@ -287,9 +371,26 @@ export class SaleService {
             cashAmount: item.cashAmount ?? item.CashAmount ?? 0,
             cardAmount: item.cardAmount ?? item.CardAmount ?? 0,
             creditAmount: item.creditAmount ?? item.CreditAmount ?? 0,
+            paidAmount: item.paidAmount ?? item.PaidAmount,
+            dueAmount: item.dueAmount ?? item.DueAmount,
+            saleType: item.saleType ?? item.SaleType,
             notes: item.notes ?? item.Notes,
+            deliveryCharges: item.deliveryCharges ?? item.DeliveryCharges ?? 0,
+            deliveryAreaName: item.deliveryAreaName ?? item.DeliveryAreaName,
             hasReturns: !!(item.hasReturns ?? item.HasReturns),
             returnCount: item.returnCount ?? item.ReturnCount ?? 0,
+            paymentHistory: (Array.isArray(item.paymentHistory ?? item.PaymentHistory)
+                ? item.paymentHistory ?? item.PaymentHistory
+                : []
+            ).map((p: any) => ({
+                paymentDate: p.paymentDate ?? p.PaymentDate,
+                amount: p.amount ?? p.Amount ?? 0,
+                method: p.method ?? p.Method ?? 'Cash',
+                description: p.description ?? p.Description,
+                isAdditionalCollection: !!(
+                    p.isAdditionalCollection ?? p.IsAdditionalCollection
+                ),
+            })),
             lines: (Array.isArray(lines) ? lines : []).map((line: any) =>
                 this.mapLine(line)
             ),
@@ -305,6 +406,57 @@ export class SaleService {
             quantity: item.quantity ?? item.Quantity ?? 0,
             unitPrice: item.unitPrice ?? item.UnitPrice ?? 0,
             lineTotal: item.lineTotal ?? item.LineTotal ?? 0,
+        };
+    }
+
+    async getDepartmentSales(
+        input?: GetDepartmentSalesInput
+    ): Promise<DepartmentSalesReportDto> {
+        const params: any = {};
+        if (input?.departmentId !== undefined && input.departmentId !== null) {
+            params.DepartmentId = input.departmentId;
+        }
+        if (input?.keyword) {
+            params.Keyword = input.keyword;
+        }
+        if (input?.fromDate) {
+            params.FromDate = input.fromDate;
+        }
+        if (input?.toDate) {
+            params.ToDate = input.toDate;
+        }
+
+        const res: any = await firstValueFrom(
+            this.http.get<any>(`${this.apiUrl}/GetDepartmentSales`, { params })
+        );
+        const result = this.unwrap(res, 'Failed to load department sales');
+        const rawDepts = result.departments || result.Departments || [];
+
+        return {
+            departments: (Array.isArray(rawDepts) ? rawDepts : []).map((d: any) => {
+                const prods = d.products || d.Products || [];
+                return {
+                    departmentId: d.departmentId ?? d.DepartmentId,
+                    departmentName: d.departmentName ?? d.DepartmentName ?? 'Unassigned',
+                    totalSalesAmount: Number(d.totalSalesAmount ?? d.TotalSalesAmount ?? 0),
+                    totalQuantitySold: Number(d.totalQuantitySold ?? d.TotalQuantitySold ?? 0),
+                    products: (Array.isArray(prods) ? prods : []).map((p: any) => ({
+                        productId: p.productId ?? p.ProductId,
+                        productName: p.productName ?? p.ProductName,
+                        price: Number(p.price ?? p.Price ?? 0),
+                        quantitySold: Number(p.quantitySold ?? p.QuantitySold ?? 0),
+                        totalAmount: Number(p.totalAmount ?? p.TotalAmount ?? 0),
+                        categoryId: p.categoryId ?? p.CategoryId,
+                        categoryName: p.categoryName ?? p.CategoryName,
+                        departmentId: p.departmentId ?? p.DepartmentId,
+                        departmentName: p.departmentName ?? p.DepartmentName,
+                    })),
+                };
+            }),
+            grandTotalAmount: Number(result.grandTotalAmount ?? result.GrandTotalAmount ?? 0),
+            grandTotalQuantity: Number(result.grandTotalQuantity ?? result.GrandTotalQuantity ?? 0),
+            totalDepartmentsCount: Number(result.totalDepartmentsCount ?? result.TotalDepartmentsCount ?? 0),
+            totalProductsSold: Number(result.totalProductsSold ?? result.TotalProductsSold ?? 0),
         };
     }
 }

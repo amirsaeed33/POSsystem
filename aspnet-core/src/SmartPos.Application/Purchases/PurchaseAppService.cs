@@ -18,6 +18,7 @@ using SmartPos.Products;
 using SmartPos.Purchases.Dto;
 using SmartPos.Suppliers;
 using SmartPos.BranchNotificationSettings;
+using Microsoft.EntityFrameworkCore;
 
 namespace SmartPos.Purchases
 {
@@ -27,12 +28,14 @@ namespace SmartPos.Purchases
         private readonly IRepository<PurchaseLine> _lineRepository;
         private readonly IRepository<Product> _productRepository;
         private readonly IRepository<Supplier> _supplierRepository;
+        private readonly IRepository<SupplierProduct> _supplierProductRepository;
         private readonly IRepository<LedgerEntry> _ledgerRepository;
         private readonly IRepository<PurchaseReturn> _purchaseReturnRepository;
         private readonly IRepository<User, long> _userRepository;
         private readonly IBranchAccessChecker _branchAccessChecker;
         private readonly IBranchContext _branchContext;
         private readonly IBranchStockManager _branchStockManager;
+        private readonly IRepository<Branch> _branchRepository;
         private readonly SystemAccountManager _systemAccountManager;
         private readonly IBranchNotificationService _branchNotificationService;
 
@@ -41,12 +44,14 @@ namespace SmartPos.Purchases
             IRepository<PurchaseLine> lineRepository,
             IRepository<Product> productRepository,
             IRepository<Supplier> supplierRepository,
+            IRepository<SupplierProduct> supplierProductRepository,
             IRepository<LedgerEntry> ledgerRepository,
             IRepository<PurchaseReturn> purchaseReturnRepository,
             IRepository<User, long> userRepository,
             IBranchAccessChecker branchAccessChecker,
             IBranchContext branchContext,
             IBranchStockManager branchStockManager,
+            IRepository<Branch> branchRepository,
             SystemAccountManager systemAccountManager,
             IBranchNotificationService branchNotificationService)
             : base(repository)
@@ -54,12 +59,14 @@ namespace SmartPos.Purchases
             _lineRepository = lineRepository;
             _productRepository = productRepository;
             _supplierRepository = supplierRepository;
+            _supplierProductRepository = supplierProductRepository;
             _ledgerRepository = ledgerRepository;
             _purchaseReturnRepository = purchaseReturnRepository;
             _userRepository = userRepository;
             _branchAccessChecker = branchAccessChecker;
             _branchContext = branchContext;
             _branchStockManager = branchStockManager;
+            _branchRepository = branchRepository;
             _systemAccountManager = systemAccountManager;
             _branchNotificationService = branchNotificationService;
             CreatePermissionName = PermissionNames.Pages_Purchases_Create;
@@ -102,6 +109,20 @@ namespace SmartPos.Purchases
                 throw new UserFriendlyException("Supplier does not belong to the current location.");
             }
 
+            var branch = await _branchRepository.FirstOrDefaultAsync(branchId);
+            var isRestaurant = branch != null && branch.BusinessType == BusinessType.Restaurant;
+            var assignedProductIds = await _supplierProductRepository.GetAll()
+                .AsNoTracking()
+                .Where(x => x.SupplierId == supplier.Id)
+                .Select(x => x.ProductId)
+                .ToListAsync();
+
+            if (isRestaurant && !assignedProductIds.Any())
+            {
+                throw new UserFriendlyException(
+                    "Assign Permanent Grocery products to this supplier before creating a purchase.");
+            }
+
             var purchase = new Purchase
             {
                 TenantId = AbpSession.TenantId,
@@ -120,7 +141,33 @@ namespace SmartPos.Purchases
                     throw new UserFriendlyException("Quantity must be greater than zero.");
                 }
 
-                var product = await _productRepository.GetAsync(lineInput.ProductId);
+                var product = await _productRepository.GetAllIncluding(x => x.Category)
+                    .FirstOrDefaultAsync(p => p.Id == lineInput.ProductId);
+                if (product == null)
+                {
+                    throw new UserFriendlyException("Product not found.");
+                }
+
+                if (isRestaurant)
+                {
+                    if (!PermanentGrocery.IsInventoryProduct(product.Barcode, product.Name, product.Category?.Name))
+                    {
+                        throw new UserFriendlyException(
+                            $"'{product.Name}' is not a Permanent Grocery product and cannot be purchased for restaurant.");
+                    }
+
+                    if (!assignedProductIds.Contains(product.Id))
+                    {
+                        throw new UserFriendlyException(
+                            $"'{product.Name}' is not assigned to this supplier.");
+                    }
+                }
+                else if (assignedProductIds.Any() && !assignedProductIds.Contains(product.Id))
+                {
+                    throw new UserFriendlyException(
+                        $"'{product.Name}' is not assigned to this supplier.");
+                }
+
                 await _branchStockManager.EnsureCanUseProductAtBranchAsync(branchId, lineInput.ProductId);
                 var lineTotal = lineInput.Quantity * lineInput.UnitCost;
                 total += lineTotal;
@@ -166,6 +213,7 @@ namespace SmartPos.Purchases
             await _ledgerRepository.InsertAsync(new LedgerEntry
             {
                 TenantId = AbpSession.TenantId,
+                BranchId = branchId,
                 AccountId = purchaseAccount.Id,
                 TransactionDate = purchase.PurchaseDate,
                 VoucherType = VoucherTypes.Invoice,
@@ -178,6 +226,7 @@ namespace SmartPos.Purchases
             await _ledgerRepository.InsertAsync(new LedgerEntry
             {
                 TenantId = AbpSession.TenantId,
+                BranchId = branchId,
                 AccountId = supplier.AccountId.Value,
                 TransactionDate = purchase.PurchaseDate,
                 VoucherType = VoucherTypes.Invoice,
@@ -197,9 +246,10 @@ namespace SmartPos.Purchases
                 await _ledgerRepository.InsertAsync(new LedgerEntry
                 {
                     TenantId = AbpSession.TenantId,
+                    BranchId = branchId,
                     AccountId = supplier.AccountId.Value,
                     TransactionDate = purchase.PurchaseDate,
-                    VoucherType = VoucherTypes.Payment,
+                    VoucherType = VoucherTypes.PurchasePayment,
                     VoucherId = purchase.Id,
                     Debit = payAmount,
                     Credit = 0,
@@ -210,9 +260,10 @@ namespace SmartPos.Purchases
                 await _ledgerRepository.InsertAsync(new LedgerEntry
                 {
                     TenantId = AbpSession.TenantId,
+                    BranchId = branchId,
                     AccountId = input.PaymentAccountId.Value,
                     TransactionDate = purchase.PurchaseDate,
-                    VoucherType = VoucherTypes.Payment,
+                    VoucherType = VoucherTypes.PurchasePayment,
                     VoucherId = purchase.Id,
                     Debit = 0,
                     Credit = payAmount,
@@ -263,6 +314,7 @@ namespace SmartPos.Purchases
 
             await _branchAccessChecker.EnsureCanAccessBranchAsync(purchase.BranchId);
 
+            // Always reverse stock (including restaurant Permanent Grocery purchases).
             foreach (var line in purchase.Lines.ToList())
             {
                 var product = await _productRepository.GetAsync(line.ProductId);
@@ -270,9 +322,10 @@ namespace SmartPos.Purchases
                 await _lineRepository.DeleteAsync(line);
             }
 
-            var ledgerEntries = await _ledgerRepository.GetAllListAsync(
-                x => x.VoucherType == VoucherTypes.Invoice && x.VoucherId == purchase.Id);
-            foreach (var entry in ledgerEntries)
+            var ledgerCandidates = await _ledgerRepository.GetAllListAsync(x => x.VoucherId == purchase.Id);
+            foreach (var entry in ledgerCandidates.Where(x =>
+                         x.VoucherType == VoucherTypes.Invoice
+                         || VoucherTypes.IsPurchasePayment(x.VoucherType, x.Description)))
             {
                 await _ledgerRepository.DeleteAsync(entry);
             }
@@ -284,8 +337,29 @@ namespace SmartPos.Purchases
         {
             var branchId = BranchQueryHelper.ResolveBranchIdForFilter(_branchContext, _userRepository, AbpSession, PermissionChecker);
 
-            return Repository.GetAllIncluding(x => x.Supplier, x => x.Lines)
-                .WhereIf(branchId.HasValue, x => x.BranchId == branchId.Value)
+            IQueryable<Purchase> query = Repository.GetAll()
+                .Include(x => x.Supplier)
+                .Include(x => x.Lines)
+                    .ThenInclude(l => l.Product)
+                        .ThenInclude(p => p.Category);
+
+            if (branchId.HasValue)
+            {
+                query = query.Where(x => x.BranchId == branchId.Value);
+                var branch = _branchRepository.FirstOrDefault(branchId.Value);
+                if (branch != null && branch.BusinessType == BusinessType.Restaurant)
+                {
+                    // Restaurant purchases: Permanent Grocery category and/or legacy GROCERY product.
+                    query = query.Where(x => x.Lines.Any(l =>
+                        l.Product != null && (
+                            (l.Product.Category != null
+                             && l.Product.Category.Name.ToLower() == PermanentGrocery.CategoryName.ToLower())
+                            || (l.Product.Barcode != null && l.Product.Barcode.StartsWith("GROCERY-"))
+                            || l.Product.Name == "Grocery")));
+                }
+            }
+
+            return query
                 .WhereIf(input.SupplierId.HasValue, x => x.SupplierId == input.SupplierId.Value)
                 .WhereIf(!input.Keyword.IsNullOrWhiteSpace(),
                     x => (x.InvoiceNo != null && x.InvoiceNo.Contains(input.Keyword))
@@ -296,7 +370,10 @@ namespace SmartPos.Purchases
         protected override async Task<Purchase> GetEntityByIdAsync(int id)
         {
             return await AsyncQueryableExecuter.FirstOrDefaultAsync(
-                Repository.GetAllIncluding(x => x.Supplier, x => x.Lines)
+                Repository.GetAll()
+                    .Include(x => x.Supplier)
+                    .Include(x => x.Lines)
+                        .ThenInclude(l => l.Product)
                     .Where(x => x.Id == id));
         }
 
@@ -340,8 +417,11 @@ namespace SmartPos.Purchases
             if (result.Items != null && result.Items.Any())
             {
                 var purchaseIds = result.Items.Select(x => x.Id).ToList();
-                var paymentEntries = await _ledgerRepository.GetAllListAsync(
-                    x => x.VoucherType == VoucherTypes.Payment && x.VoucherId.HasValue && purchaseIds.Contains(x.VoucherId.Value));
+                var paymentCandidates = await _ledgerRepository.GetAllListAsync(
+                    x => x.VoucherId.HasValue && purchaseIds.Contains(x.VoucherId.Value));
+                var paymentEntries = paymentCandidates
+                    .Where(x => VoucherTypes.IsPurchasePayment(x.VoucherType, x.Description))
+                    .ToList();
 
                 var paymentMap = paymentEntries
                     .GroupBy(x => x.VoucherId.Value)
@@ -386,8 +466,10 @@ namespace SmartPos.Purchases
             }
 
             var dto = MapToEntityDto(entity);
-            var payments = await _ledgerRepository.GetAllListAsync(
-                x => x.VoucherType == VoucherTypes.Payment && x.VoucherId == entity.Id);
+            var paymentCandidates = await _ledgerRepository.GetAllListAsync(x => x.VoucherId == entity.Id);
+            var payments = paymentCandidates
+                .Where(x => VoucherTypes.IsPurchasePayment(x.VoucherType, x.Description))
+                .ToList();
 
             dto.AmountPaid = payments.Sum(x => x.Debit);
             dto.DueAmount = System.Math.Max(0, dto.TotalAmount - dto.AmountPaid);
@@ -428,8 +510,10 @@ namespace SmartPos.Purchases
                 throw new UserFriendlyException("Supplier has no linked account.");
             }
 
-            var existingPayments = await _ledgerRepository.GetAllListAsync(
-                x => x.VoucherType == VoucherTypes.Payment && x.VoucherId == purchase.Id);
+            var existingPaymentCandidates = await _ledgerRepository.GetAllListAsync(x => x.VoucherId == purchase.Id);
+            var existingPayments = existingPaymentCandidates
+                .Where(x => VoucherTypes.IsPurchasePayment(x.VoucherType, x.Description))
+                .ToList();
             var paidSoFar = existingPayments.Sum(x => x.Debit);
             var due = System.Math.Max(0, purchase.TotalAmount - paidSoFar);
 
@@ -447,9 +531,10 @@ namespace SmartPos.Purchases
             await _ledgerRepository.InsertAsync(new LedgerEntry
             {
                 TenantId = AbpSession.TenantId,
+                BranchId = purchase.BranchId,
                 AccountId = supplier.AccountId.Value,
                 TransactionDate = Abp.Timing.Clock.Now,
-                VoucherType = VoucherTypes.Payment,
+                VoucherType = VoucherTypes.PurchasePayment,
                 VoucherId = purchase.Id,
                 Debit = payAmount,
                 Credit = 0,
@@ -460,9 +545,10 @@ namespace SmartPos.Purchases
             await _ledgerRepository.InsertAsync(new LedgerEntry
             {
                 TenantId = AbpSession.TenantId,
+                BranchId = purchase.BranchId,
                 AccountId = input.PaymentAccountId,
                 TransactionDate = Abp.Timing.Clock.Now,
-                VoucherType = VoucherTypes.Payment,
+                VoucherType = VoucherTypes.PurchasePayment,
                 VoucherId = purchase.Id,
                 Debit = 0,
                 Credit = payAmount,
@@ -470,6 +556,37 @@ namespace SmartPos.Purchases
             });
 
             await CurrentUnitOfWork.SaveChangesAsync();
+        }
+
+        public async Task<List<PurchasePaymentHistoryDto>> GetPaymentHistoryAsync(EntityDto input)
+        {
+            var purchase = await Repository.GetAsync(input.Id);
+            await _branchAccessChecker.EnsureCanAccessBranchAsync(purchase.BranchId);
+
+            // Credit side of purchase-payment vouchers = money paid from Cash/Bank accounts.
+            var entries = await _ledgerRepository.GetAll()
+                .AsNoTracking()
+                .Include(x => x.Account)
+                .Where(x =>
+                    x.VoucherId == purchase.Id &&
+                    x.Credit > 0)
+                .OrderByDescending(x => x.TransactionDate)
+                .ThenByDescending(x => x.Id)
+                .ToListAsync();
+
+            entries = entries
+                .Where(x => VoucherTypes.IsPurchasePayment(x.VoucherType, x.Description))
+                .ToList();
+
+            return entries.Select(x => new PurchasePaymentHistoryDto
+            {
+                Id = x.Id,
+                TransactionDate = x.TransactionDate,
+                Amount = x.Credit,
+                PaymentAccountId = x.AccountId,
+                PaymentAccountName = x.Account != null ? x.Account.Name : null,
+                Description = x.Description
+            }).ToList();
         }
     }
 }

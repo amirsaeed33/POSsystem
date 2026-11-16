@@ -1,28 +1,188 @@
-<p-dialog
-    header="Sale Invoice"
-    [(visible)]="visible"
-    (visibleChange)="onVisibleChange($event)"
-    [modal]="true"
-    appendTo="body"
-    [blockScroll]="true"
-    [style]="{ width: '48rem' }"
-    [breakpoints]="{ '960px': '90vw' }"
-    [draggable]="false"
-    [resizable]="false"
-    styleClass="sale-invoice-dialog"
-    (onHide)="onHide()"
->
-    <div *ngIf="loading" class="text-center p-4 text-500 no-print">Loading...</div>
+<p-dialog [header]="printFormat !== 'a4' ? 'Sale Receipt (80mm Thermal)' : 'Sale Invoice (A4 Standard)'"
+    [(visible)]="visible" (visibleChange)="onVisibleChange($event)" [modal]="true" appendTo="body" [blockScroll]="true"
+    [style]="{ width: printFormat !== 'a4' ? '30rem' : '48rem' }" [breakpoints]="{ '960px': '95vw', '640px': '100vw' }"
+    [draggable]="false" [resizable]="false"
+    [styleClass]="printFormat !== 'a4' ? 'sale-invoice-dialog thermal-mode' : 'sale-invoice-dialog a4-mode'"
+    (onHide)="onHide()">
+    <!-- Format Selector Bar (Only in on-screen dialog) -->
+    <div
+        class="no-print format-toolbar mb-3 pb-2 border-bottom-1 surface-border flex align-items-center justify-content-between flex-wrap gap-2">
+        <div class="flex align-items-center gap-2">
+            <i class="pi pi-sliders-h text-primary"></i>
+            <span class="text-sm font-bold text-700">Receipt Format:</span>
+        </div>
+        <div class="format-toggle-group">
+            <button type="button" class="format-btn" [class.active]="printFormat === 'thermal-80'"
+                (click)="setPrintFormat('thermal-80')" title="80mm Thermal Receipt Paper Roll">
+                <i class="pi pi-ticket"></i>
+                <span>Thermal (80mm)</span>
+            </button>
+            <button type="button" class="format-btn" [class.active]="printFormat === 'thermal-58'"
+                (click)="setPrintFormat('thermal-58')" title="58mm Compact Thermal Paper Roll">
+                <i class="pi pi-receipt"></i>
+                <span>Thermal (58mm)</span>
+            </button>
+            <button type="button" class="format-btn" [class.active]="printFormat === 'a4'"
+                (click)="setPrintFormat('a4')" title="Standard A4 Full Sheet">
+                <i class="pi pi-file"></i>
+                <span>Standard (A4)</span>
+            </button>
+        </div>
+    </div>
 
-    <div *ngIf="!loading && sale" class="print-area invoice-sheet">
+    <div *ngIf="loading" class="text-center p-4 text-500 no-print">
+        <i class="pi pi-spin pi-spinner text-3xl mb-2 text-primary block"></i>
+        <span>Loading invoice details...</span>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- 1. THERMAL 80MM RECEIPT SHEET (Clean, high-contrast, thermal roll layout) -->
+    <!-- ========================================================================= -->
+    <div *ngIf="!loading && sale && (printFormat === 'thermal-80' || printFormat === 'thermal-58')"
+        class="print-area thermal-sheet" [class.thermal-58]="printFormat === 'thermal-58'">
+        <!-- Receipt Header (dynamic branch/company) -->
+        <div class="thermal-header text-center">
+            <img *ngIf="companyLogoUrl" [src]="companyLogoUrl" alt="" onerror="this.style.display='none'" class="thermal-logo" />
+            <div class="thermal-store-name" *ngIf="!companyLogoUrl">{{ company?.name || 'AL MEEZAN FOODS' }}</div>
+            <div class="thermal-store-info" style="margin-top: 3px;">{{ cityOrAddressLine || 'Faisalabad' }}</div>
+            <div class="thermal-pay-status">{{ paymentStatusLabel }}</div>
+        </div>
+
+        <!-- Token & Order Type Header (ONLY if tokenNo > 0) -->
+        <div class="thermal-meta-row font-bold" style="font-size: 14px; margin-top: 6px; margin-bottom: 2px;">
+            <span><span *ngIf="sale.tokenNo && sale.tokenNo > 0">Token# {{ sale.tokenNo }}</span></span>
+            <span>{{ orderTypeLabel }}</span>
+        </div>
+        <div class="text-right font-bold" *ngIf="!sale.tokenNo || sale.tokenNo <= 0" style="margin-top: 4px;">
+            <span>{{ orderTypeLabel }}</span>
+        </div>
+
+        <!-- Receipt Meta Details -->
+        <div class="thermal-meta" style="margin-top: 3px; font-size: 10.5px;">
+            <div class="thermal-meta-row" style="white-space: nowrap;">
+                <span style="white-space: nowrap;">Order ID: <strong>{{ sale.id }}</strong></span>
+                <span style="white-space: nowrap;">Date: {{ formattedSaleDate }}</span>
+            </div>
+            <div class="thermal-meta-row" style="white-space: nowrap;">
+                <span style="white-space: nowrap;">Invoice#: <strong>{{ sale.invoiceNo || ('#' + sale.id) }}</strong></span>
+                <span style="white-space: nowrap;">User: <strong>{{ printerText || company?.name || 'Staff' }}</strong></span>
+            </div>
+            <div class="thermal-meta-row" style="white-space: nowrap;">
+                <span style="white-space: nowrap;">Order Type : <strong>{{ orderTypeLabel }}</strong></span>
+                <span *ngIf="sale.deliveryAreaName" style="white-space: nowrap;"><strong>{{ sale.deliveryAreaName }}</strong></span>
+            </div>
+        </div>
+
+        <div class="thermal-divider-dashed"></div>
+
+        <div class="text-center font-bold uppercase" style="margin: 2px 0;">Order Detail</div>
+        <div class="thermal-divider-dashed" style="margin: 2px 0 4px 0;"></div>
+
+        <!-- Items Table -->
+        <div class="thermal-items-header">
+            <span class="col-item">Item</span>
+            <span class="col-qty text-center">Qty</span>
+            <span class="col-price text-right">Rate</span>
+            <span class="col-total text-right">Total</span>
+        </div>
+        <div class="thermal-divider-dashed"></div>
+
+        <div class="thermal-items-list">
+            <div class="thermal-item-entry" *ngFor="let line of sale.lines || []; let i = index">
+                <div class="thermal-item-name">
+                    <span *ngIf="line.isDeal" class="badge">DEAL</span>
+                    {{ line.productName || ('#' + line.productId) }}
+                </div>
+                <div *ngIf="line.dealItems?.length" class="thermal-deal-items">
+                    <div *ngFor="let d of line.dealItems">&bull; {{ d }}</div>
+                </div>
+                <div class="thermal-item-row">
+                    <span class="col-item text-muted"></span>
+                    <span class="col-qty text-center font-bold">{{ line.quantity }}</span>
+                    <span class="col-price text-right">{{ line.unitPrice | number:'1.0-0' }}</span>
+                    <span class="col-total text-right font-bold">{{ line.lineTotal | number:'1.0-0' }}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="thermal-divider-dashed"></div>
+
+        <!-- Totals & Calculations -->
+        <div class="thermal-totals">
+            <div class="thermal-total-row">
+                <span>Sub Total:</span>
+                <span class="font-bold">{{ sale.subTotal | number:'1.0-0' }} {{ currencyLabel }}</span>
+            </div>
+            <div class="thermal-total-row" *ngIf="sale.discountAmount && sale.discountAmount > 0">
+                <span>Discount ({{ sale.discountPercent || 0 }}%):</span>
+                <span>-{{ sale.discountAmount | number:'1.0-0' }}</span>
+            </div>
+            <div class="thermal-total-row" *ngIf="sale.taxAmount && sale.taxAmount > 0">
+                <span>Tax ({{ sale.taxPercent || 0 }}%):</span>
+                <span>+{{ sale.taxAmount | number:'1.0-0' }}</span>
+            </div>
+            <div class="thermal-total-row" *ngIf="sale.deliveryCharges && sale.deliveryCharges > 0">
+                <span>Delivery Charges:</span>
+                <span>+{{ sale.deliveryCharges | number:'1.0-0' }}</span>
+            </div>
+
+            <div class="thermal-grand-total">
+                <span>GRAND TOTAL:</span>
+                <span>{{ sale.totalAmount | number:'1.0-0' }} {{ currencyLabel }}</span>
+            </div>
+
+            <div class="thermal-total-row text-xs" *ngIf="sale.cashAmount">
+                <span>Cash Paid:</span>
+                <span>{{ sale.cashAmount | number:'1.0-0' }}</span>
+            </div>
+            <div class="thermal-total-row text-xs" *ngIf="sale.cardAmount">
+                <span>Card Paid:</span>
+                <span>{{ sale.cardAmount | number:'1.0-0' }}</span>
+            </div>
+            <div class="thermal-total-row font-bold text-red-600" *ngIf="sale.dueAmount && sale.dueAmount > 0.009">
+                <span>Due Amount:</span>
+                <span>{{ sale.dueAmount | number:'1.0-0' }} {{ currencyLabel }}</span>
+            </div>
+        </div>
+
+        <div class="thermal-divider-dashed"></div>
+        <div class="text-center font-bold uppercase" style="margin: 2px 0;">Customer Detail</div>
+        <div class="thermal-divider-dashed" style="margin: 2px 0 4px 0;"></div>
+
+        <div class="thermal-meta">
+            <div class="font-bold">
+                {{ sale.customerName || 'Walk-in' }}
+            </div>
+            <div class="thermal-meta-row" style="margin-top: 4px;">
+                <span>Order-Taker: <strong>{{ printerText || 'Waiter' }}</strong></span>
+                <span style="text-align: right;">Printed: {{ printDateParts.dateStr }}<br>{{ printDateParts.timeStr
+                    }}</span>
+            </div>
+        </div>
+
+        <div class="thermal-divider-dashed"></div>
+
+        <!-- Receipt Footer -->
+        <div class="thermal-footer text-center" style="font-size: 11.5px; line-height: 1.35;">
+            <div>For any Complaint &amp; Suggestions</div>
+            <div>Please Contact us &#64; {{ company?.invoiceContactPhone || '03080004248' }}</div>
+            <div class="thermal-divider-dashed" style="margin: 4px 0;"></div>
+            <div style="font-size: 10.5px; margin-top: 2px;">{{ softwareByLine }}</div>
+            <div *ngIf="softwareDeveloperPhone" style="font-size: 10px;">{{ softwareDeveloperPhone }}</div>
+        </div>
+        <div class="thermal-divider-dashed"></div>
+        <div class="text-center font-mono" style="font-size: 8.5px; color: #333; margin-top: 2px; line-height: 1.35;">
+            <div>{{ company?.softwareDeveloperName || 'Software develop by AlNawabTech' }}</div>
+            <div *ngIf="company?.softwareDeveloperPhone">{{ company?.softwareDeveloperPhone }}</div>
+        </div>
+    </div>
+    <!-- ========================================================================= -->
+    <!-- 2. STANDARD A4 SHEET (Existing office / wholesale invoice format)         -->
+    <!-- ========================================================================= -->
+    <div *ngIf="!loading && sale && printFormat === 'a4'" class="print-area invoice-sheet">
         <div class="invoice-header">
             <div class="company-block">
-                <img
-                    *ngIf="companyLogoUrl"
-                    [src]="companyLogoUrl"
-                    alt=""
-                    class="company-logo"
-                />
+                <img *ngIf="companyLogoUrl" [src]="companyLogoUrl" alt="" class="company-logo" />
                 <div>
                     <h2>{{ company?.name || 'Sale Invoice' }}</h2>
                     <div *ngIf="company?.invoiceAddress">{{ company?.invoiceAddress }}</div>
@@ -39,13 +199,25 @@
             </div>
             <div class="invoice-meta">
                 <div class="doc-title">Sale Invoice</div>
+                <div *ngIf="sale.tokenNo">
+                    <strong>Token#:</strong>
+                    {{ sale.tokenNo }}
+                </div>
                 <div>
                     <strong>Invoice No:</strong>
                     {{ sale.invoiceNo || ('#' + sale.id) }}
                 </div>
                 <div>
+                    <strong>Order Type:</strong>
+                    {{ orderTypeLabel }}
+                </div>
+                <div>
                     <strong>Sale Date:</strong>
                     {{ sale.saleDate | date: formatService.dateFormat }}
+                </div>
+                <div>
+                    <strong>Status:</strong>
+                    {{ paymentStatusLabel }}
                 </div>
             </div>
         </div>
@@ -54,6 +226,10 @@
             <div>
                 <div class="label">Customer</div>
                 <div class="value">{{ sale.customerName || '—' }}</div>
+            </div>
+            <div *ngIf="sale.deliveryAreaName">
+                <div class="label">Delivery Area</div>
+                <div class="value">{{ sale.deliveryAreaName }}</div>
             </div>
             <div>
                 <div class="label">Total Amount</div>
@@ -99,6 +275,12 @@
                     </td>
                     <td class="text-right">{{ sale.taxAmount }}</td>
                 </tr>
+                <tr *ngIf="sale.deliveryCharges && sale.deliveryCharges > 0">
+                    <td colspan="4" class="text-right">
+                        Delivery Charges
+                    </td>
+                    <td class="text-right">+{{ sale.deliveryCharges }}</td>
+                </tr>
                 <tr>
                     <td colspan="4" class="text-right">
                         <strong>Total Amount</strong>
@@ -118,25 +300,20 @@
         </div>
     </div>
 
+    <!-- Dialog Actions Footer -->
     <ng-template pTemplate="footer">
-        <div class="no-print flex justify-content-end gap-2 w-full">
-            <button
-                pButton
-                pRipple
-                type="button"
-                label="Cancel"
-                class="p-button-text"
-                (click)="onHide()"
-            ></button>
-            <button
-                pButton
-                pRipple
-                type="button"
-                label="Print"
-                icon="pi pi-print"
-                [disabled]="loading || !sale"
-                (click)="print()"
-            ></button>
+        <div class="no-print flex justify-content-between align-items-center w-full">
+            <span class="text-xs text-500 font-medium hidden sm:inline">
+                {{ printFormat !== 'a4' ? 'Optimized for 80mm Roll (Thermal POS)' : 'Standard Full Page
+                (A4/Letter)' }}
+            </span>
+            <div class="flex gap-2 ml-auto">
+                <button pButton pRipple type="button" label="Cancel" class="p-button-text" (click)="onHide()"></button>
+                <button pButton pRipple type="button"
+                    [label]="printFormat === 'a4' ? 'Print (A4)' : printFormat === 'thermal-58' ? 'Print Thermal (58mm)' : 'Print Thermal (80mm)'"
+                    icon="pi pi-print" class="p-button-warning font-bold" [disabled]="loading || !sale"
+                    (click)="print()"></button>
+            </div>
         </div>
     </ng-template>
 </p-dialog>

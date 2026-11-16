@@ -11,12 +11,22 @@ namespace SmartPos.Categories.Dto
     {
         public int BranchId { get; set; }
 
+        public int? DepartmentId { get; set; }
+
+        public string DepartmentName { get; set; }
+
         [Required]
         [StringLength(Category.MaxNameLength)]
         public string Name { get; set; }
 
         [StringLength(Category.MaxDescriptionLength)]
         public string Description { get; set; }
+
+        [StringLength(Category.MaxImagePathLength)]
+        public string ImagePath { get; set; }
+
+        /// <summary>New image as data URL; ignored by AutoMapper onto the entity.</summary>
+        public string ImageBase64 { get; set; }
 
         public bool IsActive { get; set; } = true;
 

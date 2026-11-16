@@ -226,6 +226,12 @@ export class LayoutService {
         this.state.profileSidebarVisible = true;
     }
 
+    printerConfigVisible: boolean = false;
+
+    showPrinterConfig() {
+        this.printerConfigVisible = true;
+    }
+
     showConfigSidebar() {
         this.state.configSidebarVisible = true;
     }

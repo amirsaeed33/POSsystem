@@ -20,6 +20,8 @@ export interface StaffPayrollDto {
     netSalary: number;
     paymentStatus: PayrollPaymentStatus;
     paymentDate?: string | Date | null;
+    /** True when Cash/Bank + Expense ledger lines were posted for this payment. */
+    isAccountingPosted?: boolean;
     remarks?: string;
 }
 

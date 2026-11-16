@@ -1,0 +1,24 @@
+:host ::ng-deep .sale-list-tabs {
+    .p-tabview-nav {
+        border-bottom: 1px solid var(--surface-border);
+    }
+
+    .p-tabview-panels {
+        display: none;
+    }
+}
+
+.sale-tab-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.35rem;
+    height: 1.35rem;
+    padding: 0 0.35rem;
+    border-radius: 999px;
+    background: var(--surface-200);
+    color: var(--text-color-secondary);
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+

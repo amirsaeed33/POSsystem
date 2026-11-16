@@ -3,7 +3,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { PermissionNames } from 'src/app/demo/api/permission-names';
 import { PermissionService } from 'src/app/demo/service/permission.service';
 
-type StaffTab = 'staff' | 'attendance' | 'payroll';
+type StaffTab = 'staff' | 'attendance' | 'monthlyAttendance' | 'payroll';
 
 @Component({
     selector: 'app-staff-hub',
@@ -35,13 +35,19 @@ export class StaffHubComponent implements OnInit {
         }
 
         this.canStaff = this.permissionService.isGranted(PermissionNames.Staff);
-        this.canAttendance = false; // Hidden as per request
+        this.canAttendance = this.permissionService.isGranted(
+            PermissionNames.StaffAttendance
+        );
         this.canPayroll = this.permissionService.isGranted(
             PermissionNames.StaffPayroll
         );
 
         if (this.canStaff) {
             this.tabOrder.push('staff');
+        }
+        if (this.canAttendance) {
+            this.tabOrder.push('attendance');
+            this.tabOrder.push('monthlyAttendance');
         }
         if (this.canPayroll) {
             this.tabOrder.push('payroll');

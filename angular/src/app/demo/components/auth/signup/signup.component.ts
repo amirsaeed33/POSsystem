@@ -20,14 +20,15 @@ import { TenantContextService } from 'src/app/demo/service/tenant-context.servic
 
 @Component({
     templateUrl: './signup.component.html',
+    styleUrls: ['./signup.component.scss'],
     providers: [MessageService],
     animations: [
         trigger('slideIn', [
             transition(':enter', [
-                style({ transform: 'translateX(48px)', opacity: 0 }),
+                style({ transform: 'translateY(18px)', opacity: 0 }),
                 animate(
                     '420ms cubic-bezier(0.22, 1, 0.36, 1)',
-                    style({ transform: 'translateX(0)', opacity: 1 })
+                    style({ transform: 'translateY(0)', opacity: 1 })
                 ),
             ]),
         ]),
@@ -36,6 +37,8 @@ import { TenantContextService } from 'src/app/demo/service/tenant-context.servic
 export class SignupComponent implements OnInit, OnDestroy {
     signupForm: FormGroup;
     loading = false;
+    showPassword = false;
+    showConfirmPassword = false;
     private tenancyManuallyEdited = false;
     private nameSub?: Subscription;
 
@@ -104,7 +107,7 @@ export class SignupComponent implements OnInit, OnDestroy {
         );
 
         if (this.authService.isAuthenticated()) {
-            this.router.navigateByUrl('/');
+            this.router.navigateByUrl('/dashboard');
         }
     }
 
@@ -173,7 +176,11 @@ export class SignupComponent implements OnInit, OnDestroy {
                     }
                 }
 
-                await this.permissionService.load();
+                try {
+                    await this.permissionService.load();
+                } catch {
+                    // Permissions may load on the next authenticated navigation.
+                }
                 this.branchContext.clear();
 
                 this.messageService.add({
@@ -181,7 +188,7 @@ export class SignupComponent implements OnInit, OnDestroy {
                     summary: 'Welcome',
                     detail: `Tenant "${result.tenancyName}" created. Set up your first branch.`,
                 });
-                this.router.navigateByUrl('/branches/create');
+                await this.router.navigateByUrl('/branches/create');
             })
             .catch((error) => {
                 this.messageService.add({

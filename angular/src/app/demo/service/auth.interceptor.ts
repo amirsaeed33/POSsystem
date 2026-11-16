@@ -38,14 +38,16 @@ export class AuthInterceptor implements HttpInterceptor {
                     this.localizationService.getCultureHeaderValue(),
                 'ngrok-skip-browser-warning': 'true',
             };
+            const anonymousApi = this.isAnonymousApi(req.url);
             const token = this.authService.getAccessToken();
-            if (token) {
+            if (token && !anonymousApi) {
                 headers['Authorization'] = `Bearer ${token}`;
             }
 
-            // Sign-up / tenancy lookup must run on host (no Abp.TenantId).
-            // Password / OTP login need the selected tenant cookie when present.
+            // Sign-up / tenancy lookup and the public product page must run on host
+            // (no Abp.TenantId). Password / OTP login need the selected tenant cookie.
             const skipTenantHeader =
+                anonymousApi ||
                 /\/api\/services\/app\/Account\/(SignUpTenant|IsTenantAvailable)/i.test(
                     req.url
                 ) ||
@@ -65,8 +67,18 @@ export class AuthInterceptor implements HttpInterceptor {
 
         return next.handle(request).pipe(
             catchError((error: HttpErrorResponse) => {
-                const isOnlineOrder = req.url.includes('CustomerOrder') || this.router.url.includes('online-order');
-                if (error.status === 401 && isApiRequest && !isOnlineOrder) {
+                const path = (this.router.url || '').split('?')[0];
+                const isPublicPage =
+                    path === '/product' ||
+                    path.startsWith('/product/') ||
+                    path.startsWith('/auth/') ||
+                    path.startsWith('/online-order');
+                if (
+                    error.status === 401 &&
+                    isApiRequest &&
+                    !isPublicPage &&
+                    !this.isAnonymousApi(req.url)
+                ) {
                     this.authService.logout();
                     this.router.navigate(['/auth/login']);
                 }
@@ -99,6 +111,13 @@ export class AuthInterceptor implements HttpInterceptor {
 
                 return throwError(() => error);
             })
+        );
+    }
+
+    /** Landing and storefront calls that must succeed with no login. */
+    private isAnonymousApi(url: string): boolean {
+        return /\/api\/services\/app\/(Package\/GetPublicPackages|Developer\/GetPublicDevelopers|Seller\/(GetPublicSellers|Register)|Branch\/GetPublicFeedbacks|CustomerOrder\/GetStorefrontByHost)/i.test(
+            url
         );
     }
 }

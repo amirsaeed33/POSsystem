@@ -27,6 +27,11 @@ export class StockReportComponent implements OnInit {
         items: [],
     };
 
+    fetchPdf = () =>
+        this.reportService.getStockReportPdf({
+            keyword: this.keyword?.trim() || undefined,
+        });
+
     constructor(
         private reportService: ReportService,
         private notificationEmailService: NotificationEmailService,

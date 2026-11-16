@@ -1,0 +1,938 @@
+using System.Text.Json.Serialization;
+using CommunityToolkit.Mvvm.ComponentModel;
+
+using SmartPos.Mobile.Helpers;
+
+namespace SmartPos.Mobile.Models;
+
+public class OnlineBranchDto
+{
+    [JsonPropertyName("id")]
+    public int Id { get; set; }
+
+    [JsonPropertyName("name")]
+    public string? Name { get; set; }
+
+    [JsonPropertyName("isRestaurant")]
+    public bool IsRestaurant { get; set; }
+
+    [JsonPropertyName("address")]
+    public string? Address { get; set; }
+
+    [JsonPropertyName("imagePath")]
+    public string? ImagePath { get; set; }
+
+    [JsonPropertyName("phone")]
+    public string? Phone { get; set; }
+
+    [JsonPropertyName("email")]
+    public string? Email { get; set; }
+
+    [JsonPropertyName("website")]
+    public string? Website { get; set; }
+
+    [JsonPropertyName("code")]
+    public string? Code { get; set; }
+
+    public string? LogoUrl { get; set; }
+
+    public bool HasLogo => !string.IsNullOrWhiteSpace(LogoUrl);
+    public bool HasAddress => !string.IsNullOrWhiteSpace(Address);
+    public bool HasPhone => !string.IsNullOrWhiteSpace(Phone);
+    public bool HasEmail => !string.IsNullOrWhiteSpace(Email);
+    public bool HasWebsite => !string.IsNullOrWhiteSpace(Website);
+    public string BusinessTypeLabel => IsRestaurant ? "Restaurant" : "Store";
+
+    public string Initials
+    {
+        get
+        {
+            var name = (Name ?? "B").Trim();
+            var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length >= 2)
+            {
+                return $"{parts[0][0]}{parts[1][0]}".ToUpperInvariant();
+            }
+
+            return name.Length >= 2 ? name[..2].ToUpperInvariant() : name.ToUpperInvariant();
+        }
+    }
+}
+
+public class OnlineStoreHeaderDto
+{
+    [JsonPropertyName("branchId")]
+    public int BranchId { get; set; }
+
+    [JsonPropertyName("branchName")]
+    public string? BranchName { get; set; }
+
+    [JsonPropertyName("address")]
+    public string? Address { get; set; }
+
+    [JsonPropertyName("phone")]
+    public string? Phone { get; set; }
+
+    [JsonPropertyName("currencyFormat")]
+    public string? CurrencyFormat { get; set; }
+
+    [JsonPropertyName("baseDeliveryFee")]
+    public decimal BaseDeliveryFee { get; set; }
+
+    [JsonPropertyName("isDeliveryEnabled")]
+    public bool IsDeliveryEnabled { get; set; }
+
+    [JsonPropertyName("freeDeliveryThreshold")]
+    public decimal FreeDeliveryThreshold { get; set; }
+
+    [JsonPropertyName("deliveryAreaNote")]
+    public string? DeliveryAreaNote { get; set; }
+
+    [JsonPropertyName("isRestaurant")]
+    public bool IsRestaurant { get; set; }
+
+    [JsonPropertyName("categories")]
+    public List<string> Categories { get; set; } = new();
+}
+
+public class PagedOnlineCatalogRequest
+{
+    public int? BranchId { get; set; }
+    public int SkipCount { get; set; }
+    public int MaxResultCount { get; set; } = 30;
+    public int? CategoryId { get; set; }
+    public string? CategoryName { get; set; }
+    public List<string>? CategoryNames { get; set; }
+    public string? Keyword { get; set; }
+    public bool DealsOnly { get; set; }
+
+    public string CacheKey
+    {
+        get
+        {
+            var names = CategoryNames != null && CategoryNames.Count > 0
+                ? string.Join("|", CategoryNames.Where(n => !string.IsNullOrWhiteSpace(n)).Select(n => n.Trim()).OrderBy(n => n, StringComparer.OrdinalIgnoreCase))
+                : string.Empty;
+            return $"{BranchId ?? 0}|{SkipCount}|{MaxResultCount}|{CategoryId}|{CategoryName}|{names}|{Keyword}|{DealsOnly}";
+        }
+    }
+}
+
+public class OnlineProductDto : ObservableObject
+{
+    [JsonPropertyName("id")]
+    public int Id { get; set; }
+
+    [JsonPropertyName("name")]
+    public string? Name { get; set; }
+
+    [JsonPropertyName("description")]
+    public string? Description { get; set; }
+
+    [JsonPropertyName("categoryName")]
+    public string? CategoryName { get; set; }
+
+    [JsonPropertyName("categoryId")]
+    public int? CategoryId { get; set; }
+
+    [JsonPropertyName("price")]
+    public decimal Price { get; set; }
+
+    [JsonPropertyName("currencyFormat")]
+    public string? CurrencyFormat { get; set; }
+
+    [JsonPropertyName("imagePath")]
+    public string? ImagePath { get; set; }
+
+    [JsonPropertyName("inStock")]
+    public bool InStock { get; set; }
+
+    [JsonPropertyName("stockQuantity")]
+    public decimal StockQuantity { get; set; }
+
+    [JsonPropertyName("isFreeDelivery")]
+    public bool IsFreeDelivery { get; set; }
+
+    [JsonPropertyName("isDeal")]
+    public bool IsDeal { get; set; }
+
+    [JsonPropertyName("cardTag")]
+    public string? CardTag { get; set; }
+
+    [JsonPropertyName("dealId")]
+    public int? DealId { get; set; }
+
+    [JsonPropertyName("originalPrice")]
+    public decimal? OriginalPrice { get; set; }
+
+    [JsonPropertyName("dealItemsSummary")]
+    public string? DealItemsSummary { get; set; }
+
+    public bool HasDealSummary => !string.IsNullOrWhiteSpace(DealItemsSummary);
+    public bool HasOriginalPrice => OriginalPrice.HasValue && OriginalPrice.Value > Price;
+    public string OriginalPriceDisplay => OriginalPrice.HasValue ? $"Rs. {OriginalPrice.Value:N0}" : string.Empty;
+    public string DealDiscountBadge
+    {
+        get
+        {
+            if (OriginalPrice.HasValue && OriginalPrice.Value > Price && OriginalPrice.Value > 0)
+            {
+                var pct = (int)Math.Round((OriginalPrice.Value - Price) / OriginalPrice.Value * 100);
+                if (pct > 0) return $"SAVE {pct}%";
+            }
+            return "HOT DEAL";
+        }
+    }
+
+    public string? ImageUrl { get; set; }
+
+    public bool HasImage => !string.IsNullOrWhiteSpace(ImageUrl);
+
+    public string PriceText => Price.ToString("0.00");
+
+    public string PriceDisplay => $"Rs. {Price:N0}";
+    public string PriceLabel => PriceDisplay;
+    public string PriceDisplayRs => PriceDisplay;
+
+    public string CulinarySubtitle
+    {
+        get
+        {
+            if (!string.IsNullOrWhiteSpace(Description))
+            {
+                var text = Description.Trim();
+                return text.Length <= 42 ? text : text[..39].TrimEnd() + "…";
+            }
+
+            if (!string.IsNullOrWhiteSpace(CategoryName))
+            {
+                return CategoryName.Trim();
+            }
+
+            return "Gulberg Kitchen";
+        }
+    }
+
+    public bool HasSignatureBadge =>
+        HasTag ||
+        (!string.IsNullOrWhiteSpace(CategoryName) &&
+         CategoryName.Contains("signature", StringComparison.OrdinalIgnoreCase));
+
+    public string FavoritesBadgeText
+    {
+        get
+        {
+            if (!string.IsNullOrWhiteSpace(DisplayTag))
+            {
+                return DisplayTag.Trim().ToUpperInvariant();
+            }
+
+            if (IsDeal)
+            {
+                return "SIGNATURE";
+            }
+
+            return "★ 4.9";
+        }
+    }
+
+    public bool IsWarmPrimaryBadge =>
+        !string.IsNullOrWhiteSpace(DisplayTag) || IsDeal || HasOriginalPrice;
+
+    private int cartQty;
+    public int CartQty
+    {
+        get => cartQty;
+        set
+        {
+            if (SetProperty(ref cartQty, value))
+            {
+                OnPropertyChanged(nameof(InCart));
+                OnPropertyChanged(nameof(CartQtyText));
+            }
+        }
+    }
+
+    public bool InCart => CartQty > 0;
+
+    public string CartQtyText => CartQty.ToString();
+
+    private bool isFavorite;
+    public bool IsFavorite
+    {
+        get => isFavorite;
+        set
+        {
+            if (SetProperty(ref isFavorite, value))
+            {
+                OnPropertyChanged(nameof(FavoriteFillColor));
+                OnPropertyChanged(nameof(FavoriteStrokeColor));
+            }
+        }
+    }
+
+    public Color FavoriteFillColor => IsFavorite ? ThemeColors.FavoriteAccent : Colors.Transparent;
+    public Color FavoriteStrokeColor => IsFavorite ? ThemeColors.FavoriteAccent : ThemeColors.AuthMutedText;
+
+    public string DisplayTag
+    {
+        get
+        {
+            if (!string.IsNullOrWhiteSpace(CardTag))
+            {
+                return CardTag!;
+            }
+
+            if (IsDeal)
+            {
+                return "DEAL";
+            }
+
+            if (IsFreeDelivery)
+            {
+                return "FREE DELIVERY";
+            }
+
+            return string.Empty;
+        }
+    }
+
+    public bool HasTag => !string.IsNullOrWhiteSpace(DisplayTag);
+
+    /// <summary>Outline pill on menu cards: CardTag/Deal/Free Delivery, else category.</summary>
+    public string MenuBadgeText
+    {
+        get
+        {
+            if (!string.IsNullOrWhiteSpace(DisplayTag))
+            {
+                return DisplayTag.Trim().ToUpperInvariant();
+            }
+
+            return string.IsNullOrWhiteSpace(CategoryName)
+                ? string.Empty
+                : CategoryName.Trim().ToUpperInvariant();
+        }
+    }
+
+    public bool HasMenuBadge => !string.IsNullOrWhiteSpace(MenuBadgeText);
+
+    public string Initials
+    {
+        get
+        {
+            var name = (Name ?? "P").Trim();
+            var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length >= 2)
+            {
+                return $"{parts[0][0]}{parts[1][0]}".ToUpperInvariant();
+            }
+
+            return name.Length >= 2 ? name[..2].ToUpperInvariant() : name.ToUpperInvariant();
+        }
+    }
+}
+
+public class DeliveryAreaDto : EntityDto
+{
+    [JsonPropertyName("branchId")]
+    public int BranchId { get; set; }
+
+    [JsonPropertyName("name")]
+    public string? Name { get; set; }
+
+    [JsonPropertyName("deliveryFee")]
+    public decimal DeliveryFee { get; set; }
+
+    [JsonPropertyName("minimumOrderAmount")]
+    public decimal MinimumOrderAmount { get; set; }
+
+    [JsonPropertyName("estimatedDeliveryTime")]
+    public string? EstimatedDeliveryTime { get; set; }
+
+    [JsonPropertyName("isActive")]
+    public bool IsActive { get; set; }
+}
+
+public class CreateCustomerOrderDto
+{
+    [JsonPropertyName("customerId")]
+    public int CustomerId { get; set; }
+
+    [JsonPropertyName("customerName")]
+    public string? CustomerName { get; set; }
+
+    [JsonPropertyName("customerMobile")]
+    public string? CustomerMobile { get; set; }
+
+    [JsonPropertyName("branchId")]
+    public int? BranchId { get; set; }
+
+    [JsonPropertyName("orderDate")]
+    public DateTime OrderDate { get; set; } = DateTime.Now;
+
+    [JsonPropertyName("notes")]
+    public string? Notes { get; set; }
+
+    [JsonPropertyName("paymentMethod")]
+    public string PaymentMethod { get; set; } = "CashOnDelivery";
+
+    [JsonPropertyName("latitude")]
+    public double? Latitude { get; set; }
+
+    [JsonPropertyName("longitude")]
+    public double? Longitude { get; set; }
+
+    [JsonPropertyName("deliveryAddress")]
+    public string? DeliveryAddress { get; set; }
+
+    [JsonPropertyName("deliveryLandmark")]
+    public string? DeliveryLandmark { get; set; }
+
+    [JsonPropertyName("deliveryAreaId")]
+    public int? DeliveryAreaId { get; set; }
+
+    [JsonPropertyName("deliveryArea")]
+    public string? DeliveryArea { get; set; }
+
+    [JsonPropertyName("subtotal")]
+    public decimal? Subtotal { get; set; }
+
+    [JsonPropertyName("deliveryCharges")]
+    public decimal? DeliveryCharges { get; set; }
+
+    [JsonPropertyName("grandTotal")]
+    public decimal? GrandTotal { get; set; }
+
+    [JsonPropertyName("lines")]
+    public List<CreateCustomerOrderLineDto> Lines { get; set; } = new();
+}
+
+public class CreateCustomerOrderLineDto
+{
+    [JsonPropertyName("productId")]
+    public int ProductId { get; set; }
+
+    [JsonPropertyName("quantity")]
+    public decimal Quantity { get; set; }
+
+    [JsonPropertyName("unitPrice")]
+    public decimal UnitPrice { get; set; }
+}
+
+public class CustomerOrderDto : EntityDto
+{
+    [JsonPropertyName("branchId")]
+    public int BranchId { get; set; }
+
+    [JsonPropertyName("branchName")]
+    public string? BranchName { get; set; }
+
+    [JsonPropertyName("customerName")]
+    public string? CustomerName { get; set; }
+
+    [JsonPropertyName("customerPhone")]
+    public string? CustomerPhone { get; set; }
+
+    [JsonPropertyName("orderDate")]
+    public DateTime OrderDate { get; set; }
+
+    [JsonPropertyName("orderNo")]
+    public string? OrderNo { get; set; }
+
+    [JsonPropertyName("status")]
+    public int Status { get; set; }
+
+    [JsonPropertyName("statusName")]
+    public string? StatusName { get; set; }
+
+    [JsonPropertyName("subTotal")]
+    public decimal SubTotal { get; set; }
+
+    [JsonPropertyName("deliveryFee")]
+    public decimal DeliveryFee { get; set; }
+
+    [JsonPropertyName("totalAmount")]
+    public decimal TotalAmount { get; set; }
+
+    [JsonPropertyName("deliveryAreaName")]
+    public string? DeliveryAreaName { get; set; }
+
+    [JsonPropertyName("notes")]
+    public string? Notes { get; set; }
+
+    [JsonPropertyName("riderName")]
+    public string? RiderName { get; set; }
+
+    [JsonPropertyName("riderPhone")]
+    public string? RiderPhone { get; set; }
+
+    [JsonPropertyName("customerRating")]
+    public int? CustomerRating { get; set; }
+
+    [JsonPropertyName("customerAddress")]
+    public string? CustomerAddress { get; set; }
+
+    [JsonPropertyName("deliveryAreaId")]
+    public int? DeliveryAreaId { get; set; }
+
+    [JsonPropertyName("paymentMethod")]
+    public string? PaymentMethod { get; set; }
+
+    [JsonPropertyName("customerFeedbackComment")]
+    public string? CustomerFeedbackComment { get; set; }
+
+    [JsonPropertyName("lines")]
+    public List<CustomerOrderLineDto> Lines { get; set; } = new();
+
+    // === UI Presentation Helpers for Order History ===
+
+    public string FormattedOrderNo => string.IsNullOrWhiteSpace(OrderNo) ? $"Order #{Id}" : OrderNo!;
+
+    public string FormattedDate => OrderDate != default
+        ? OrderDate.ToString("dd MMM yyyy, hh:mm tt")
+        : string.Empty;
+
+    public string FormattedTotal => $"Rs. {TotalAmount:N0}";
+
+    public string SubTotalDisplay => $"Rs. {SubTotal:N0}";
+
+    public string DeliveryFeeDisplay => DeliveryFee <= 0 ? "FREE" : $"Rs. {DeliveryFee:N0}";
+
+    public string GrandTotalDisplay => $"Rs. {TotalAmount:N0}";
+
+    public Color DeliveryFeeTextColor => DeliveryFee <= 0
+        ? Color.FromArgb("#D9822B")
+        : Color.FromArgb("#1E1916");
+
+    public string PaymentMethodDisplay
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(PaymentMethod))
+            {
+                return "Cash on Delivery";
+            }
+
+            if (PaymentMethod.Contains("Online", StringComparison.OrdinalIgnoreCase) ||
+                PaymentMethod.Contains("Card", StringComparison.OrdinalIgnoreCase) ||
+                PaymentMethod.Contains("Paid", StringComparison.OrdinalIgnoreCase))
+            {
+                return "Online Paid";
+            }
+
+            if (PaymentMethod.Contains("Cash", StringComparison.OrdinalIgnoreCase) ||
+                PaymentMethod.Contains("COD", StringComparison.OrdinalIgnoreCase))
+            {
+                return "Cash on Delivery";
+            }
+
+            return PaymentMethod.Trim();
+        }
+    }
+
+    public string ReceiptTitle
+    {
+        get
+        {
+            var branch = string.IsNullOrWhiteSpace(BranchName) ? "Aljannat" : BranchName.Trim();
+            return $"{FormattedOrderNo} • {branch}";
+        }
+    }
+
+    public string DeliveryAddressDisplay =>
+        string.IsNullOrWhiteSpace(CustomerAddress) ? "Address not provided" : CustomerAddress.Trim();
+
+    public bool HasDeliveryAddress => !string.IsNullOrWhiteSpace(CustomerAddress);
+
+    public string NotesDisplay => string.IsNullOrWhiteSpace(Notes) ? string.Empty : Notes.Trim();
+
+    public bool HasNotes => !string.IsNullOrWhiteSpace(Notes);
+
+    public string StatusBadgeLabel => Status switch
+    {
+        0 => "Pending",
+        1 or 3 => "On the Way",
+        2 => "Cancelled",
+        4 or 5 => "Delivered",
+        _ => StatusDisplayName
+    };
+
+    public string StatusBadgeLabelUpper => StatusBadgeLabel.ToUpperInvariant();
+
+    public int TotalItemsCount => (int)Lines.Sum(l => l.Quantity);
+
+    public string ItemsCountBadge => $"{TotalItemsCount} {(TotalItemsCount == 1 ? "item" : "items")}";
+
+    public string ItemsSummary
+    {
+        get
+        {
+            if (Lines == null || Lines.Count == 0)
+            {
+                return "No items";
+            }
+
+            var parts = Lines
+                .Where(l => !string.IsNullOrWhiteSpace(l.ProductName))
+                .Select(l => $"{(int)l.Quantity}× {l.ProductName}")
+                .ToList();
+
+            return parts.Count > 0 ? string.Join(", ", parts) : $"{Lines.Count} items";
+        }
+    }
+
+    public string BranchAndAreaSummary
+    {
+        get
+        {
+            var area = DeliveryAreaName?.Trim();
+            var branch = BranchName?.Trim();
+            if (!string.IsNullOrWhiteSpace(branch) && !string.IsNullOrWhiteSpace(area))
+            {
+                return $"{branch}  •  {area}";
+            }
+
+            if (!string.IsNullOrWhiteSpace(branch))
+            {
+                return $"{branch}  •  Delivery";
+            }
+
+            return area ?? "Direct Order";
+        }
+    }
+
+    public string StatusDisplayName => Status switch
+    {
+        0 => "Pending",
+        1 => "Accepted",
+        2 => "Cancelled",
+        3 => "Preparing",
+        4 => "Delivered",
+        5 => "Completed",
+        _ => !string.IsNullOrWhiteSpace(StatusName) ? StatusName : $"Status {Status}"
+    };
+
+    /// <summary>Active / pending orders that should offer Track Status.</summary>
+    public bool IsActiveOrder => Status is 0 or 1 or 3;
+
+    public string PrimaryActionText => IsActiveOrder ? "Track Status" : "View Receipt";
+
+    public Color StatusTextColor => Status switch
+    {
+        0 or 1 or 3 => Color.FromArgb("#D9822B"),
+        2 => Color.FromArgb("#B83227"),
+        4 or 5 => Color.FromArgb("#C84B11"),
+        _ => Color.FromArgb("#5C5048")
+    };
+
+    public Color StatusBadgeBgColor => Status switch
+    {
+        0 or 1 or 3 => Color.FromArgb("#FEF6EB"),
+        2 => Color.FromArgb("#FDECEB"),
+        4 or 5 => Color.FromArgb("#FDF1EB"),
+        _ => Color.FromArgb("#F4EFEA")
+    };
+
+    public Color StatusBadgeStrokeColor => Status switch
+    {
+        0 or 1 or 3 => Color.FromArgb("#F3D6B3"),
+        2 => Color.FromArgb("#F5C6C2"),
+        4 or 5 => Color.FromArgb("#F0C4AE"),
+        _ => Color.FromArgb("#EAE2DA")
+    };
+
+    public bool CanReorder => Lines != null && Lines.Any(l => l.ProductId > 0 && l.Quantity > 0);
+}
+
+public class RateCustomerOrderInput
+{
+    [JsonPropertyName("orderNo")]
+    public string OrderNo { get; set; } = string.Empty;
+
+    [JsonPropertyName("rating")]
+    public int Rating { get; set; } = 5;
+
+    [JsonPropertyName("comment")]
+    public string? Comment { get; set; }
+}
+
+public class CustomerOrderLineDto : EntityDto
+{
+    [JsonPropertyName("productId")]
+    public int ProductId { get; set; }
+
+    [JsonPropertyName("productName")]
+    public string? ProductName { get; set; }
+
+    [JsonPropertyName("quantity")]
+    public decimal Quantity { get; set; }
+
+    [JsonPropertyName("unitPrice")]
+    public decimal UnitPrice { get; set; }
+
+    [JsonPropertyName("lineTotal")]
+    public decimal LineTotal { get; set; }
+
+    public string QuantityLabel => $"{(int)Quantity}×";
+
+    public string DisplayName => string.IsNullOrWhiteSpace(ProductName) ? "Item" : ProductName!;
+
+    public string LineTotalDisplay => $"Rs. {LineTotal:N0}";
+
+    public string TrackLineLabel => $"{QuantityLabel} {DisplayName}";
+}
+
+public partial class CartLine : ObservableObject
+{
+    public int ProductId { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public decimal UnitPrice { get; set; }
+
+    private decimal quantity = 1;
+    public decimal Quantity
+    {
+        get => quantity;
+        set
+        {
+            if (SetProperty(ref quantity, value))
+            {
+                OnPropertyChanged(nameof(LineTotal));
+                OnPropertyChanged(nameof(LineTotalText));
+                OnPropertyChanged(nameof(LineTotalDisplay));
+                OnPropertyChanged(nameof(QuantityText));
+                OnPropertyChanged(nameof(QtyNameLabel));
+                OnPropertyChanged(nameof(UnitEachMeta));
+            }
+        }
+    }
+
+    public string? ImagePath { get; set; }
+    public string? SelectedModifiers { get; set; }
+    public string? KitchenNotes { get; set; }
+    public int? LineId { get; set; }
+    public bool IsSentToKitchen { get; set; }
+    public decimal PrintedQuantity { get; set; }
+
+    public decimal LineTotal => UnitPrice * Quantity;
+    public string LineTotalText => LineTotal.ToString("0.00");
+    public string UnitPriceText => UnitPrice.ToString("0.00");
+    public string UnitPriceDisplay => $"Rs. {UnitPrice:0}";
+    public string LineTotalDisplay => $"Rs. {LineTotal:N0}";
+    public string QuantityText => Quantity.ToString("0");
+    public string QtyNameLabel => $"{QuantityText}× {Name}";
+    public string NoteChipText =>
+        !string.IsNullOrWhiteSpace(KitchenNotes)
+            ? KitchenNotes!.Trim()
+            : (!string.IsNullOrWhiteSpace(SelectedModifiers) ? SelectedModifiers!.Trim() : "Standard");
+    public bool HasNoteChip => true;
+    public string UnitEachMeta => $"{NoteChipText} • Rs. {UnitPrice:N0} each";
+    public bool HasImage => !string.IsNullOrWhiteSpace(ImagePath);
+    public bool HasModifiers => !string.IsNullOrWhiteSpace(SelectedModifiers);
+    public bool HasKitchenNotes => !string.IsNullOrWhiteSpace(KitchenNotes);
+}
+
+
+public class ToggleFavoriteResultDto
+{
+    [JsonPropertyName("productId")]
+    public int ProductId { get; set; }
+
+    [JsonPropertyName("isFavorite")]
+    public bool IsFavorite { get; set; }
+}
+
+public partial class CustomerSavedAddressDto : ObservableObject
+{
+    [JsonPropertyName("id")]
+    public int Id { get; set; }
+
+    [JsonPropertyName("customerId")]
+    public int CustomerId { get; set; }
+
+    [JsonPropertyName("ownerId")]
+    public int OwnerId { get; set; }
+
+    [JsonPropertyName("label")]
+    public string? Label { get; set; }
+
+    [JsonPropertyName("address")]
+    public string Address { get; set; } = string.Empty;
+
+    [JsonPropertyName("landmark")]
+    public string? Landmark { get; set; }
+
+    [JsonPropertyName("deliveryAreaId")]
+    public int? DeliveryAreaId { get; set; }
+
+    [JsonPropertyName("deliveryAreaName")]
+    public string? DeliveryAreaName { get; set; }
+
+    [JsonPropertyName("latitude")]
+    public double? Latitude { get; set; }
+
+    [JsonPropertyName("longitude")]
+    public double? Longitude { get; set; }
+
+    [JsonPropertyName("isDefault")]
+    public bool IsDefault { get; set; }
+
+    [ObservableProperty]
+    [property: JsonIgnore]
+    private bool isSelected;
+
+    [JsonIgnore]
+    public string DisplayIcon => (Label?.Trim().ToLowerInvariant()) switch
+    {
+        "home" or "ghar" => "🏠",
+        "office" or "work" or "daftar" => "🏢",
+        "shop" or "store" => "🏬",
+        _ => "📍"
+    };
+
+    [JsonIgnore]
+    public string LabelEmoji => DisplayIcon;
+
+    [JsonIgnore]
+    public string DisplayLabel => string.IsNullOrWhiteSpace(Label) ? "Address" : Label;
+
+    [JsonIgnore]
+    public string AddressPreview
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(Address)) return string.Empty;
+            return Address.Length > 28 ? Address[..25] + "..." : Address;
+        }
+    }
+
+    [JsonIgnore]
+    public string FullAddressDisplay
+    {
+        get
+        {
+            if (!string.IsNullOrWhiteSpace(Landmark))
+            {
+                return $"{Address} (Near: {Landmark})";
+            }
+            return Address;
+        }
+    }
+
+    [JsonIgnore]
+    public bool HasLandmark => !string.IsNullOrWhiteSpace(Landmark);
+
+    [JsonIgnore]
+    public bool IsNotDefault => !IsDefault;
+}
+
+public class SaveCustomerAddressInput
+{
+    [JsonPropertyName("id")]
+    public int? Id { get; set; }
+
+    [JsonPropertyName("customerId")]
+    public int? CustomerId { get; set; }
+
+    [JsonPropertyName("branchId")]
+    public int? BranchId { get; set; }
+
+    [JsonPropertyName("phone")]
+    public string? Phone { get; set; }
+
+    [JsonPropertyName("label")]
+    public string? Label { get; set; }
+
+    [JsonPropertyName("address")]
+    public string Address { get; set; } = string.Empty;
+
+    [JsonPropertyName("landmark")]
+    public string? Landmark { get; set; }
+
+    [JsonPropertyName("deliveryAreaId")]
+    public int? DeliveryAreaId { get; set; }
+
+    [JsonPropertyName("deliveryAreaName")]
+    public string? DeliveryAreaName { get; set; }
+
+    [JsonPropertyName("latitude")]
+    public double? Latitude { get; set; }
+
+    [JsonPropertyName("longitude")]
+    public double? Longitude { get; set; }
+
+    [JsonPropertyName("isDefault")]
+    public bool IsDefault { get; set; }
+}
+
+public class DeleteCustomerSavedAddressInput
+{
+    [JsonPropertyName("id")]
+    public int Id { get; set; }
+
+    [JsonPropertyName("phone")]
+    public string? Phone { get; set; }
+
+    [JsonPropertyName("branchId")]
+    public int? BranchId { get; set; }
+}
+
+public class OnlineCustomerProfileDto
+{
+    [JsonPropertyName("id")]
+    public int Id { get; set; }
+
+    [JsonPropertyName("branchId")]
+    public int BranchId { get; set; }
+
+    [JsonPropertyName("name")]
+    public string? Name { get; set; }
+
+    [JsonPropertyName("phone")]
+    public string? Phone { get; set; }
+
+    [JsonPropertyName("email")]
+    public string? Email { get; set; }
+
+    [JsonPropertyName("address")]
+    public string? Address { get; set; }
+
+    [JsonPropertyName("latitude")]
+    public double? Latitude { get; set; }
+
+    [JsonPropertyName("longitude")]
+    public double? Longitude { get; set; }
+
+    [JsonPropertyName("imagePath")]
+    public string? ImagePath { get; set; }
+
+    [JsonPropertyName("savedAddresses")]
+    public List<CustomerSavedAddressDto> SavedAddresses { get; set; } = new();
+}
+
+public class UpsertOnlineCustomerProfileInput
+{
+    [JsonPropertyName("branchId")]
+    public int? BranchId { get; set; }
+
+    [JsonPropertyName("name")]
+    public string Name { get; set; } = string.Empty;
+
+    [JsonPropertyName("phone")]
+    public string Phone { get; set; } = string.Empty;
+
+    [JsonPropertyName("email")]
+    public string? Email { get; set; }
+
+    [JsonPropertyName("address")]
+    public string? Address { get; set; }
+
+    [JsonPropertyName("latitude")]
+    public double? Latitude { get; set; }
+
+    [JsonPropertyName("longitude")]
+    public double? Longitude { get; set; }
+
+    [JsonPropertyName("imageBase64")]
+    public string? ImageBase64 { get; set; }
+}

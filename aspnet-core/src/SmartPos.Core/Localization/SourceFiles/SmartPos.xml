@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8" ?>
+<?xml version="1.0" encoding="utf-8" ?>
 <localizationDictionary culture="en">
   <texts>
     <text name="HomePage" value="Home page" />
@@ -27,6 +27,8 @@
     <text name="Surname" value="Surname" />
     <text name="EmailAddress" value="Email address" />
     <text name="Tenants" value="Tenants" />
+    <text name="Subscriptions" value="Subscriptions" />
+    <text name="Billing" value="Billing" />
     <text name="SavedSuccessfully" value="Saved successfully" />
     <text name="CreateNewTenant" value="Create new tenant" />
     <text name="AdminEmailAddress" value="Admin email address" />
@@ -104,6 +106,10 @@
     <text name="UserDeleteWarningMessage">User {0} will be deleted.</text>
     <text name="RoleDeleteWarningMessage">Role {0} will be deleted and unassigned from all assigned users.</text>
     <text name="TenantDeleteWarningMessage">Tenant {0} will be deleted.</text>
+    <text name="Departments" value="Departments" />
+    <text name="CreateDepartment" value="Create Department" />
+    <text name="EditDepartment" value="Edit Department" />
+    <text name="DeleteDepartment" value="Delete Department" />
     <text name="Categories" value="Categories" />
     <text name="CreateNewCategory" value="Create new category" />
     <text name="EditCategory" value="Edit category" />
@@ -114,6 +120,18 @@
     <text name="EmailTemplates" value="Email templates" />
     <text name="LookUps" value="Lookups" />
     <text name="HostCatalog" value="Company types" />
+    <text name="CreateHostCatalog" value="Create company type" />
+    <text name="EditHostCatalog" value="Edit company type" />
+    <text name="DeleteHostCatalog" value="Delete company type" />
+    <text name="Developers" value="Developers" />
+    <text name="CreateDeveloper" value="Create developer" />
+    <text name="EditDeveloper" value="Edit developer" />
+    <text name="DeleteDeveloper" value="Delete developer" />
+    <text name="RiderPortal" value="Rider portal" />
+    <text name="RiderDashboard" value="Rider dashboard" />
+    <text name="RiderOrderHistory" value="Rider order history" />
+    <text name="NotificationSettings" value="Notification settings" />
+    <text name="EditNotificationSettings" value="Edit notification settings" />
     <text name="CreateNewBrand" value="Create new brand" />
     <text name="EditBrand" value="Edit brand" />
     <text name="BrandName" value="Brand name" />
@@ -361,5 +379,15 @@
     <text name="AllStatuses">All statuses</text>
     <text name="InsufficientStock">Insufficient stock</text>
     <text name="View">View</text>
+    <text name="DeliveryAreas">Delivery Areas</text>
+    <text name="CreateDeliveryArea">Create Delivery Area</text>
+    <text name="EditDeliveryArea">Edit Delivery Area</text>
+    <text name="DeleteDeliveryArea">Delete Delivery Area</text>
+    <text name="OverrideDeliveryFee">Override Delivery Fee</text>
+    <text name="PointOfSale">Point of Sale (POS)</text>
+    <text name="DiningTables">Dining Tables</text>
+    <text name="CreateDiningTable">Create Dining Table</text>
+    <text name="EditDiningTable">Edit Dining Table</text>
+    <text name="DeleteDiningTable">Delete Dining Table</text>
   </texts>
 </localizationDictionary>

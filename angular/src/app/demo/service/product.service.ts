@@ -1,5 +1,5 @@
 import { HttpClient } from '@angular/common/http';
-import { Injectable } from '@angular/core';
+import { Injectable, Injector } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import {
     CreateProductDto,
@@ -9,14 +9,25 @@ import {
     ProductDto,
 } from 'src/app/demo/api/product';
 import { environment } from '../../../environments/environment';
+import { SaleService } from './sale.service';
+import { CustomerOrderService } from './customer-order.service';
+import { TtlCache, branchCacheKey } from './ttl-cache';
 
 @Injectable({
     providedIn: 'root',
 })
 export class ProductService {
     private readonly apiUrl = `${environment.apiUrl}/api/services/app/Product`;
+    private readonly listCache = new TtlCache<PagedResultDto<ProductDto>>(90 * 1000);
 
-    constructor(private http: HttpClient) {}
+    constructor(
+        private http: HttpClient,
+        private injector: Injector
+    ) {}
+
+    clearCache(): void {
+        this.listCache.clear();
+    }
 
     // Demo product helpers used by Sales dashboard widgets
     getProducts() {
@@ -37,8 +48,32 @@ export class ProductService {
 
     // POS / ABP Product API
     async getAll(
-        input?: PagedProductResultRequestDto
+        input?: PagedProductResultRequestDto,
+        forceRefresh = false
     ): Promise<PagedResultDto<ProductDto>> {
+        const cacheKey = branchCacheKey(
+            this.readBranchId(),
+            [
+                'list',
+                input?.keyword || '',
+                input?.categoryId ?? '',
+                input?.brandId ?? '',
+                input?.unitId ?? '',
+                input?.skipCount ?? 0,
+                input?.maxResultCount ?? 1000,
+            ].join('|')
+        );
+
+        if (!forceRefresh) {
+            const hit = this.listCache.get(cacheKey);
+            if (hit) {
+                return {
+                    items: hit.items.map((p) => ({ ...p })),
+                    totalCount: hit.totalCount,
+                };
+            }
+        }
+
         const params: any = {};
         if (input?.keyword) {
             params.Keyword = input.keyword;
@@ -65,13 +100,19 @@ export class ProductService {
         const result = this.unwrap(res, 'Failed to load products');
         const items = result.items || result.Items || [];
         const totalCount = result.totalCount ?? result.TotalCount ?? items.length;
-
-        return {
+        const mapped: PagedResultDto<ProductDto> = {
             items: (Array.isArray(items) ? items : []).map((item: any) =>
                 this.mapProduct(item)
             ),
             totalCount,
         };
+        this.listCache.set(cacheKey, mapped);
+        return mapped;
+    }
+
+    private readBranchId(): number | null {
+        const n = parseInt(localStorage.getItem('SmartPos.BranchId') || '', 10);
+        return Number.isFinite(n) && n > 0 ? n : null;
     }
 
     async get(id: number): Promise<ProductDto> {
@@ -86,7 +127,9 @@ export class ProductService {
             const res: any = await firstValueFrom(
                 this.http.post<any>(`${this.apiUrl}/Create`, input)
             );
-            return this.mapProduct(this.unwrap(res, 'Failed to create product'));
+            const product = this.mapProduct(this.unwrap(res, 'Failed to create product'));
+            this.invalidateCatalogCaches();
+            return product;
         } catch (error) {
             throw new Error(this.extractErrorMessage(error, 'Failed to create product'));
         }
@@ -112,9 +155,12 @@ export class ProductService {
                     imageBase64: input.imageBase64,
                     branchIds: input.branchIds,
                     specifications: input.specifications,
+                    cardTag: input.cardTag || null,
                 })
             );
-            return this.mapProduct(this.unwrap(res, 'Failed to update product'));
+            const product = this.mapProduct(this.unwrap(res, 'Failed to update product'));
+            this.invalidateCatalogCaches();
+            return product;
         } catch (error) {
             throw new Error(this.extractErrorMessage(error, 'Failed to update product'));
         }
@@ -126,10 +172,20 @@ export class ProductService {
                 params: { Id: id },
             })
         );
-        if (res == null) {
-            return;
+        if (res != null) {
+            this.unwrap(res, 'Failed to delete product');
         }
-        this.unwrap(res, 'Failed to delete product');
+        this.invalidateCatalogCaches();
+    }
+
+    private invalidateCatalogCaches(): void {
+        this.clearCache();
+        try {
+            this.injector.get(SaleService).clearPosCaches();
+            this.injector.get(CustomerOrderService).clearCache();
+        } catch {
+            // Ignore if services are unavailable during bootstrap.
+        }
     }
 
     getImageUrl(imagePath?: string): string {
@@ -202,7 +258,23 @@ export class ProductService {
             isShared: !!(item.isShared ?? item.IsShared),
             branchIds: item.branchIds ?? item.BranchIds ?? [],
             specifications: item.specifications ?? item.Specifications ?? undefined,
+            dealId: item.dealId ?? item.DealId,
+            isDeal: !!(item.isDeal ?? item.IsDeal),
+            cardTag: item.cardTag ?? item.CardTag ?? undefined,
+            // Default true when API/DB has not set the flag yet.
+            isVisibleOnline: item.isVisibleOnline ?? item.IsVisibleOnline ?? true,
         };
+    }
+
+    async setVisibleOnline(id: number, isVisibleOnline: boolean): Promise<void> {
+        const res: any = await firstValueFrom(
+            this.http.post<any>(`${this.apiUrl}/SetVisibleOnline`, {
+                id,
+                isVisibleOnline,
+            })
+        );
+        this.unwrap(res, 'Failed to update online visibility');
+        this.invalidateCatalogCaches();
     }
 
     async importProducts(rows: any[]): Promise<{ successCount: number; errorCount: number; errorMessages: string[] }> {

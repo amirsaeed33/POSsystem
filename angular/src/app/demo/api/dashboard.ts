@@ -1,9 +1,10 @@
-export interface DailyOverviewDto {
+﻿export interface DailyOverviewDto {
     date: string;
     dayLabel: string;
     sales: number;
     purchases: number;
     expenses: number;
+    costOfGoodsSold?: number;
     profit?: number;
 }
 
@@ -63,6 +64,7 @@ export interface MonthlyCashFlowDto {
     income: number;
     expense: number;
     purchases: number;
+    profit?: number;
 }
 
 export interface DashboardProductRowDto {
@@ -79,3 +81,25 @@ export interface DashboardProductRowDto {
     status: string;
     imagePath?: string;
 }
+
+
+// ONLINE-PIPELINE START
+export interface OnlineOrderPipelineStageDto {
+    status: number;
+    statusName: string;
+    count: number;
+}
+
+export interface OnlineOrderPipelineDto {
+    todayTotalOrders: number;
+    todayOrdersCount: number;
+    pendingCount: number;
+    approvedCount: number;
+    acceptedCount: number;
+    rejectedCount: number;
+    inProgressCount: number;
+    preparingCount: number;
+    deliveredCount: number;
+    stages: OnlineOrderPipelineStageDto[];
+}
+// ONLINE-PIPELINE END

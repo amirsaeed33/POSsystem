@@ -1,0 +1,169 @@
+using System.Net;
+using System.Reflection;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+using SmartPos.Mobile.Services;
+using SmartPos.Mobile.ViewModels;
+using SmartPos.Mobile.Views.Admin;
+using SmartPos.Mobile.Views.Auth;
+using SmartPos.Mobile.Views.Customer;
+using SmartPos.Mobile.Views.Rider;
+using SmartPos.Mobile.Views.Waiter;
+
+namespace SmartPos.Mobile;
+
+public static class MauiProgram
+{
+    public static MauiApp CreateMauiApp()
+    {
+        var builder = MauiApp.CreateBuilder();
+        builder
+            .UseMauiApp<App>()
+            .ConfigureFonts(fonts =>
+            {
+                fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
+                fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
+            })
+            .ConfigureMauiHandlers(handlers =>
+            {
+#if ANDROID
+                handlers.AddHandler(typeof(Shell), typeof(SmartPos.Mobile.Platforms.Android.ShellTabBarCollapse));
+#endif
+            });
+
+        // Remove native Entry/Editor underlines — custom Border wrappers provide the visible outline.
+        Microsoft.Maui.Handlers.EntryHandler.Mapper.AppendToMapping("NoUnderline", (handler, view) =>
+        {
+#if ANDROID
+            handler.PlatformView.Background = null;
+            handler.PlatformView.SetBackgroundColor(Android.Graphics.Color.Transparent);
+            handler.PlatformView.BackgroundTintList =
+                Android.Content.Res.ColorStateList.ValueOf(Android.Graphics.Color.Transparent);
+#elif IOS || MACCATALYST
+            handler.PlatformView.BorderStyle = UIKit.UITextBorderStyle.None;
+            handler.PlatformView.BackgroundColor = UIKit.UIColor.Clear;
+#elif WINDOWS
+            handler.PlatformView.BorderThickness = new Microsoft.UI.Xaml.Thickness(0);
+            handler.PlatformView.GotFocus += (_, _) =>
+            {
+                handler.PlatformView.BorderThickness = new Microsoft.UI.Xaml.Thickness(0);
+            };
+#endif
+        });
+
+        Microsoft.Maui.Handlers.EditorHandler.Mapper.AppendToMapping("NoUnderline", (handler, view) =>
+        {
+#if ANDROID
+            handler.PlatformView.Background = null;
+            handler.PlatformView.SetBackgroundColor(Android.Graphics.Color.Transparent);
+            handler.PlatformView.BackgroundTintList =
+                Android.Content.Res.ColorStateList.ValueOf(Android.Graphics.Color.Transparent);
+#elif IOS || MACCATALYST
+            handler.PlatformView.BackgroundColor = UIKit.UIColor.Clear;
+#elif WINDOWS
+            handler.PlatformView.BorderThickness = new Microsoft.UI.Xaml.Thickness(0);
+#endif
+        });
+
+#if ANDROID
+        // GraphicsView native surface defaults to black — keep it clear for curved nav overlays.
+        Microsoft.Maui.Handlers.GraphicsViewHandler.Mapper.AppendToMapping("TransparentSurface", (handler, view) =>
+        {
+            handler.PlatformView.SetBackgroundColor(Android.Graphics.Color.Transparent);
+            handler.PlatformView.SetBackgroundResource(0);
+        });
+#endif
+
+        using var settingsStream = Assembly.GetExecutingAssembly()
+            .GetManifestResourceStream("SmartPos.Mobile.appsettings.json");
+        var configBuilder = new ConfigurationBuilder();
+        if (settingsStream != null)
+        {
+            configBuilder.AddJsonStream(settingsStream);
+        }
+
+        var config = configBuilder.Build();
+        var settings = new AppSettings();
+        config.Bind(settings);
+        if (string.IsNullOrWhiteSpace(settings.ApiBaseUrl))
+        {
+            settings.ApiBaseUrl = "https://aljannatapp.com";
+        }
+
+        builder.Services.AddSingleton(settings);
+        builder.Services.AddSingleton<SessionService>();
+        builder.Services.AddSingleton<CartService>();
+        builder.Services.AddSingleton<AppState>();
+        builder.Services.AddSingleton<ProductCatalogCache>();
+        builder.Services.AddSingleton<DeliveryLocationService>();
+        builder.Services.AddSingleton<NavigationService>();
+        builder.Services.AddSingleton<LoadingService>();
+        builder.Services.AddSingleton<IAljannatDialogService, AljannatDialogService>();
+        builder.Services.AddSingleton(_ =>
+        {
+            var handler = new HttpClientHandler
+            {
+                AutomaticDecompression = DecompressionMethods.GZip
+                    | DecompressionMethods.Deflate
+                    | DecompressionMethods.Brotli
+            };
+            var client = new HttpClient(handler)
+            {
+                BaseAddress = new Uri(settings.ApiBaseUrl.TrimEnd('/') + "/"),
+                Timeout = TimeSpan.FromSeconds(60)
+            };
+            return client;
+        });
+        builder.Services.AddSingleton<AbpApiClient>();
+        builder.Services.AddSingleton<AuthService>();
+        builder.Services.AddSingleton<OnlineOrderService>();
+        builder.Services.AddSingleton<FavoritesService>();
+        builder.Services.AddSingleton<RiderOrderService>();
+        builder.Services.AddSingleton<RestaurantService>();
+        builder.Services.AddSingleton<DashboardService>();
+
+        builder.Services.AddTransient<LoginViewModel>();
+        builder.Services.AddTransient<UnsupportedStaffViewModel>();
+        builder.Services.AddTransient<AdminDashboardViewModel>();
+        builder.Services.AddTransient<CustomerHomeViewModel>();
+        builder.Services.AddTransient<CustomerOrderViewModel>();
+        builder.Services.AddTransient<FavoritesViewModel>();
+        builder.Services.AddTransient<ProductDetailViewModel>();
+        builder.Services.AddTransient<CartCheckoutViewModel>();
+        builder.Services.AddTransient<CustomerProfileViewModel>();
+        builder.Services.AddTransient<TrackOrderViewModel>();
+        builder.Services.AddTransient<OrderHistoryViewModel>();
+        builder.Services.AddTransient<RiderDashboardViewModel>();
+        builder.Services.AddTransient<RiderHistoryViewModel>();
+        builder.Services.AddTransient<WaiterTablesViewModel>();
+        builder.Services.AddTransient<WaiterOrderViewModel>();
+        builder.Services.AddTransient<WaiterMyOrdersViewModel>();
+
+        builder.Services.AddTransient<LoginPage>();
+        builder.Services.AddTransient<UnsupportedStaffPage>();
+        builder.Services.AddTransient<AdminDashboardPage>();
+        builder.Services.AddTransient<SplashScreenPage>();
+        builder.Services.AddTransient<CustomerHomePage>();
+        builder.Services.AddTransient<OrderPage>();
+        builder.Services.AddTransient<FavoritesPage>();
+        builder.Services.AddTransient<ProductDetailPage>();
+        builder.Services.AddTransient<CartPage>();
+        builder.Services.AddTransient<TrackOrderPage>();
+        builder.Services.AddTransient<OrderHistoryPage>();
+        builder.Services.AddTransient<CustomerProfilePage>();
+        builder.Services.AddTransient<RiderDashboardPage>();
+        builder.Services.AddTransient<RiderHistoryPage>();
+        builder.Services.AddTransient<WaiterTablesPage>();
+        builder.Services.AddTransient<WaiterOrderPage>();
+        builder.Services.AddTransient<WaiterCartPage>();
+        builder.Services.AddTransient<WaiterMyOrdersPage>();
+
+        builder.Services.AddSingleton<AppShell>();
+
+#if DEBUG
+        builder.Logging.AddDebug();
+#endif
+
+        return builder.Build();
+    }
+}

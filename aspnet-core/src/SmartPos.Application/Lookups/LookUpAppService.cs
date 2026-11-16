@@ -8,9 +8,11 @@ using Abp.Domain.Repositories;
 using Abp.Domain.Uow;
 using Abp.Extensions;
 using Abp.Linq.Extensions;
+using Abp.Runtime.Caching;
 using Abp.UI;
 using Microsoft.EntityFrameworkCore;
 using SmartPos.Authorization;
+using SmartPos.Caching;
 using SmartPos.Lookups.Dto;
 
 namespace SmartPos.Lookups
@@ -20,9 +22,17 @@ namespace SmartPos.Lookups
         AsyncCrudAppService<LookUp, LookUpDto, int, PagedLookUpResultRequestDto, CreateLookUpDto, LookUpDto>,
         ILookUpAppService
     {
-        public LookUpAppService(IRepository<LookUp> repository)
+        private readonly ICacheManager _cacheManager;
+        private readonly ISmartPosReadCacheInvalidator _readCacheInvalidator;
+
+        public LookUpAppService(
+            IRepository<LookUp> repository,
+            ICacheManager cacheManager,
+            ISmartPosReadCacheInvalidator readCacheInvalidator)
             : base(repository)
         {
+            _cacheManager = cacheManager;
+            _readCacheInvalidator = readCacheInvalidator;
         }
 
         public override async Task<LookUpDto> CreateAsync(CreateLookUpDto input)
@@ -30,7 +40,9 @@ namespace SmartPos.Lookups
             Normalize(input);
             input.Type = await EnsureValidTypeAsync(input.Type);
             await EnsureUniqueNameAsync(input.Type, input.Name, null);
-            return await base.CreateAsync(input);
+            var result = await base.CreateAsync(input);
+            await _readCacheInvalidator.ClearLookUpsAsync();
+            return result;
         }
 
         public override async Task<LookUpDto> UpdateAsync(LookUpDto input)
@@ -38,7 +50,15 @@ namespace SmartPos.Lookups
             Normalize(input);
             input.Type = await EnsureValidTypeAsync(input.Type);
             await EnsureUniqueNameAsync(input.Type, input.Name, input.Id);
-            return await base.UpdateAsync(input);
+            var result = await base.UpdateAsync(input);
+            await _readCacheInvalidator.ClearLookUpsAsync();
+            return result;
+        }
+
+        public override async Task DeleteAsync(EntityDto<int> input)
+        {
+            await base.DeleteAsync(input);
+            await _readCacheInvalidator.ClearLookUpsAsync();
         }
 
         /// <summary>Active lookups for a type — available to any authenticated user for dropdowns.</summary>
@@ -51,32 +71,45 @@ namespace SmartPos.Lookups
             }
 
             var normalizedType = type.Trim();
+            var cacheKey = SmartPosAppCaches.TenantBranchKey(
+                AbpSession.TenantId,
+                null,
+                $"Type_{normalizedType}");
+            var cache = SmartPosAppCaches.Typed<ListResultDto<LookUpDto>>(
+                _cacheManager,
+                SmartPosAppCaches.LookUpsByType,
+                TimeSpan.FromMinutes(30));
 
-            // BranchStatus is host-scoped so Branch.StatusId FKs stay stable across tenants.
-            if (string.Equals(normalizedType, LookUpTypes.BranchStatus, StringComparison.OrdinalIgnoreCase))
+            return await cache.GetAsync(cacheKey, async _ =>
             {
-                using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant))
+                // BranchStatus is host-scoped so Branch.StatusId FKs stay stable across tenants.
+                if (string.Equals(normalizedType, LookUpTypes.BranchStatus, StringComparison.OrdinalIgnoreCase))
                 {
-                    var hostItems = await Repository.GetAll()
-                        .Where(x =>
-                            x.TenantId == null
-                            && x.Type == LookUpTypes.BranchStatus
-                            && x.IsActive)
-                        .OrderBy(x => x.SortOrder)
-                        .ThenBy(x => x.DisplayName)
-                        .ToListAsync();
+                    using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant))
+                    {
+                        var hostItems = await Repository.GetAll()
+                            .AsNoTracking()
+                            .Where(x =>
+                                x.TenantId == null
+                                && x.Type == LookUpTypes.BranchStatus
+                                && x.IsActive)
+                            .OrderBy(x => x.SortOrder)
+                            .ThenBy(x => x.DisplayName)
+                            .ToListAsync();
 
-                    return new ListResultDto<LookUpDto>(hostItems.Select(MapToEntityDto).ToList());
+                        return new ListResultDto<LookUpDto>(hostItems.Select(MapToEntityDto).ToList());
+                    }
                 }
-            }
 
-            var items = await Repository.GetAll()
-                .Where(x => x.Type == normalizedType && x.IsActive)
-                .OrderBy(x => x.SortOrder)
-                .ThenBy(x => x.DisplayName)
-                .ToListAsync();
+                var items = await Repository.GetAll()
+                    .AsNoTracking()
+                    .Where(x => x.Type == normalizedType && x.IsActive)
+                    .OrderBy(x => x.SortOrder)
+                    .ThenBy(x => x.DisplayName)
+                    .ToListAsync();
 
-            return new ListResultDto<LookUpDto>(items.Select(MapToEntityDto).ToList());
+                return new ListResultDto<LookUpDto>(items.Select(MapToEntityDto).ToList());
+            });
         }
 
         protected override IQueryable<LookUp> CreateFilteredQuery(PagedLookUpResultRequestDto input)

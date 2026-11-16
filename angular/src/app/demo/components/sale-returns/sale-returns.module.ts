@@ -41,6 +41,6 @@ import { SaleReturnViewDialogComponent } from './sale-return-view-dialog.compone
         SaleReturnFormDialogComponent,
         SaleReturnViewDialogComponent,
     ],
-    exports: [SaleReturnFormDialogComponent],
+    exports: [SaleReturnFormDialogComponent, SaleReturnViewDialogComponent],
 })
 export class SaleReturnsModule {}

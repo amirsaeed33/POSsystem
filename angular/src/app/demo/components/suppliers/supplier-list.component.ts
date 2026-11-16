@@ -21,6 +21,10 @@ export class SupplierListComponent implements OnInit {
     dialogVisible = false;
     editingSupplierId: number | null = null;
 
+    assignDialogVisible = false;
+    assignSupplierId: number | null = null;
+    assignSupplierName = '';
+
     canCreate = false;
     canEdit = false;
     canDelete = false;
@@ -33,6 +37,12 @@ export class SupplierListComponent implements OnInit {
                 icon: 'pi pi-pencil',
                 color: 'blue',
                 action: () => this.openEditDialog(supplier),
+            });
+            actions.push({
+                label: 'Assign Products',
+                icon: 'pi pi-box',
+                color: 'blue',
+                action: () => this.openAssignProductsDialog(supplier),
             });
         }
         if (this.canDelete) {
@@ -100,6 +110,12 @@ export class SupplierListComponent implements OnInit {
     openEditDialog(supplier: SupplierDto): void {
         this.editingSupplierId = supplier.id;
         this.dialogVisible = true;
+    }
+
+    openAssignProductsDialog(supplier: SupplierDto): void {
+        this.assignSupplierId = supplier.id;
+        this.assignSupplierName = supplier.name || '';
+        this.assignDialogVisible = true;
     }
 
     onDialogSaved(): void {

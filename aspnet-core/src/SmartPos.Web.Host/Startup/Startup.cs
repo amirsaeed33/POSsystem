@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Reflection;
 using Microsoft.AspNetCore.Builder;
@@ -10,12 +10,16 @@ using Castle.Facilities.Logging;
 using Abp.AspNetCore;
 using Abp.Castle.Logging.Log4Net;
 using Abp.Extensions;
+using SmartPos.Branches;
 using SmartPos.Configuration;
 using SmartPos.Identity;
 using Abp.AspNetCore.SignalR.Hubs;
 using Microsoft.Extensions.Hosting;
 using Microsoft.OpenApi.Models;
 using System.IO;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Net.Http.Headers;
+using SmartPos.Chat;
 
 namespace SmartPos.Web.Host.Startup
 {
@@ -70,10 +74,15 @@ namespace SmartPos.Web.Host.Startup
                                 return true;
                             }
 
-                            // Allow free static hosts + local tunnel demos
+                            // Allow free static hosts + local tunnel demos + registered client domains
                             try
                             {
                                 var host = new Uri(origin).Host;
+                                if (StorefrontDomainRegistry.ContainsHost(host))
+                                {
+                                    return true;
+                                }
+
                                 return host.EndsWith(".ngrok-free.dev", StringComparison.OrdinalIgnoreCase)
                                        || host.EndsWith(".ngrok-free.app", StringComparison.OrdinalIgnoreCase)
                                        || host.EndsWith(".ngrok.io", StringComparison.OrdinalIgnoreCase)
@@ -82,7 +91,9 @@ namespace SmartPos.Web.Host.Startup
                                        || host.EndsWith(".pages.dev", StringComparison.OrdinalIgnoreCase)
                                        || host.EndsWith(".vercel.app", StringComparison.OrdinalIgnoreCase)
                                        || host.EndsWith(".web.app", StringComparison.OrdinalIgnoreCase)
-                                       || host.EndsWith(".firebaseapp.com", StringComparison.OrdinalIgnoreCase);
+                                       || host.EndsWith(".firebaseapp.com", StringComparison.OrdinalIgnoreCase)
+                                       || host.EndsWith(".runasp.net", StringComparison.OrdinalIgnoreCase)
+                                       || host.EndsWith(".siteasp.net", StringComparison.OrdinalIgnoreCase);
                             }
                             catch
                             {
@@ -116,7 +127,72 @@ namespace SmartPos.Web.Host.Startup
 
             app.UseCors(_defaultCorsPolicyName); // Enable CORS!
 
-            app.UseStaticFiles();
+            var staticFileOptions = new StaticFileOptions
+            {
+                OnPrepareResponse = ctx =>
+                {
+                    var headers = ctx.Context.Response.GetTypedHeaders();
+                    var path = ctx.Context.Request.Path.Value ?? string.Empty;
+                    // Hashed Angular bundles (main.abc123.js) can be cached long-term.
+                    if (path.EndsWith(".js", StringComparison.OrdinalIgnoreCase)
+                        || path.EndsWith(".css", StringComparison.OrdinalIgnoreCase)
+                        || path.EndsWith(".woff2", StringComparison.OrdinalIgnoreCase)
+                        || path.EndsWith(".woff", StringComparison.OrdinalIgnoreCase))
+                    {
+                        headers.CacheControl = new CacheControlHeaderValue
+                        {
+                            Public = true,
+                            MaxAge = TimeSpan.FromDays(30)
+                        };
+                    }
+                    else if (path.StartsWith("/assets/", StringComparison.OrdinalIgnoreCase)
+                             || path.StartsWith("/ProductImages/", StringComparison.OrdinalIgnoreCase)
+                             || path.StartsWith("/BranchImages/", StringComparison.OrdinalIgnoreCase)
+                             || path.StartsWith("/CompanyImages/", StringComparison.OrdinalIgnoreCase)
+                             || path.StartsWith("/CategoryImages/", StringComparison.OrdinalIgnoreCase)
+                             || path.StartsWith("/DeveloperImages/", StringComparison.OrdinalIgnoreCase)
+                             || path.StartsWith("/CustomerImages/", StringComparison.OrdinalIgnoreCase)
+                             || path.StartsWith("/OnlineOrderHeroImages/", StringComparison.OrdinalIgnoreCase)
+                             || path.StartsWith("/UserImages/", StringComparison.OrdinalIgnoreCase))
+                    {
+                        headers.CacheControl = new CacheControlHeaderValue
+                        {
+                            Public = true,
+                            MaxAge = TimeSpan.FromDays(7)
+                        };
+                    }
+                    else if (path.Equals("/index.html", StringComparison.OrdinalIgnoreCase) || path == "/" || path.Length == 0)
+                    {
+                        headers.CacheControl = new CacheControlHeaderValue
+                        {
+                            NoCache = true,
+                            NoStore = true,
+                            MustRevalidate = true
+                        };
+                    }
+                }
+            };
+
+            app.UseDefaultFiles();
+            app.UseStaticFiles(staticFileOptions);
+
+            // Angular PathLocationStrategy deep links → index.html, without stealing API/ABP JSON routes.
+            app.Use(async (context, next) =>
+            {
+                if (HttpMethods.IsGet(context.Request.Method) || HttpMethods.IsHead(context.Request.Method))
+                {
+                    var path = context.Request.Path.Value ?? string.Empty;
+                    if (IsAngularSpaPath(path))
+                    {
+                        context.Request.Path = "/index.html";
+                    }
+                }
+
+                await next();
+            });
+            // Serve rewritten /index.html after SPA path rewrite.
+            app.UseDefaultFiles();
+            app.UseStaticFiles(staticFileOptions);
 
             app.UseRouting();
 
@@ -124,13 +200,6 @@ namespace SmartPos.Web.Host.Startup
             app.UseAuthorization();
 
             app.UseAbpRequestLocalization();
-
-            app.UseEndpoints(endpoints =>
-            {
-                endpoints.MapHub<AbpCommonHub>("/signalr");
-                endpoints.MapControllerRoute("default", "{controller=Home}/{action=Index}/{id?}");
-                endpoints.MapControllerRoute("defaultWithArea", "{area}/{controller=Home}/{action=Index}/{id?}");
-            });
 
             // Enable middleware to serve generated Swagger as a JSON endpoint
             app.UseSwagger(c => { c.RouteTemplate = "swagger/{documentName}/swagger.json"; });
@@ -144,6 +213,52 @@ namespace SmartPos.Web.Host.Startup
                     .GetManifestResourceStream("SmartPos.Web.Host.wwwroot.swagger.ui.index.html");
                 options.DisplayRequestDuration(); // Controls the display of the request duration (in milliseconds) for "Try it out" requests.
             }); // URL: /swagger
+
+            app.UseEndpoints(endpoints =>
+            {
+                // Cheap warm-up / uptime ping (no DB). Used by IIS applicationInitialization when available.
+                endpoints.MapGet("/health", async context =>
+                {
+                    context.Response.ContentType = "text/plain";
+                    await context.Response.WriteAsync("ok");
+                });
+                endpoints.MapHub<AbpCommonHub>("/signalr");
+                endpoints.MapHub<OrderChatHub>("/signalr-order-chat");
+                endpoints.MapControllers(); // attribute routes (robots.txt / sitemap.xml)
+                endpoints.MapControllerRoute("default", "{controller=Home}/{action=Index}/{id?}");
+                endpoints.MapControllerRoute("defaultWithArea", "{area}/{controller=Home}/{action=Index}/{id?}");
+            });
+        }
+
+        /// <summary>
+        /// Angular client routes that must be rewritten to wwwroot/index.html.
+        /// </summary>
+        private static bool IsAngularSpaPath(string path)
+        {
+            if (string.IsNullOrEmpty(path) || path == "/")
+            {
+                return false;
+            }
+
+            if (Path.HasExtension(path))
+            {
+                return false;
+            }
+
+            if (path.StartsWith("/api", StringComparison.OrdinalIgnoreCase)
+                || path.StartsWith("/swagger", StringComparison.OrdinalIgnoreCase)
+                || path.StartsWith("/signalr", StringComparison.OrdinalIgnoreCase)
+                || path.StartsWith("/Abp", StringComparison.OrdinalIgnoreCase)
+                || path.StartsWith("/Home", StringComparison.OrdinalIgnoreCase)
+                || path.StartsWith("/AntiForgery", StringComparison.OrdinalIgnoreCase)
+                || path.Equals("/health", StringComparison.OrdinalIgnoreCase)
+                || path.Equals("/robots.txt", StringComparison.OrdinalIgnoreCase)
+                || path.Equals("/sitemap.xml", StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            return true;
         }
 
         private void ConfigureSwagger(IServiceCollection services)

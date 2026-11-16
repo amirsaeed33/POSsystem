@@ -15,6 +15,7 @@ using SmartPos.Authorization;
 using SmartPos.Authorization.Users;
 using SmartPos.Branches;
 using SmartPos.Units.Dto;
+using SmartPos.Validation;
 
 namespace SmartPos.Units
 {
@@ -47,14 +48,25 @@ namespace SmartPos.Units
         {
             CheckCreatePermission();
             var branchId = RequireCurrentBranchId();
+            var name = EntityNameValidation.EnsureValid(input.Name, "Unit");
+
+            var existing = await Repository.FirstOrDefaultAsync(u =>
+                u.BranchId == branchId &&
+                u.Name.ToLower() == name.ToLower());
+            if (existing != null)
+            {
+                throw new UserFriendlyException($"Unit '{name}' already exists in this location.");
+            }
+
             var entity = ObjectMapper.Map<Unit>(input);
+            entity.Name = name;
             entity.TenantId = AbpSession.TenantId;
             entity.BranchId = branchId;
             entity.IsActive = input.IsActive;
             entity.Symbol = input.Symbol?.Trim();
             if (string.IsNullOrWhiteSpace(entity.Description))
             {
-                entity.Description = input.Name;
+                entity.Description = name;
             }
             await Repository.InsertAsync(entity);
             await CurrentUnitOfWork.SaveChangesAsync();
@@ -70,7 +82,20 @@ namespace SmartPos.Units
             {
                 entity.BranchId = RequireCurrentBranchId();
             }
+
+            var name = EntityNameValidation.EnsureValid(input.Name, "Unit");
+
+            var existing = await Repository.FirstOrDefaultAsync(u =>
+                u.Id != input.Id &&
+                u.BranchId == entity.BranchId &&
+                u.Name.ToLower() == name.ToLower());
+            if (existing != null)
+            {
+                throw new UserFriendlyException($"Unit '{name}' already exists in this location.");
+            }
+
             ObjectMapper.Map(input, entity);
+            entity.Name = name;
             if (entity.BranchId <= 0)
             {
                 entity.BranchId = RequireCurrentBranchId();
@@ -145,7 +170,7 @@ namespace SmartPos.Units
         {
             var branchId = ResolveBranchId();
             return Repository.GetAll()
-                .WhereIf(branchId.HasValue, x => x.BranchId == branchId.Value || x.BranchId == 0)
+                .WhereIf(branchId.HasValue, x => x.BranchId == branchId.Value)
                 .WhereIf(!input.Keyword.IsNullOrWhiteSpace(),
                     x => x.Name.Contains(input.Keyword)
                          || (x.Description != null && x.Description.Contains(input.Keyword))

@@ -158,6 +158,15 @@
                 </div>
             </div>
 
+            <div
+                *ngIf="selectedPayrollForPay.paymentStatus === 1 && !selectedPayrollForPay.isAccountingPosted"
+                class="p-3 border-round bg-orange-50 text-orange-800 text-sm"
+            >
+                This salary was marked Paid without updating accounts. Confirm to post
+                <strong>{{ selectedPayrollForPay.netSalary }}</strong>
+                to the selected Cash/Bank account and Expense.
+            </div>
+
             <div class="field" *ngIf="paymentAccounts.length > 0">
                 <label for="payAccount" class="font-medium">Paid From (Account)</label>
                 <p-dropdown

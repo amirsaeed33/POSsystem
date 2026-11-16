@@ -45,14 +45,32 @@
 
             <div class="flex flex-column gap-2">
                 <label for="customerAddress" class="font-medium">Address</label>
-                <textarea id="customerAddress" pInputTextarea rows="2" class="w-full" maxlength="512"
-                    [(ngModel)]="customer.address" [disabled]="saving"></textarea>
+                <textarea
+                    id="customerAddress"
+                    pInputTextarea
+                    rows="3"
+                    class="w-full p-inputtextarea"
+                    maxlength="512"
+                    [(ngModel)]="customer.address"
+                    [disabled]="saving"
+                    placeholder="House / street / area"
+                    [autoResize]="true"
+                ></textarea>
             </div>
 
             <div class="flex flex-column gap-2">
                 <label for="customerDescription" class="font-medium">Description</label>
-                <textarea id="customerDescription" pInputTextarea rows="2" class="w-full" maxlength="512"
-                    [(ngModel)]="customer.description" [disabled]="saving"></textarea>
+                <textarea
+                    id="customerDescription"
+                    pInputTextarea
+                    rows="3"
+                    class="w-full p-inputtextarea"
+                    maxlength="512"
+                    [(ngModel)]="customer.description"
+                    [disabled]="saving"
+                    placeholder="Optional notes about this customer"
+                    [autoResize]="true"
+                ></textarea>
             </div>
         </ng-container>
     </div>

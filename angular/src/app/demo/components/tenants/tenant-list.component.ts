@@ -1,15 +1,18 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ViewChild } from '@angular/core';
 import { Table } from 'primeng/table';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { TenantDto } from 'src/app/demo/api/tenant';
+import { SubscriptionService, TenantSubscriptionDto } from 'src/app/demo/service/subscription.service';
 import { TenantService } from 'src/app/demo/service/tenant.service';
 import { RowActionItem } from 'src/app/shared/components/row-actions/row-actions.component';
+import { TenantSubscriptionDialogComponent } from './tenant-subscription-dialog.component';
 
 @Component({
     templateUrl: './tenant-list.component.html',
     providers: [MessageService, ConfirmationService],
 })
 export class TenantListComponent implements OnInit {
+    @ViewChild(TenantSubscriptionDialogComponent) subscriptionDialog?: TenantSubscriptionDialogComponent;
     tenants: TenantDto[] = [];
     loading = false;
     totalRecords = 0;
@@ -17,9 +20,16 @@ export class TenantListComponent implements OnInit {
 
     dialogVisible = false;
     editingTenantId: number | null = null;
+    subscriptions = new Map<number, TenantSubscriptionDto>();
 
     getRowActions(tenant: TenantDto): RowActionItem[] {
         return [
+            {
+                label: 'Subscription',
+                icon: 'pi pi-credit-card',
+                color: 'green',
+                action: () => this.openSubscription(tenant)
+            },
             {
                 label: 'Edit',
                 icon: 'pi pi-pencil',
@@ -37,12 +47,42 @@ export class TenantListComponent implements OnInit {
 
     constructor(
         private tenantService: TenantService,
+        private billing: SubscriptionService,
         private messageService: MessageService,
         private confirmationService: ConfirmationService
     ) {}
 
     ngOnInit(): void {
         this.loadTenants();
+        void this.loadSubscriptions();
+    }
+
+    planLabel(tenant: TenantDto): string {
+        const row = this.subscriptions.get(tenant.id);
+        if (!row?.planName) {
+            return 'No plan';
+        }
+        const until = row.paidUntil
+            ? new Date(row.paidUntil).toLocaleDateString('en-GB')
+            : 'unpaid';
+        return `${row.planName} · ${until} · ${row.daysLeft}d`;
+    }
+
+    openSubscription(tenant: TenantDto): void {
+        void this.subscriptionDialog?.open(tenant.id, tenant.name || tenant.tenancyName);
+    }
+
+    onSubscriptionSaved(): void {
+        void this.loadSubscriptions();
+    }
+
+    private async loadSubscriptions(): Promise<void> {
+        try {
+            const rows = await this.billing.getSubscriptions();
+            this.subscriptions = new Map(rows.map((row) => [row.tenantId, row]));
+        } catch {
+            this.subscriptions = new Map();
+        }
     }
 
     loadTenants(): void {

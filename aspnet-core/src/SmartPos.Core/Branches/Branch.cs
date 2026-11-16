@@ -22,6 +22,12 @@ namespace SmartPos.Branches
         public const int MaxActivationTokenHashLength = 128;
         public const int MaxDateFormatLength = 32;
         public const int MaxCurrencyFormatLength = 32;
+        public const int MaxSoftwareDeveloperNameLength = 256;
+        public const int MaxSoftwareDeveloperPhoneLength = 64;
+        public const int MaxCustomerFeedbackNameLength = 128;
+        public const int MaxCustomerFeedbackRoleLength = 128;
+        public const int MaxCustomerFeedbackCityLength = 128;
+        public const int MaxCustomerFeedbackCommentLength = 1000;
 
         public virtual int? TenantId { get; set; }
 
@@ -61,6 +67,29 @@ namespace SmartPos.Branches
         [StringLength(MaxWebsiteLength)]
         public virtual string Website { get; set; }
 
+        /// <summary>
+        /// Custom storefront hostname (e.g. almeezanfoods.com), no protocol.
+        /// When visitors open this host they land on this branch's online-order page.
+        /// </summary>
+        [StringLength(MaxCustomDomainLength)]
+        public virtual string CustomDomain { get; set; }
+
+        /// <summary>Public brand title for SEO on the custom-domain storefront.</summary>
+        [StringLength(MaxStorefrontTitleLength)]
+        public virtual string StorefrontTitle { get; set; }
+
+        public const int MaxCustomDomainLength = 256;
+        public const int MaxStorefrontTitleLength = 256;
+
+        [StringLength(MaxWebsiteLength)]
+        public virtual string FacebookUrl { get; set; }
+
+        [StringLength(MaxWebsiteLength)]
+        public virtual string InstagramUrl { get; set; }
+
+        [StringLength(MaxWebsiteLength)]
+        public virtual string YoutubeUrl { get; set; }
+
         [StringLength(MaxDateFormatLength)]
         public virtual string DateFormat { get; set; } = "dd/MM/yyyy";
 
@@ -69,6 +98,34 @@ namespace SmartPos.Branches
 
         [StringLength(MaxInvoiceFooterLength)]
         public virtual string InvoiceFooter { get; set; }
+
+        [StringLength(MaxSoftwareDeveloperNameLength)]
+        public virtual string SoftwareDeveloperName { get; set; } = "Software develop by AlZarrTach";
+
+        [StringLength(MaxSoftwareDeveloperPhoneLength)]
+        public virtual string SoftwareDeveloperPhone { get; set; } = "03167854606";
+
+        /// <summary>Public product-page testimonial: customer / owner display name.</summary>
+        [StringLength(MaxCustomerFeedbackNameLength)]
+        public virtual string CustomerFeedbackName { get; set; }
+
+        /// <summary>Public product-page testimonial: role (Owner, Manager, …).</summary>
+        [StringLength(MaxCustomerFeedbackRoleLength)]
+        public virtual string CustomerFeedbackRole { get; set; }
+
+        /// <summary>Public product-page testimonial: city.</summary>
+        [StringLength(MaxCustomerFeedbackCityLength)]
+        public virtual string CustomerFeedbackCity { get; set; }
+
+        /// <summary>Public product-page testimonial quote.</summary>
+        [StringLength(MaxCustomerFeedbackCommentLength)]
+        public virtual string CustomerFeedbackComment { get; set; }
+
+        /// <summary>Public product-page star rating (1–5). 0 means unset.</summary>
+        public virtual int CustomerFeedbackRating { get; set; }
+
+        /// <summary>When true, this branch feedback is shown on the public product page.</summary>
+        public virtual bool ShowCustomerFeedback { get; set; }
 
         /// <summary>Default tax % applied on sales for this location.</summary>
         public virtual decimal TaxPercent { get; set; }
@@ -79,10 +136,41 @@ namespace SmartPos.Branches
         /// <summary>Default discount amount applied on sales for this location.</summary>
         public virtual decimal DiscountAmount { get; set; }
 
+        /// <summary>Business type for this location: Retail = 1, Restaurant = 2.</summary>
+        public virtual BusinessType BusinessType { get; set; } = BusinessType.Retail;
+
+        /// <summary>Optional default dine-in service charge % applied for restaurant branches.</summary>
+        public virtual decimal ServiceChargePercent { get; set; }
+
+        /// <summary>
+        /// For restaurant branches: when true, automatically assign available waiter to tables.
+        /// When false, prompt admin to choose a waiter manually. Default is true.
+        /// </summary>
+        public virtual bool AutoAssignWaiterToTables { get; set; } = true;
+
         /// <summary>SHA256 (Base64) of the one-time branch activation token emailed after host approval.</summary>
         [StringLength(MaxActivationTokenHashLength)]
         public virtual string ActivationTokenHash { get; set; }
 
         public virtual DateTime? ActivationTokenExpiresAt { get; set; }
+
+        /// <summary>Optional GPS Latitude of this store / branch location.</summary>
+        public virtual double? Latitude { get; set; }
+
+        /// <summary>Optional GPS Longitude of this store / branch location.</summary>
+        public virtual double? Longitude { get; set; }
+
+        /// <summary>
+        /// Radius in feet for waiter/rider auto attendance check-in on login.
+        /// Staff within this distance of the branch pin are marked Present automatically.
+        /// (DB column name remains AttendanceAutoCheckInRadiusGaz for compatibility.)
+        /// </summary>
+        [Column("AttendanceAutoCheckInRadiusGaz")]
+        public virtual int AttendanceAutoCheckInRadiusFeet { get; set; } = DefaultAttendanceAutoCheckInRadiusFeet;
+
+        public const int DefaultAttendanceAutoCheckInRadiusFeet = 200;
+
+        /// <summary>1 foot = 0.3048 meters.</summary>
+        public const double FeetToMeters = 0.3048;
     }
 }

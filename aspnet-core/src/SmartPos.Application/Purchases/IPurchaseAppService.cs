@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Threading.Tasks;
 using Abp.Application.Services;
@@ -24,5 +25,7 @@ namespace SmartPos.Purchases
     public interface IPurchaseAppService : IAsyncCrudAppService<PurchaseDto, int, PagedPurchaseResultRequestDto, CreatePurchaseDto, PurchaseDto>
     {
         Task PayPurchaseAsync(MakePaymentInputDto input);
+
+        Task<List<PurchasePaymentHistoryDto>> GetPaymentHistoryAsync(EntityDto input);
     }
 }

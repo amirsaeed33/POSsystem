@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Abp.Application.Services;
 using Abp.Application.Services.Dto;
+using Abp.Authorization;
 using SmartPos.Customers.Dto;
 using SmartPos.Products.Dto;
 using SmartPos.Sales.Dto;
@@ -17,7 +18,7 @@ namespace SmartPos.Sales
         /// </summary>
         Task<ProductDto> GetPosProductAsync(string keyword);
 
-        Task<ListResultDto<ProductDto>> GetPosProductSuggestionsAsync(string keyword);
+        Task<ListResultDto<ProductDto>> GetPosProductSuggestionsAsync(string keyword, int? categoryId = null);
 
         /// <summary>
         /// Customers for POS / sale entry. Requires Pages.Sales only (not Pages.Customers).
@@ -27,10 +28,24 @@ namespace SmartPos.Sales
         /// <summary>
         /// Products for sale entry forms. Requires Pages.Sales only (not Pages.Products).
         /// </summary>
-        Task<ListResultDto<ProductDto>> GetPosProductsAsync();
+        Task<ListResultDto<ProductDto>> GetPosProductsAsync(int? categoryId = null);
 
         Task<ListResultDto<ProductDto>> GetTopSellingProductsAsync(int maxCount = 5);
 
+        [AbpAllowAnonymous]
+        [RemoteService(false)]
         Task<SaleDto> CreateSaleInternalAsync(CreateSaleDto input);
+
+        [AbpAllowAnonymous]
+        [RemoteService(false)]
+        Task<SaleDto> CreateSaleForCustomerOrderAsync(int orderId, decimal? paymentReceivedAmount = null);
+
+        [AbpAllowAnonymous]
+        [RemoteService(false)]
+        Task SyncDeliveredCustomerOrderSalesAsync(int? branchId = null);
+
+        Task<SaleDto> CollectPaymentAsync(CollectSalePaymentDto input);
+
+        Task<DepartmentSalesReportDto> GetDepartmentSalesAsync(GetDepartmentSalesInput input);
     }
 }

@@ -39,8 +39,8 @@ namespace SmartPos.Staffs
         [StringLength(MaxEmailLength)]
         public virtual string Email { get; set; }
 
-        [StringLength(MaxAddressLength)]
-        public virtual string Address { get; set; }
+        // Address lives on AppSavedAddresses (OwnerType = Staff).
+        // MaxAddressLength kept for DTO string limits.
 
         [StringLength(MaxDesignationLength)]
         public virtual string Designation { get; set; }

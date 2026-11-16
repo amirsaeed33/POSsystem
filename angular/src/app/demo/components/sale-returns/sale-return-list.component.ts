@@ -5,6 +5,7 @@ import { ConfirmationService, MessageService } from 'primeng/api';
 import { SaleReturnDto } from 'src/app/demo/api/sale-return';
 import { SaleReturnService } from 'src/app/demo/service/sale-return.service';
 import { RowActionItem } from 'src/app/shared/components/row-actions/row-actions.component';
+import { ThermalPrintService } from 'src/app/demo/service/thermal-print.service';
 
 @Component({
     templateUrl: './sale-return-list.component.html',
@@ -27,25 +28,44 @@ export class SaleReturnListComponent implements OnInit {
                 label: 'View details',
                 icon: 'pi pi-eye',
                 color: 'blue',
-                action: () => this.openViewDialog(item)
+                action: () => this.openViewDialog(item),
+            },
+            {
+                label: 'Print Thermal Receipt',
+                icon: 'pi pi-print',
+                color: 'green',
+                action: () => this.printReceipt(item),
             },
             {
                 label: 'Delete',
                 icon: 'pi pi-trash',
                 color: 'red',
-                action: () => this.onDelete(item)
-            }
+                action: () => this.onDelete(item),
+            },
         ];
     }
 
-    constructor(public formatService: AppFormatService, 
+    constructor(
+        public formatService: AppFormatService,
         private saleReturnService: SaleReturnService,
+        private thermalPrintService: ThermalPrintService,
         private messageService: MessageService,
         private confirmationService: ConfirmationService
     ) {}
 
     ngOnInit(): void {
         this.loadReturns();
+    }
+
+    printReceipt(item: SaleReturnDto): void {
+        this.saleReturnService
+            .get(item.id)
+            .then((fullReturn) => {
+                this.thermalPrintService.printSaleReturn(fullReturn);
+            })
+            .catch(() => {
+                this.thermalPrintService.printSaleReturn(item);
+            });
     }
 
     loadReturns(): void {

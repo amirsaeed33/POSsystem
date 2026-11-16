@@ -10,6 +10,7 @@ using SmartPos.Branches;
 using SmartPos.Brands;
 using SmartPos.Categories;
 using SmartPos.Units;
+using Abp.Timing;
 
 namespace SmartPos.HostCatalog
 {
@@ -65,7 +66,7 @@ namespace SmartPos.HostCatalog
 
                 request.Status = BranchSeedRequestStatuses.Approved;
                 request.ApprovedByUserId = approvedByUserId;
-                request.ApprovedDate = DateTime.UtcNow;
+                request.ApprovedDate = Clock.Now;
 
                 var hostItemIds = request.Items?.Select(x => x.HostItemId).Distinct().ToList()
                                   ?? new System.Collections.Generic.List<int>();
@@ -106,7 +107,7 @@ namespace SmartPos.HostCatalog
 
                 request.Status = BranchSeedRequestStatuses.Rejected;
                 request.ApprovedByUserId = approvedByUserId;
-                request.ApprovedDate = DateTime.UtcNow;
+                request.ApprovedDate = Clock.Now;
                 await _unitOfWorkManager.Current.SaveChangesAsync();
             }
         }

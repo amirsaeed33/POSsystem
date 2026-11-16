@@ -12,14 +12,18 @@
                 </div>
             </div>
 
-            <!-- Cart Trigger Button -->
+            <!-- Cart Trigger Button (#storeCartFlyTarget for fly-in animation) -->
             <button
                 pButton
                 type="button"
+                id="storeCartFlyTarget"
                 class="p-button-primary border-round-xl px-3 py-2 flex align-items-center gap-2 shadow-2"
                 (click)="cartService.sidebarVisible = true"
             >
-                <i class="pi pi-shopping-cart text-lg"></i>
+                <span class="fp-cart-mouth" aria-hidden="true">
+                    <i class="pi pi-shopping-cart text-lg fp-cart-mouth-icon"></i>
+                    <span class="fp-cart-mouth-lid"></span>
+                </span>
                 <span class="font-bold hidden sm:inline">My Cart</span>
                 <span
                     *ngIf="cartService.totalItemsCount > 0"
@@ -83,25 +87,18 @@
                             </div>
 
                             <!-- Product Image -->
-                            <ng-container *ngIf="product.imagePath; else noImageTpl">
-                                <div class="w-full flex flex-column align-items-center justify-content-center py-4">
-                                    <p-image
-                                        [src]="getImageUrl(product.imagePath)"
-                                        [alt]="product.name"
-                                        [preview]="true"
-                                        imageClass="max-w-full h-18rem md:h-22rem object-contain transition-transform transition-duration-300 hover:scale-105"
-                                        styleClass="flex justify-content-center align-items-center"
-                                    ></p-image>
-                                    <span class="text-xs text-500 mt-3 flex align-items-center gap-1 font-medium">
-                                        <i class="pi pi-search-plus text-xs text-primary"></i> Click image to inspect & zoom
-                                    </span>
-                                </div>
-                            </ng-container>
-                            <ng-template #noImageTpl>
-                                <div class="w-10rem h-10rem border-circle bg-primary-50 text-primary font-bold flex align-items-center justify-content-center text-6xl shadow-2 my-5">
-                                    {{ getInitials(product.name) }}
-                                </div>
-                            </ng-template>
+                            <div class="w-full flex flex-column align-items-center justify-content-center py-4">
+                                <p-image
+                                    [src]="getProductImage(product)"
+                                    [alt]="product.name"
+                                    [preview]="true"
+                                    imageClass="max-w-full h-18rem md:h-22rem object-contain transition-transform transition-duration-300 hover:scale-105 border-round-xl"
+                                    styleClass="flex justify-content-center align-items-center"
+                                ></p-image>
+                                <span class="text-xs text-500 mt-3 flex align-items-center gap-1 font-medium">
+                                    <i class="pi pi-search-plus text-xs text-primary"></i> Click image to inspect & zoom
+                                </span>
+                            </div>
                         </div>
 
                         <!-- Quick Specs Pills Row -->
@@ -113,10 +110,6 @@
                             <div class="spec-pill px-3 py-2 flex align-items-center gap-2 text-xs text-700 flex-1 min-w-min justify-content-center font-medium">
                                 <i class="pi pi-dollar text-primary"></i>
                                 <span>Currency: <strong>{{ currencyFormat }}</strong></span>
-                            </div>
-                            <div *ngIf="product.brandName" class="spec-pill px-3 py-2 flex align-items-center gap-2 text-xs text-700 flex-1 min-w-min justify-content-center font-medium">
-                                <i class="pi pi-bookmark text-primary"></i>
-                                <span>Brand: <strong>{{ product.brandName }}</strong></span>
                             </div>
                             <div *ngIf="product.barcode" class="spec-pill px-3 py-2 flex align-items-center gap-2 text-xs text-700 flex-1 min-w-min justify-content-center font-medium">
                                 <i class="pi pi-barcode text-primary"></i>
@@ -131,8 +124,6 @@
                             <!-- Category / Brand sub-heading -->
                             <div class="flex align-items-center gap-2 text-xs text-500 font-semibold uppercase tracking-wider">
                                 <span>{{ product.categoryName || 'General Category' }}</span>
-                                <span *ngIf="product.brandName">•</span>
-                                <span *ngIf="product.brandName">{{ product.brandName }}</span>
                             </div>
 
                             <!-- Product Title -->
@@ -156,6 +147,20 @@
                                         <i class="pi pi-check-circle text-green-600"></i>
                                         <span>{{ product.stockQuantity }} Available in Stock</span>
                                     </span>
+                                </div>
+                            </div>
+
+                            <!-- Deal Items Included in Deal -->
+                            <div *ngIf="dealItems && dealItems.length > 0" class="mb-4">
+                                <span class="font-bold text-xs uppercase text-600 tracking-wider block mb-2">Items Included in Deal ({{ dealItems.length }})</span>
+                                <div class="flex flex-column gap-2">
+                                    <div *ngFor="let item of dealItems" class="surface-card p-3 border-round-xl border-1 surface-border flex align-items-center justify-content-between shadow-1">
+                                        <div class="flex align-items-center gap-2">
+                                            <span class="bg-red-500 text-white text-xs px-2 py-0.5 border-round-md font-bold shadow-1">{{ item.quantity }}x</span>
+                                            <span class="font-bold text-900 text-sm md:text-base">{{ item.productName }}</span>
+                                        </div>
+                                        <span class="text-xs text-green-700 bg-green-50 px-2 py-0.5 border-round font-semibold">Included in Deal</span>
+                                    </div>
                                 </div>
                             </div>
 
@@ -237,7 +242,7 @@
                                     pButton
                                     type="button"
                                     class="p-button-primary border-round-2xl font-bold shadow-4 btn-add-cart"
-                                    (click)="addToCart()"
+                                    (click)="addToCart(undefined, undefined, $event)"
                                 >
                                     <i class="pi pi-cart-plus text-sm sm:text-lg mr-1"></i>
                                     <span class="btn-text-full">Add {{ quantity }} to Cart • {{ ((product.price * quantity) | currency: currencyFormat:'symbol':'1.0-0') }}</span>
@@ -329,7 +334,7 @@
                                         icon="pi pi-cart-plus"
                                         label="Add to Cart"
                                         class="p-button-rounded border-round-2xl font-bold shadow-2 transition-transform transition-duration-200 hover:-translate-y-1 w-full flex justify-content-center p-button-sm"
-                                        (click)="$event.stopPropagation(); addToCart(rel, 1)"
+                                        (click)="$event.stopPropagation(); addToCart(rel, 1, $event)"
                                     ></button>
                                 </div>
                             </div>
@@ -386,9 +391,26 @@
             </div>
 
             <div *ngIf="cartService.items.length > 0" class="pt-3 border-top-1 surface-border">
-                <div class="flex align-items-center justify-content-between mb-3">
-                    <span class="font-bold text-700">Total Amount</span>
-                    <span class="font-bold text-2xl text-primary">{{ cartService.cartSubtotal | currency: currencyFormat:'symbol':'1.2-2' }}</span>
+                <div class="flex align-items-center justify-content-between mb-2 text-sm text-600">
+                    <span>Subtotal</span>
+                    <span class="font-bold text-800">PKR {{ cartService.cartSubtotal | number: '1.0-0' }}</span>
+                </div>
+                <div class="flex align-items-center justify-content-between mb-2 text-sm text-600">
+                    <span>Delivery Charges</span>
+                    <span *ngIf="isFreeDeliveryEligible() || getDeliveryFee() === 0" class="text-green-600 font-bold flex align-items-center gap-1">
+                        <i class="pi pi-check-circle text-xs"></i> FREE
+                    </span>
+                    <span *ngIf="!isFreeDeliveryEligible() && getDeliveryFee() > 0" class="font-bold text-800">
+                        PKR {{ getDeliveryFee() | number: '1.0-0' }}
+                    </span>
+                </div>
+                <div *ngIf="!isFreeDeliveryEligible() && freeDeliveryThreshold > cartService.cartSubtotal" class="bg-green-50 border-round p-2 mb-3 text-xs text-green-800 flex align-items-center gap-1">
+                    <i class="pi pi-bolt text-green-600"></i>
+                    <span>Add <strong>PKR {{ (freeDeliveryThreshold - cartService.cartSubtotal) | number: '1.0-0' }}</strong> more for FREE delivery!</span>
+                </div>
+                <div class="flex align-items-center justify-content-between mb-4 text-lg font-bold text-900">
+                    <span>Total Amount</span>
+                    <span class="text-red-500">PKR {{ getGrandTotal() | number: '1.0-0' }}</span>
                 </div>
 
                 <button
@@ -412,24 +434,241 @@
         styleClass="w-full max-w-28rem border-round-2xl"
     >
         <div class="p-fluid py-2">
+            <!-- 1. Sleek Prominent GPS Live Location Button & Status Card (Top of Drawer/Modal) -->
+            <div class="mb-3">
+                <button
+                    type="button"
+                    class="fp-gps-location-btn w-full flex align-items-center justify-content-between p-3 border-round-xl border-1 cursor-pointer transition-all transition-duration-200"
+                    [class.active]="locationCaptured"
+                    [disabled]="locating"
+                    (click)="captureCurrentLocation()"
+                    id="btnGpsCaptureLocationDetail"
+                >
+                    <div class="flex align-items-center gap-3">
+                        <div class="gps-icon-badge flex align-items-center justify-content-center border-round-circle">
+                            <i *ngIf="!locating" class="pi pi-map-marker text-lg"></i>
+                            <i *ngIf="locating" class="pi pi-spin pi-spinner text-lg"></i>
+                        </div>
+                        <div class="text-left">
+                            <div class="font-bold text-sm text-900 flex align-items-center gap-2">
+                                <span>📍 Use Current Location</span>
+                                <span *ngIf="locationCaptured" class="gps-live-dot"></span>
+                            </div>
+                            <div class="text-xs text-500 font-medium">
+                                {{ locating ? 'Detecting high-accuracy GPS coordinates...' : locationCaptured ? 'Live GPS coordinates attached' : 'Detect via GPS' }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="gps-status-pill flex align-items-center gap-1 font-semibold text-xs">
+                        <span *ngIf="!locating && !locationCaptured">Locate</span>
+                        <span *ngIf="locating">Detecting...</span>
+                        <span *ngIf="locationCaptured" class="text-green-600 flex align-items-center gap-1">
+                            <i class="pi pi-check"></i> Ready
+                        </span>
+                    </div>
+                </button>
+
+                <!-- Location Captured Green Confirmation Badge -->
+                <div *ngIf="locationCaptured && latitude && longitude" class="gps-success-box mt-2 p-2 border-round-lg flex align-items-center justify-content-between">
+                    <div class="flex align-items-center gap-2 overflow-hidden">
+                        <span class="gps-success-badge inline-flex align-items-center gap-1 text-xs font-bold px-2 py-1 border-round-md">
+                            <i class="pi pi-check-circle"></i> ✓ Location captured successfully
+                        </span>
+                        <span class="text-xs text-600 white-space-nowrap overflow-hidden text-overflow-ellipsis">
+                            ({{ latitude | number: '1.4-4' }}, {{ longitude | number: '1.4-4' }})
+                        </span>
+                    </div>
+                    <div class="flex align-items-center gap-2 flex-shrink-0">
+                        <a
+                            [href]="googleMapsLink"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="text-xs font-bold text-primary hover:underline flex align-items-center gap-1"
+                            title="Open in Google Maps"
+                        >
+                            <i class="pi pi-external-link text-xs"></i>
+                            <span>Map</span>
+                        </a>
+                        <button
+                            type="button"
+                            class="p-link text-xs text-400 hover:text-red-500 font-bold ml-1"
+                            (click)="clearLocation()"
+                            title="Remove GPS location"
+                        >
+                            <i class="pi pi-times"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Location Error Alert Notification -->
+                <div *ngIf="locationError" class="gps-error-banner mt-2 p-2 border-round-lg flex align-items-center justify-content-between text-xs">
+                    <div class="flex align-items-center gap-2 text-red-600 font-medium">
+                        <i class="pi pi-exclamation-circle"></i>
+                        <span>{{ locationError }}</span>
+                    </div>
+                    <button type="button" class="p-link text-xs text-500 font-bold" (click)="locationError = null">Dismiss</button>
+                </div>
+            </div>
+
+            <div class="field mb-3" *ngIf="savedAddresses.length > 0 || loadingSavedAddresses">
+                <label class="font-bold text-xs text-700">Saved addresses</label>
+                <div *ngIf="loadingSavedAddresses" class="text-xs text-500">Loading…</div>
+                <div class="flex flex-column gap-2" *ngIf="!loadingSavedAddresses">
+                    <button
+                        type="button"
+                        class="p-2 border-1 border-round-lg text-left cursor-pointer surface-ground"
+                        *ngFor="let addr of savedAddresses"
+                        [class.border-primary]="selectedSavedAddressId === addr.id"
+                        (click)="applySavedAddress(addr)"
+                    >
+                        <div class="text-sm font-semibold">{{ addr.label || addr.address }}</div>
+                        <div class="text-xs text-500" *ngIf="addr.deliveryAreaName">Zone: {{ addr.deliveryAreaName }}</div>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Delivery Area Selector -->
+            <div class="field mb-3" *ngIf="deliveryAreas.length > 0">
+                <label class="font-bold text-xs text-700">Delivery Area / Zone <span class="text-red-500">*</span></label>
+                <p-dropdown
+                    [options]="deliveryAreas"
+                    [(ngModel)]="selectedAreaId"
+                    optionLabel="name"
+                    optionValue="id"
+                    placeholder="Select your area / neighborhood"
+                    (onChange)="onAreaChange(); selectedSavedAddressId = null"
+                    styleClass="w-full border-round-xl"
+                >
+                    <ng-template pTemplate="selectedItem">
+                        <div class="flex align-items-center justify-content-between w-full" *ngIf="selectedArea">
+                            <span class="font-medium">{{ selectedArea.name }}</span>
+                            <span class="text-xs text-500 ml-2">Fee: PKR {{ selectedArea.deliveryFee }}</span>
+                        </div>
+                    </ng-template>
+                    <ng-template let-a pTemplate="item">
+                        <div class="flex align-items-center justify-content-between w-full">
+                            <div>
+                                <div class="font-medium text-sm">{{ a.name }}</div>
+                                <div class="text-xs text-500" *ngIf="a.estimatedDeliveryTime">Est: {{ a.estimatedDeliveryTime }}</div>
+                            </div>
+                            <span class="font-bold text-xs p-badge p-badge-info">PKR {{ a.deliveryFee }}</span>
+                        </div>
+                    </ng-template>
+                </p-dropdown>
+            </div>
+
+            <!-- Min order warning banner if subtotal is below area minimum -->
+            <div *ngIf="selectedArea && selectedArea.minimumOrderAmount && cartService.cartSubtotal < selectedArea.minimumOrderAmount" class="bg-yellow-50 border-round-xl p-2 mb-3 text-xs text-yellow-900 border-1 border-yellow-300 flex align-items-center gap-2">
+                <i class="pi pi-exclamation-triangle text-yellow-600 text-sm"></i>
+                <span>Minimum order for <strong>{{ selectedArea.name }}</strong> is <strong>PKR {{ selectedArea.minimumOrderAmount }}</strong>. Current: PKR {{ cartService.cartSubtotal }}</span>
+            </div>
+
+            <!-- Manual Delivery Address & Landmark Fields -->
+            <div class="field mb-3">
+                <label class="font-bold text-xs text-700">House / Flat / Shop # & Street</label>
+                <input
+                    type="text"
+                    pInputText
+                    [(ngModel)]="deliveryAddress"
+                    placeholder="e.g. Flat 3B, House 14, Street 5..."
+                    class="border-round-xl"
+                />
+            </div>
+            <div class="field mb-3">
+                <label class="font-bold text-xs text-700">Nearby Landmark / Area</label>
+                <input
+                    type="text"
+                    pInputText
+                    [(ngModel)]="deliveryLandmark"
+                    placeholder="e.g. Near Shell Pump, Gulberg III..."
+                    class="border-round-xl"
+                />
+            </div>
+
+            <!-- Customer Contact Details -->
             <div class="field mb-3">
                 <label class="font-medium text-900">Your Full Name <span class="text-red-500">*</span></label>
-                <input type="text" pInputText [(ngModel)]="customerName" placeholder="e.g. John Doe" />
+                <input type="text" pInputText [(ngModel)]="customerName" placeholder="e.g. John Doe" class="border-round-xl" />
             </div>
 
             <div class="field mb-3">
                 <label class="font-medium text-900">Mobile / Phone Number <span class="text-red-500">*</span></label>
-                <input type="text" pInputText [(ngModel)]="customerMobile" placeholder="e.g. 0300-1234567" />
+                <input type="text" pInputText [(ngModel)]="customerMobile" (blur)="onCheckoutPhoneBlur()" placeholder="e.g. 0300-1234567" class="border-round-xl" />
             </div>
-
             <div class="field mb-3">
-                <label class="font-medium text-900">Delivery Address / Notes</label>
-                <textarea pInputTextarea [(ngModel)]="notes" rows="3" placeholder="Enter delivery address or special instructions..."></textarea>
+                <label class="font-bold text-xs text-700">Kitchen / Special Instructions</label>
+                <textarea
+                    pInputTextarea
+                    rows="2"
+                    [(ngModel)]="notes"
+                    placeholder="e.g. Extra napkins, ring bell, deliver fresh..."
+                    class="border-round-xl"
+                ></textarea>
             </div>
 
-            <div class="surface-card p-3 border-round border-1 surface-border mb-3 flex align-items-center justify-content-between">
-                <span class="font-medium text-700">Total Order Price:</span>
-                <span class="font-bold text-xl text-primary">{{ cartService.cartSubtotal | currency: currencyFormat:'symbol':'1.2-2' }}</span>
+            <!-- Payment Type -->
+            <div class="field mb-3">
+                <label class="font-bold text-xs text-700 flex align-items-center gap-1 mb-2">
+                    <i class="pi pi-wallet text-red-500 text-xs"></i>
+                    <span>Payment Type *</span>
+                </label>
+                <div class="fp-payment-options flex flex-column gap-2">
+                    <button
+                        type="button"
+                        class="fp-payment-option w-full flex align-items-center justify-content-between p-3 border-round-xl border-1 cursor-pointer text-left"
+                        [class.active]="paymentMethod === 'CashOnDelivery'"
+                        (click)="paymentMethod = 'CashOnDelivery'"
+                    >
+                        <div class="flex align-items-center gap-3">
+                            <div class="fp-payment-icon flex align-items-center justify-content-center border-round-circle">
+                                <i class="pi pi-money-bill"></i>
+                            </div>
+                            <div>
+                                <div class="font-bold text-sm text-900">Cash on Delivery</div>
+                                <div class="text-xs text-500">Pay the rider when your order arrives</div>
+                            </div>
+                        </div>
+                        <i class="pi text-lg" [ngClass]="paymentMethod === 'CashOnDelivery' ? 'pi-check-circle text-green-600' : 'pi-circle text-300'"></i>
+                    </button>
+                    <button
+                        type="button"
+                        class="fp-payment-option w-full flex align-items-center justify-content-between p-3 border-round-xl border-1 cursor-pointer text-left"
+                        [class.active]="paymentMethod === 'OnlinePayment'"
+                        (click)="paymentMethod = 'OnlinePayment'"
+                    >
+                        <div class="flex align-items-center gap-3">
+                            <div class="fp-payment-icon online flex align-items-center justify-content-center border-round-circle">
+                                <i class="pi pi-credit-card"></i>
+                            </div>
+                            <div>
+                                <div class="font-bold text-sm text-900">Online Payment</div>
+                                <div class="text-xs text-500">Pay online — card / wallet / transfer</div>
+                            </div>
+                        </div>
+                        <i class="pi text-lg" [ngClass]="paymentMethod === 'OnlinePayment' ? 'pi-check-circle text-green-600' : 'pi-circle text-300'"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="surface-100 p-3 border-round-xl mb-3">
+                <div class="flex align-items-center justify-content-between text-sm text-600 mb-1">
+                    <span>Subtotal:</span>
+                    <span class="font-bold text-800">PKR {{ cartService.cartSubtotal | number: '1.0-0' }}</span>
+                </div>
+                <div class="flex align-items-center justify-content-between text-sm text-600 mb-2">
+                    <span>Delivery Fee:</span>
+                    <span *ngIf="isFreeDeliveryEligible() || getDeliveryFee() === 0" class="text-green-600 font-bold">FREE</span>
+                    <span *ngIf="!isFreeDeliveryEligible() && getDeliveryFee() > 0" class="font-bold text-800">PKR {{ getDeliveryFee() | number: '1.0-0' }}</span>
+                </div>
+                <div class="flex align-items-center justify-content-between pt-2 border-top-1 surface-border">
+                    <span class="font-bold text-base text-900">
+                        Total Payable
+                        <span class="text-xs font-semibold text-500">
+                            ({{ paymentMethod === 'OnlinePayment' ? 'Online' : 'COD' }})
+                        </span>:
+                    </span>
+                    <span class="font-bold text-xl text-red-500">PKR {{ getGrandTotal() | number: '1.0-0' }}</span>
+                </div>
             </div>
 
             <button
@@ -461,15 +700,37 @@
 
             <div class="surface-card p-3 border-round border-1 surface-border mb-4">
                 <span class="text-xs text-500 block mb-1">Order Tracking Number</span>
-                <span class="text-xl font-bold text-primary block">{{ confirmedOrderNo }}</span>
+                <div class="flex align-items-center justify-content-between">
+                    <span class="text-xl font-bold text-primary font-mono">{{ confirmedOrderNo }}</span>
+                    <button
+                        type="button"
+                        pButton
+                        pRipple
+                        [icon]="orderCopied ? 'pi pi-check text-green-600' : 'pi pi-copy text-700'"
+                        class="p-button-rounded p-button-text p-button-sm w-2rem h-2rem hover:surface-200"
+                        (click)="copyOrderNo(confirmedOrderNo)"
+                        [pTooltip]="orderCopied ? 'Copied!' : 'Copy Order Number'"
+                        tooltipPosition="top"
+                        aria-label="Copy Order Number"
+                    ></button>
+                </div>
                 <span class="text-xs text-600 mt-2 block">Total Amount: {{ confirmedTotal | currency: currencyFormat:'symbol':'1.2-2' }}</span>
             </div>
 
             <button
                 pButton
+                pRipple
+                type="button"
+                label="View in My Orders"
+                icon="pi pi-history"
+                class="w-full p-button-primary border-round-xl font-bold mb-2 shadow-2"
+                (click)="goToTracking(confirmedOrderNo)"
+            ></button>
+            <button
+                pButton
                 type="button"
                 label="Continue Shopping"
-                class="w-full p-button-primary border-round-xl font-bold"
+                class="w-full p-button-outlined border-round-xl font-bold"
                 (click)="successModalVisible = false; backToStore()"
             ></button>
         </div>

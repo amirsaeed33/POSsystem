@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { OnlineOrderRoutingModule } from './online-order-routing.module';
 import { OnlineOrderComponent } from './online-order.component';
 import { OnlineProductDetailComponent } from './online-product-detail.component';
+import { OnlineOrderHistoryComponent } from './online-order-history.component';
 
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
@@ -15,6 +16,10 @@ import { ToastModule } from 'primeng/toast';
 import { DropdownModule } from 'primeng/dropdown';
 import { ImageModule } from 'primeng/image';
 import { TooltipModule } from 'primeng/tooltip';
+import { BadgeModule } from 'primeng/badge';
+import { DividerModule } from 'primeng/divider';
+import { RatingModule } from 'primeng/rating';
+import { OrderChatComponent } from 'src/app/shared/components/order-chat/order-chat.component';
 
 @NgModule({
     imports: [
@@ -31,7 +36,15 @@ import { TooltipModule } from 'primeng/tooltip';
         DropdownModule,
         ImageModule,
         TooltipModule,
+        BadgeModule,
+        DividerModule,
+        RatingModule,
+        OrderChatComponent,
     ],
-    declarations: [OnlineOrderComponent, OnlineProductDetailComponent],
+    declarations: [
+        OnlineOrderComponent,
+        OnlineProductDetailComponent,
+        OnlineOrderHistoryComponent,
+    ],
 })
 export class OnlineOrderModule {}

@@ -4,6 +4,7 @@ import { firstValueFrom } from 'rxjs';
 import {
     ActivateBranchResultDto,
     BranchDto,
+    BranchPublicFeedbackDto,
     CreateBranchDto,
     PagedBranchResultRequestDto,
     PagedResultDto,
@@ -53,10 +54,33 @@ export class BranchService {
         return (Array.isArray(items) ? items : []).map((i) => this.map(i));
     }
 
-    async getInvoiceInfo(): Promise<BranchDto | null> {
+    /** Public product page — branch testimonials (anonymous). */
+    async getPublicFeedbacks(): Promise<BranchPublicFeedbackDto[]> {
+        const res: any = await firstValueFrom(
+            this.http.get<any>(`${this.apiUrl}/GetPublicFeedbacks`)
+        );
+        const result = this.unwrap(res, 'Failed to load feedbacks');
+        const items = Array.isArray(result) ? result : result?.items || [];
+        return (Array.isArray(items) ? items : []).map((raw: any) => ({
+            branchId: raw.branchId ?? raw.BranchId ?? 0,
+            branchName: raw.branchName ?? raw.BranchName,
+            name: raw.name ?? raw.Name ?? '',
+            role: raw.role ?? raw.Role,
+            business: raw.business ?? raw.Business,
+            city: raw.city ?? raw.City,
+            quote: raw.quote ?? raw.Quote ?? '',
+            rating: raw.rating ?? raw.Rating ?? 5,
+        }));
+    }
+
+    async getInvoiceInfo(branchId?: number | null): Promise<BranchDto | null> {
         try {
+            const params: any = {};
+            if (branchId != null && branchId > 0) {
+                params.branchId = String(branchId);
+            }
             const res: any = await firstValueFrom(
-                this.http.get<any>(`${this.apiUrl}/GetInvoiceInfo`)
+                this.http.get<any>(`${this.apiUrl}/GetInvoiceInfo`, { params })
             );
             const result = this.unwrap(res, 'Failed to load branch');
             if (!result) {
@@ -78,8 +102,18 @@ export class BranchService {
             discountAmount: input.discountAmount ?? 0,
             companyTypeId: input.companyTypeId,
             hostCatalogItemIds: input.hostCatalogItemIds || [],
+            businessType: input.businessType ?? 1,
+            serviceChargePercent: input.serviceChargePercent ?? 0,
+            autoAssignWaiterToTables: input.autoAssignWaiterToTables !== false,
             dateFormat: input.dateFormat || 'dd/MM/yyyy',
             currencyFormat: input.currencyFormat || 'PKR',
+            latitude: input.latitude != null ? Number(input.latitude) : null,
+            longitude: input.longitude != null ? Number(input.longitude) : null,
+            attendanceAutoCheckInRadiusFeet:
+                input.attendanceAutoCheckInRadiusFeet != null &&
+                input.attendanceAutoCheckInRadiusFeet > 0
+                    ? Number(input.attendanceAutoCheckInRadiusFeet)
+                    : 200,
         };
 
         if (input.imageBase64) body.imageBase64 = input.imageBase64;
@@ -90,7 +124,12 @@ export class BranchService {
             body.invoiceContactPhone = input.invoiceContactPhone;
         if (input.taxNumber) body.taxNumber = input.taxNumber;
         if (input.website) body.website = input.website;
+        if (input.facebookUrl) body.facebookUrl = input.facebookUrl;
+        if (input.instagramUrl) body.instagramUrl = input.instagramUrl;
+        if (input.youtubeUrl) body.youtubeUrl = input.youtubeUrl;
         if (input.invoiceFooter) body.invoiceFooter = input.invoiceFooter;
+        if (input.softwareDeveloperName !== undefined) body.softwareDeveloperName = input.softwareDeveloperName;
+        if (input.softwareDeveloperPhone !== undefined) body.softwareDeveloperPhone = input.softwareDeveloperPhone;
 
         const res: any = await firstValueFrom(
             this.http.post<any>(`${this.apiUrl}/Create`, body)
@@ -119,12 +158,35 @@ export class BranchService {
                 invoiceContactPhone: input.invoiceContactPhone,
                 taxNumber: input.taxNumber,
                 website: input.website,
+                customDomain: input.customDomain ?? null,
+                storefrontTitle: input.storefrontTitle ?? null,
+                facebookUrl: input.facebookUrl,
+                instagramUrl: input.instagramUrl,
+                youtubeUrl: input.youtubeUrl,
                 invoiceFooter: input.invoiceFooter,
+                softwareDeveloperName: input.softwareDeveloperName,
+                softwareDeveloperPhone: input.softwareDeveloperPhone,
+                customerFeedbackName: input.customerFeedbackName ?? null,
+                customerFeedbackRole: input.customerFeedbackRole ?? null,
+                customerFeedbackCity: input.customerFeedbackCity ?? null,
+                customerFeedbackComment: input.customerFeedbackComment ?? null,
+                customerFeedbackRating: input.customerFeedbackRating ?? 0,
+                showCustomerFeedback: !!input.showCustomerFeedback,
                 taxPercent: input.taxPercent ?? 0,
                 discountPercent: input.discountPercent ?? 0,
                 discountAmount: input.discountAmount ?? 0,
+                businessType: input.businessType ?? 1,
+                serviceChargePercent: input.serviceChargePercent ?? 0,
+                autoAssignWaiterToTables: input.autoAssignWaiterToTables !== false,
                 dateFormat: input.dateFormat || 'dd/MM/yyyy',
                 currencyFormat: input.currencyFormat || 'PKR',
+                latitude: input.latitude != null ? Number(input.latitude) : null,
+                longitude: input.longitude != null ? Number(input.longitude) : null,
+                attendanceAutoCheckInRadiusFeet:
+                    input.attendanceAutoCheckInRadiusFeet != null &&
+                    input.attendanceAutoCheckInRadiusFeet > 0
+                        ? Number(input.attendanceAutoCheckInRadiusFeet)
+                        : 200,
             })
         );
         return this.map(this.unwrap(res, 'Failed to update branch'));
@@ -241,12 +303,36 @@ export class BranchService {
                 item.invoiceContactPhone ?? item.InvoiceContactPhone,
             taxNumber: item.taxNumber ?? item.TaxNumber,
             website: item.website ?? item.Website,
+            customDomain: item.customDomain ?? item.CustomDomain ?? '',
+            storefrontTitle: item.storefrontTitle ?? item.StorefrontTitle ?? '',
+            facebookUrl: item.facebookUrl ?? item.FacebookUrl,
+            instagramUrl: item.instagramUrl ?? item.InstagramUrl,
+            youtubeUrl: item.youtubeUrl ?? item.YoutubeUrl,
             invoiceFooter: item.invoiceFooter ?? item.InvoiceFooter,
+            softwareDeveloperName: item.softwareDeveloperName ?? item.SoftwareDeveloperName ?? 'Software develop by AlNawabTech',
+            softwareDeveloperPhone: item.softwareDeveloperPhone ?? item.SoftwareDeveloperPhone ?? '03167854606',
+            customerFeedbackName: item.customerFeedbackName ?? item.CustomerFeedbackName ?? '',
+            customerFeedbackRole: item.customerFeedbackRole ?? item.CustomerFeedbackRole ?? '',
+            customerFeedbackCity: item.customerFeedbackCity ?? item.CustomerFeedbackCity ?? '',
+            customerFeedbackComment: item.customerFeedbackComment ?? item.CustomerFeedbackComment ?? '',
+            customerFeedbackRating: item.customerFeedbackRating ?? item.CustomerFeedbackRating ?? 0,
+            showCustomerFeedback: !!(item.showCustomerFeedback ?? item.ShowCustomerFeedback),
             taxPercent: item.taxPercent ?? item.TaxPercent ?? 0,
             discountPercent: item.discountPercent ?? item.DiscountPercent ?? 0,
             discountAmount: item.discountAmount ?? item.DiscountAmount ?? 0,
+            businessType: item.businessType ?? item.BusinessType ?? 1,
+            serviceChargePercent: item.serviceChargePercent ?? item.ServiceChargePercent ?? 0,
+            autoAssignWaiterToTables: (item.autoAssignWaiterToTables ?? item.AutoAssignWaiterToTables) !== false,
             dateFormat: item.dateFormat ?? item.DateFormat ?? 'dd/MM/yyyy',
             currencyFormat: item.currencyFormat ?? item.CurrencyFormat ?? 'PKR',
+            latitude: item.latitude != null ? Number(item.latitude) : (item.Latitude != null ? Number(item.Latitude) : null),
+            longitude: item.longitude != null ? Number(item.longitude) : (item.Longitude != null ? Number(item.Longitude) : null),
+            attendanceAutoCheckInRadiusFeet:
+                item.attendanceAutoCheckInRadiusFeet ??
+                item.AttendanceAutoCheckInRadiusFeet ??
+                item.attendanceAutoCheckInRadiusGaz ??
+                item.AttendanceAutoCheckInRadiusGaz ??
+                200,
         };
     }
 }

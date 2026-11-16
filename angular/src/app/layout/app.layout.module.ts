@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { HttpClientModule } from '@angular/common/http';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { InputTextModule } from 'primeng/inputtext';
+import { InputNumberModule } from 'primeng/inputnumber';
 import { SidebarModule } from 'primeng/sidebar';
 import { BadgeModule } from 'primeng/badge';
 import { RadioButtonModule } from 'primeng/radiobutton';
@@ -23,6 +24,10 @@ import { TooltipModule } from 'primeng/tooltip';
 import { DropdownModule } from 'primeng/dropdown';
 import { MenuModule } from 'primeng/menu';
 import { ToastModule } from 'primeng/toast';
+import { DialogModule } from 'primeng/dialog';
+import { ButtonModule } from 'primeng/button';
+import { OrderChatComponent } from '../shared/components/order-chat/order-chat.component';
+import { PrinterConfigDialogComponent } from '../shared/components/printer-config-dialog/printer-config-dialog.component';
 
 @NgModule({
     declarations: [
@@ -32,7 +37,8 @@ import { ToastModule } from 'primeng/toast';
         AppFooterComponent,
         AppMenuComponent,
         AppLayoutComponent,
-        AppBreadcrumbComponent
+        AppBreadcrumbComponent,
+        PrinterConfigDialogComponent
     ],
     imports: [
         BrowserModule,
@@ -40,6 +46,7 @@ import { ToastModule } from 'primeng/toast';
         HttpClientModule,
         BrowserAnimationsModule,
         InputTextModule,
+        InputNumberModule,
         InputSwitchModule,
         MenuModule,
         RouterModule,
@@ -53,6 +60,9 @@ import { ToastModule } from 'primeng/toast';
         RouterModule,
         TooltipModule,
         ToastModule,
+        DialogModule,
+        ButtonModule,
+        OrderChatComponent,
         AppConfigModule
     ],
     exports: [AppLayoutComponent]

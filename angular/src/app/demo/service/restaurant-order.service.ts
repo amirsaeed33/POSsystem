@@ -1,0 +1,231 @@
+import { HttpClient } from '@angular/common/http';
+import { Injectable } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
+import {
+    ConfirmKotPrintDto,
+    CreateOrUpdateRestaurantOrderDto,
+    RecordPrintLogDto,
+    RestaurantOrderDto,
+    RestaurantPrintLogDto,
+    SendToKitchenResultDto,
+    SettleRestaurantOrderDto,
+    SplitBillDto,
+    UnpaidTakeawayOrderDto,
+    ReserveCarServiceDto,
+    WaiterDashboardDto,
+} from '../api/restaurant-order';
+import { environment } from '../../../environments/environment';
+
+@Injectable({ providedIn: 'root' })
+export class RestaurantOrderService {
+    private readonly apiUrl = `${environment.apiUrl}/api/services/app/RestaurantOrder`;
+
+    constructor(private http: HttpClient) {}
+
+    async getActiveOrders(branchId: number): Promise<RestaurantOrderDto[]> {
+        const res: any = await firstValueFrom(
+            this.http.get<any>(`${this.apiUrl}/GetActiveOrders`, {
+                params: { branchId },
+            })
+        );
+        const list = this.unwrap(res, 'Failed to load active orders');
+        return Array.isArray(list) ? list : [];
+    }
+
+    async get(id: number): Promise<RestaurantOrderDto> {
+        const res: any = await firstValueFrom(
+            this.http.get<any>(`${this.apiUrl}/Get`, { params: { Id: id } })
+        );
+        return this.unwrap(res, 'Failed to load order');
+    }
+
+    async getByTable(tableId: number): Promise<RestaurantOrderDto | null> {
+        const res: any = await firstValueFrom(
+            this.http.get<any>(`${this.apiUrl}/GetByTable`, {
+                params: { tableId },
+            })
+        );
+        return this.unwrap(res, 'Failed to load table order');
+    }
+
+    async saveOrder(
+        dto: CreateOrUpdateRestaurantOrderDto
+    ): Promise<RestaurantOrderDto> {
+        const res: any = await firstValueFrom(
+            this.http.post<any>(`${this.apiUrl}/SaveOrder`, dto)
+        );
+        return this.unwrap(res, 'Failed to save restaurant order');
+    }
+
+    async reserveCarService(
+        dto: ReserveCarServiceDto
+    ): Promise<RestaurantOrderDto> {
+        const res: any = await firstValueFrom(
+            this.http.post<any>(`${this.apiUrl}/ReserveCarService`, dto)
+        );
+        return this.unwrap(res, 'Failed to reserve car service');
+    }
+
+    async openTableSession(dto: {
+        branchId: number;
+        tableId: number;
+        waiterName?: string;
+        carNumber?: string;
+        notes?: string;
+    }): Promise<RestaurantOrderDto> {
+        const res: any = await firstValueFrom(
+            this.http.post<any>(`${this.apiUrl}/OpenTableSession`, dto)
+        );
+        return this.unwrap(res, 'Failed to open table / car session');
+    }
+
+    async getActiveCarOrders(branchId: number): Promise<RestaurantOrderDto[]> {
+        const res: any = await firstValueFrom(
+            this.http.get<any>(`${this.apiUrl}/GetActiveCarOrders`, {
+                params: { branchId },
+            })
+        );
+        const list = this.unwrap(res, 'Failed to load active car orders');
+        return Array.isArray(list) ? list : [];
+    }
+
+    async sendToKitchen(orderId: number): Promise<SendToKitchenResultDto> {
+        const res: any = await firstValueFrom(
+            this.http.post<any>(`${this.apiUrl}/SendToKitchen`, null, {
+                params: { orderId },
+            })
+        );
+        return this.unwrap(res, 'Failed to send order to kitchen');
+    }
+
+    async confirmKotPrint(dto: ConfirmKotPrintDto): Promise<SendToKitchenResultDto> {
+        const res: any = await firstValueFrom(
+            this.http.post<any>(`${this.apiUrl}/ConfirmKotPrint`, dto)
+        );
+        return this.unwrap(res, 'Failed to confirm KOT print');
+    }
+
+    async markReadyToPick(orderId: number): Promise<RestaurantOrderDto> {
+        const res: any = await firstValueFrom(
+            this.http.post<any>(`${this.apiUrl}/MarkReadyToPick`, null, {
+                params: { orderId },
+            })
+        );
+        return this.unwrap(res, 'Failed to mark order ready to pick');
+    }
+
+    async markKitchenInProgress(orderId: number): Promise<RestaurantOrderDto> {
+        const res: any = await firstValueFrom(
+            this.http.post<any>(`${this.apiUrl}/MarkKitchenInProgress`, null, {
+                params: { orderId },
+            })
+        );
+        return this.unwrap(res, 'Failed to mark kitchen in progress');
+    }
+
+    async printBill(orderId: number): Promise<RestaurantOrderDto> {
+        const res: any = await firstValueFrom(
+            this.http.post<any>(`${this.apiUrl}/PrintBill`, null, {
+                params: { orderId },
+            })
+        );
+        return this.unwrap(res, 'Failed to mark order as billed');
+    }
+
+    async settleOrder(dto: SettleRestaurantOrderDto): Promise<number> {
+        const res: any = await firstValueFrom(
+            this.http.post<any>(`${this.apiUrl}/SettleOrder`, dto)
+        );
+        return this.unwrap(res, 'Failed to settle restaurant order');
+    }
+
+    async cancelOrder(orderId: number): Promise<void> {
+        const res: any = await firstValueFrom(
+            this.http.post<any>(`${this.apiUrl}/CancelOrder`, null, {
+                params: { orderId },
+            })
+        );
+        this.unwrap(res, 'Failed to cancel order');
+    }
+
+    async splitBill(dto: SplitBillDto): Promise<RestaurantOrderDto> {
+        const res: any = await firstValueFrom(
+            this.http.post<any>(`${this.apiUrl}/SplitBill`, dto)
+        );
+        return this.unwrap(res, 'Failed to split bill');
+    }
+
+    async recordPrintLog(dto: RecordPrintLogDto): Promise<RestaurantPrintLogDto> {
+        const res: any = await firstValueFrom(
+            this.http.post<any>(`${this.apiUrl}/RecordPrintLog`, dto)
+        );
+        return this.unwrap(res, 'Failed to record print log');
+    }
+
+    async getOrderPrintLogs(orderId: number): Promise<RestaurantPrintLogDto[]> {
+        const res: any = await firstValueFrom(
+            this.http.get<any>(`${this.apiUrl}/GetOrderPrintLogs`, {
+                params: { orderId },
+            })
+        );
+        const list = this.unwrap(res, 'Failed to load order print logs');
+        return Array.isArray(list) ? list : [];
+    }
+
+    async getUnpaidTakeawayOrders(branchId: number): Promise<UnpaidTakeawayOrderDto[]> {
+        const res: any = await firstValueFrom(
+            this.http.get<any>(`${this.apiUrl}/GetUnpaidTakeawayOrders`, {
+                params: { branchId },
+            })
+        );
+        const list = this.unwrap(res, 'Failed to load unpaid takeaway orders');
+        return Array.isArray(list) ? list : [];
+    }
+
+    async getWaiterDashboard(branchId: number): Promise<WaiterDashboardDto> {
+        const res: any = await firstValueFrom(
+            this.http.get<any>(`${this.apiUrl}/GetWaiterDashboard`, {
+                params: { branchId },
+            })
+        );
+        const raw = this.unwrap(res, 'Failed to load waiter dashboard') || {};
+        const orders = raw.activeOrders ?? raw.ActiveOrders ?? [];
+        return {
+            waiterName: raw.waiterName ?? raw.WaiterName ?? '',
+            activeCount: Number(raw.activeCount ?? raw.ActiveCount ?? 0),
+            pendingCount: Number(raw.pendingCount ?? raw.PendingCount ?? 0),
+            readyCount: Number(raw.readyCount ?? raw.ReadyCount ?? 0),
+            billedCount: Number(raw.billedCount ?? raw.BilledCount ?? 0),
+            todayServedCount: Number(raw.todayServedCount ?? raw.TodayServedCount ?? 0),
+            todayServedAmount: Number(raw.todayServedAmount ?? raw.TodayServedAmount ?? 0),
+            activeOrders: (Array.isArray(orders) ? orders : []).map((o: any) => ({
+                ...o,
+                id: o.id ?? o.Id,
+                orderNo: o.orderNo ?? o.OrderNo,
+                tableNo: o.tableNo ?? o.TableNo,
+                tableId: o.tableId ?? o.TableId,
+                status: o.status ?? o.Status,
+                statusName: o.statusName ?? o.StatusName,
+                kitchenStatus: o.kitchenStatus ?? o.KitchenStatus,
+                kitchenStatusName: o.kitchenStatusName ?? o.KitchenStatusName,
+                orderType: o.orderType ?? o.OrderType,
+                orderTypeName: o.orderTypeName ?? o.OrderTypeName,
+                carName: o.carName ?? o.CarName,
+                carNumber: o.carNumber ?? o.CarNumber,
+                grandTotal: Number(o.grandTotal ?? o.GrandTotal ?? 0),
+                creationTime: o.creationTime ?? o.CreationTime,
+                waiterName: o.waiterName ?? o.WaiterName,
+                tokenNo: o.tokenNo ?? o.TokenNo,
+                lines: o.lines ?? o.Lines ?? [],
+            })),
+        };
+    }
+
+    private unwrap(res: any, fallback: string): any {
+        if (!res) throw new Error('No response from server');
+        if (res.success === false || res.error) {
+            throw new Error(res.error?.message || res.error?.details || fallback);
+        }
+        return res.result ?? res;
+    }
+}

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace SmartPos.Dashboard.Dto
@@ -109,6 +109,8 @@ namespace SmartPos.Dashboard.Dto
 
         public decimal Expenses { get; set; }
 
+        public decimal CostOfGoodsSold { get; set; }
+
         public decimal Profit { get; set; }
     }
 
@@ -126,6 +128,9 @@ namespace SmartPos.Dashboard.Dto
 
         /// <summary>Purchase totals for the month (used with Expense for outgoing).</summary>
         public decimal Purchases { get; set; }
+
+        /// <summary>Gross profit for the month: Sales − CostOfGoodsSold − Expenses.</summary>
+        public decimal Profit { get; set; }
     }
 
     public class DashboardProductRowDto
@@ -186,4 +191,90 @@ namespace SmartPos.Dashboard.Dto
 
         public decimal AlertQuantityLimit { get; set; }
     }
+    // ONLINE-PIPELINE START
+    public class GetOnlineOrderPipelineInput
+    {
+        public int? BranchId { get; set; }
+
+        public DateTime? Date { get; set; }
+    }
+
+    public class OnlineOrderPipelineStageDto
+    {
+        public int Status { get; set; }
+
+        public string StatusName { get; set; }
+
+        public int Count { get; set; }
+    }
+
+    public class OrderAreaStatDto
+    {
+        public int? DeliveryAreaId { get; set; }
+
+        public string AreaName { get; set; }
+
+        public int OrderCount { get; set; }
+
+        public decimal TotalAmount { get; set; }
+
+        /// <summary>Share of all area-tagged orders in the window (0–100).</summary>
+        public decimal SharePercent { get; set; }
+
+        public bool IsTopArea { get; set; }
+    }
+
+    public class OnlineOrderPipelineDto
+    {
+        /// <summary>
+        /// Total online orders placed today within server-local date boundary [todayStart, tomorrow).
+        /// </summary>
+        public int TodayTotalOrders { get; set; }
+
+        public int TodayOrdersCount => TodayTotalOrders;
+
+        /// <summary>
+        /// Pending online orders (CustomerOrderStatus.Pending = 0).
+        /// </summary>
+        public int PendingCount { get; set; }
+
+        /// <summary>
+        /// Approved/Accepted online orders (CustomerOrderStatus.Approved = 1).
+        /// </summary>
+        public int ApprovedCount { get; set; }
+
+        public int AcceptedCount => ApprovedCount;
+
+        /// <summary>
+        /// Rejected online orders (CustomerOrderStatus.Rejected = 2).
+        /// </summary>
+        public int RejectedCount { get; set; }
+
+        /// <summary>
+        /// In-progress/Preparing online orders (CustomerOrderStatus.InProgress = 3).
+        /// </summary>
+        public int InProgressCount { get; set; }
+
+        public int PreparingCount => InProgressCount;
+
+        /// <summary>
+        /// Delivered online orders (CustomerOrderStatus.Delivered = 4).
+        /// </summary>
+        public int DeliveredCount { get; set; }
+
+        /// <summary>
+        /// Pipeline stages breakdown for UI iteration.
+        /// </summary>
+        public List<OnlineOrderPipelineStageDto> Stages { get; set; } = new List<OnlineOrderPipelineStageDto>();
+
+        /// <summary>
+        /// Delivery areas ranked by order volume (last 30 days, non-rejected).
+        /// </summary>
+        public List<OrderAreaStatDto> TopAreas { get; set; } = new List<OrderAreaStatDto>();
+
+        public string TopAreaName { get; set; }
+
+        public int AreaOrdersInWindow { get; set; }
+    }
+    // ONLINE-PIPELINE END
 }

@@ -1,0 +1,1044 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:SmartPos.Mobile.ViewModels"
+             xmlns:models="clr-namespace:SmartPos.Mobile.Models"
+             xmlns:helpers="clr-namespace:SmartPos.Mobile.Helpers"
+             xmlns:controls="clr-namespace:SmartPos.Mobile.Controls"
+             x:Class="SmartPos.Mobile.Views.Waiter.WaiterTablesPage"
+             x:DataType="vm:WaiterTablesViewModel"
+             Title="Floor Tables"
+             Shell.NavBarIsVisible="False"
+             Shell.TabBarIsVisible="False"
+             BackgroundColor="#FAF7F4">
+
+    <ContentPage.Resources>
+        <helpers:InvertedBoolConverter x:Key="InvertedBoolConverter" />
+    </ContentPage.Resources>
+
+    <Grid>
+        <Grid RowDefinitions="Auto,*,Auto,Auto" BackgroundColor="#FAF7F4">
+
+            <!-- 1. REFERENCE-MATCHED CHARCOAL OPS HEADER (badge + filters inside header) -->
+            <Border Grid.Row="0"
+                    Padding="16,12,16,14"
+                    StrokeThickness="0">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="0,0,26,26" />
+                </Border.StrokeShape>
+                <Border.Background>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                        <GradientStop Color="#1C1410" Offset="0.0" />
+                        <GradientStop Color="#2B1F19" Offset="1.0" />
+                    </LinearGradientBrush>
+                </Border.Background>
+
+                <VerticalStackLayout Spacing="10">
+                    <!-- Eyebrow + Refresh only -->
+                    <Grid ColumnDefinitions="*,Auto" VerticalOptions="Center" ColumnSpacing="8">
+                        <HorizontalStackLayout Spacing="6" VerticalOptions="Center">
+                            <BoxView WidthRequest="6"
+                                     HeightRequest="6"
+                                     Color="#E05A1B"
+                                     CornerRadius="3"
+                                     VerticalOptions="Center" />
+                            <Label Text="{Binding BranchEyebrow}"
+                                   FontSize="9.5"
+                                   FontAttributes="Bold"
+                                   TextColor="#E89B3C"
+                                   CharacterSpacing="1.0"
+                                   LineBreakMode="TailTruncation"
+                                   VerticalOptions="Center" />
+                        </HorizontalStackLayout>
+
+                        <Border Grid.Column="1"
+                                WidthRequest="40"
+                                HeightRequest="40"
+                                BackgroundColor="#2A221C"
+                                Stroke="#4A3C34"
+                                StrokeThickness="1"
+                                VerticalOptions="Center">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="12" />
+                            </Border.StrokeShape>
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding RefreshTablesCommand}" />
+                            </Border.GestureRecognizers>
+                            <Image Source="icon_refresh.png"
+                                   WidthRequest="18"
+                                   HeightRequest="18"
+                                   Aspect="AspectFit"
+                                   HorizontalOptions="Center"
+                                   VerticalOptions="Center" />
+                        </Border>
+                    </Grid>
+
+                    <!-- Title + Waiter badge inline (reference layout) -->
+                    <HorizontalStackLayout Spacing="8" VerticalOptions="Center">
+                        <Label Text="Floor Tables"
+                               FontFamily="Georgia"
+                               FontSize="22"
+                               FontAttributes="Bold"
+                               TextColor="#FFFFFF"
+                               VerticalOptions="Center" />
+                        <Border Padding="8,3"
+                                BackgroundColor="#1AFFFFFF"
+                                Stroke="#26FFFFFF"
+                                StrokeThickness="1"
+                                VerticalOptions="Center">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="6" />
+                            </Border.StrokeShape>
+                            <Label Text="{Binding WaiterBadgeText}"
+                                   FontSize="10"
+                                   FontAttributes="Bold"
+                                   TextColor="#E89B3C"
+                                   LineBreakMode="TailTruncation"
+                                   MaxLines="1" />
+                        </Border>
+                    </HorizontalStackLayout>
+
+                    <!-- FREE / BUSY / BILLED KPI with subtitles -->
+                    <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
+                        <!-- FREE -->
+                        <Border Grid.Column="0"
+                                BackgroundColor="#14FFFFFF"
+                                Stroke="#1FFFFFFF"
+                                StrokeThickness="1"
+                                Padding="10,8">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="16" />
+                            </Border.StrokeShape>
+                            <Border.Triggers>
+                                <DataTrigger TargetType="Border" Binding="{Binding IsStatusFilterFree}" Value="True">
+                                    <Setter Property="BackgroundColor" Value="#C84B11" />
+                                    <Setter Property="Stroke" Value="#E05A1B" />
+                                </DataTrigger>
+                            </Border.Triggers>
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding ToggleStatusFilterCommand}" CommandParameter="FREE" />
+                            </Border.GestureRecognizers>
+                            <VerticalStackLayout Spacing="2">
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <Label Text="FREE"
+                                           FontSize="9.5"
+                                           FontAttributes="Bold"
+                                           TextColor="#C7B8AE" />
+                                    <BoxView Grid.Column="1"
+                                             WidthRequest="7"
+                                             HeightRequest="7"
+                                             Color="#C7B8AE"
+                                             CornerRadius="3.5"
+                                             VerticalOptions="Center" />
+                                </Grid>
+                                <Label Text="{Binding FreeCount}"
+                                       FontSize="18"
+                                       FontAttributes="Bold"
+                                       TextColor="#FFFFFF" />
+                                <Label Text="Ready to seat"
+                                       FontSize="9.5"
+                                       TextColor="#C7B8AE"
+                                       LineBreakMode="TailTruncation" />
+                            </VerticalStackLayout>
+                        </Border>
+
+                        <!-- BUSY -->
+                        <Border Grid.Column="1"
+                                BackgroundColor="#14FFFFFF"
+                                Stroke="#1FFFFFFF"
+                                StrokeThickness="1"
+                                Padding="10,8">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="16" />
+                            </Border.StrokeShape>
+                            <Border.Triggers>
+                                <DataTrigger TargetType="Border" Binding="{Binding IsStatusFilterBusy}" Value="True">
+                                    <Setter Property="BackgroundColor" Value="#C84B11" />
+                                    <Setter Property="Stroke" Value="#E05A1B" />
+                                </DataTrigger>
+                            </Border.Triggers>
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding ToggleStatusFilterCommand}" CommandParameter="BUSY" />
+                            </Border.GestureRecognizers>
+                            <VerticalStackLayout Spacing="2">
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <Label Text="BUSY"
+                                           FontSize="9.5"
+                                           FontAttributes="Bold"
+                                           TextColor="#E05A1B" />
+                                    <BoxView Grid.Column="1"
+                                             WidthRequest="7"
+                                             HeightRequest="7"
+                                             Color="#C84B11"
+                                             CornerRadius="3.5"
+                                             VerticalOptions="Center" />
+                                </Grid>
+                                <Label Text="{Binding BusyCount}"
+                                       FontSize="18"
+                                       FontAttributes="Bold"
+                                       TextColor="#FFFFFF" />
+                                <Label Text="Active dining"
+                                       FontSize="9.5"
+                                       TextColor="#C7B8AE"
+                                       LineBreakMode="TailTruncation" />
+                            </VerticalStackLayout>
+                        </Border>
+
+                        <!-- BILLED -->
+                        <Border Grid.Column="2"
+                                BackgroundColor="#14FFFFFF"
+                                Stroke="#1FFFFFFF"
+                                StrokeThickness="1"
+                                Padding="10,8">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="16" />
+                            </Border.StrokeShape>
+                            <Border.Triggers>
+                                <DataTrigger TargetType="Border" Binding="{Binding IsStatusFilterBilled}" Value="True">
+                                    <Setter Property="BackgroundColor" Value="#C84B11" />
+                                    <Setter Property="Stroke" Value="#E89B3C" />
+                                </DataTrigger>
+                            </Border.Triggers>
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding ToggleStatusFilterCommand}" CommandParameter="BILLED" />
+                            </Border.GestureRecognizers>
+                            <VerticalStackLayout Spacing="2">
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <Label Text="BILLED"
+                                           FontSize="9.5"
+                                           FontAttributes="Bold"
+                                           TextColor="#E89B3C" />
+                                    <BoxView Grid.Column="1"
+                                             WidthRequest="7"
+                                             HeightRequest="7"
+                                             Color="#E89B3C"
+                                             CornerRadius="3.5"
+                                             VerticalOptions="Center" />
+                                </Grid>
+                                <Label Text="{Binding BilledCount}"
+                                       FontSize="18"
+                                       FontAttributes="Bold"
+                                       TextColor="#FFFFFF" />
+                                <Label Text="Check printed"
+                                       FontSize="9.5"
+                                       TextColor="#C7B8AE"
+                                       LineBreakMode="TailTruncation" />
+                            </VerticalStackLayout>
+                        </Border>
+                    </Grid>
+
+                    <!-- Zone chips + My Tables — reference stadium pills on dark ops header -->
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10" VerticalOptions="Center">
+                        <ScrollView Orientation="Horizontal"
+                                    HorizontalScrollBarVisibility="Never"
+                                    VerticalOptions="Center">
+                            <HorizontalStackLayout Spacing="8" VerticalOptions="Center">
+                                <Border HeightRequest="30"
+                                        Padding="12,0"
+                                        VerticalOptions="Center"
+                                        StrokeThickness="1.2"
+                                        BackgroundColor="#C84B11"
+                                        Stroke="#C84B11">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="15" />
+                                    </Border.StrokeShape>
+                                    <Border.Triggers>
+                                        <DataTrigger TargetType="Border" Binding="{Binding IsZoneAll}" Value="True">
+                                            <Setter Property="BackgroundColor" Value="#C84B11" />
+                                            <Setter Property="Stroke" Value="#C84B11" />
+                                        </DataTrigger>
+                                        <DataTrigger TargetType="Border" Binding="{Binding IsZoneAll}" Value="False">
+                                            <Setter Property="BackgroundColor" Value="Transparent" />
+                                            <Setter Property="Stroke" Value="#5A4E46" />
+                                        </DataTrigger>
+                                    </Border.Triggers>
+                                    <Border.GestureRecognizers>
+                                        <TapGestureRecognizer Command="{Binding SelectZoneCommand}" CommandParameter="All" />
+                                    </Border.GestureRecognizers>
+                                    <Label Text="All Zones"
+                                           FontSize="11"
+                                           FontAttributes="Bold"
+                                           TextColor="#FFFFFF"
+                                           VerticalOptions="Center"
+                                           HorizontalOptions="Center">
+                                        <Label.Triggers>
+                                            <DataTrigger TargetType="Label" Binding="{Binding IsZoneAll}" Value="False">
+                                                <Setter Property="TextColor" Value="#C7B8AE" />
+                                            </DataTrigger>
+                                            <DataTrigger TargetType="Label" Binding="{Binding IsZoneAll}" Value="True">
+                                                <Setter Property="TextColor" Value="#FFFFFF" />
+                                            </DataTrigger>
+                                        </Label.Triggers>
+                                    </Label>
+                                </Border>
+
+                                <Border HeightRequest="30"
+                                        Padding="12,0"
+                                        VerticalOptions="Center"
+                                        StrokeThickness="1.2"
+                                        BackgroundColor="Transparent"
+                                        Stroke="#5A4E46">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="15" />
+                                    </Border.StrokeShape>
+                                    <Border.Triggers>
+                                        <DataTrigger TargetType="Border" Binding="{Binding IsZoneLounge}" Value="True">
+                                            <Setter Property="BackgroundColor" Value="#C84B11" />
+                                            <Setter Property="Stroke" Value="#C84B11" />
+                                        </DataTrigger>
+                                        <DataTrigger TargetType="Border" Binding="{Binding IsZoneLounge}" Value="False">
+                                            <Setter Property="BackgroundColor" Value="Transparent" />
+                                            <Setter Property="Stroke" Value="#5A4E46" />
+                                        </DataTrigger>
+                                    </Border.Triggers>
+                                    <Border.GestureRecognizers>
+                                        <TapGestureRecognizer Command="{Binding SelectZoneCommand}" CommandParameter="Lounge" />
+                                    </Border.GestureRecognizers>
+                                    <Label Text="Lounge"
+                                           FontSize="11"
+                                           FontAttributes="Bold"
+                                           TextColor="#C7B8AE"
+                                           VerticalOptions="Center">
+                                        <Label.Triggers>
+                                            <DataTrigger TargetType="Label" Binding="{Binding IsZoneLounge}" Value="True">
+                                                <Setter Property="TextColor" Value="#FFFFFF" />
+                                            </DataTrigger>
+                                            <DataTrigger TargetType="Label" Binding="{Binding IsZoneLounge}" Value="False">
+                                                <Setter Property="TextColor" Value="#C7B8AE" />
+                                            </DataTrigger>
+                                        </Label.Triggers>
+                                    </Label>
+                                </Border>
+
+                                <Border HeightRequest="30"
+                                        Padding="12,0"
+                                        VerticalOptions="Center"
+                                        StrokeThickness="1.2"
+                                        BackgroundColor="Transparent"
+                                        Stroke="#5A4E46">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="15" />
+                                    </Border.StrokeShape>
+                                    <Border.Triggers>
+                                        <DataTrigger TargetType="Border" Binding="{Binding IsZoneFamily}" Value="True">
+                                            <Setter Property="BackgroundColor" Value="#C84B11" />
+                                            <Setter Property="Stroke" Value="#C84B11" />
+                                        </DataTrigger>
+                                        <DataTrigger TargetType="Border" Binding="{Binding IsZoneFamily}" Value="False">
+                                            <Setter Property="BackgroundColor" Value="Transparent" />
+                                            <Setter Property="Stroke" Value="#5A4E46" />
+                                        </DataTrigger>
+                                    </Border.Triggers>
+                                    <Border.GestureRecognizers>
+                                        <TapGestureRecognizer Command="{Binding SelectZoneCommand}" CommandParameter="Family" />
+                                    </Border.GestureRecognizers>
+                                    <Label Text="Family"
+                                           FontSize="11"
+                                           FontAttributes="Bold"
+                                           TextColor="#C7B8AE"
+                                           VerticalOptions="Center">
+                                        <Label.Triggers>
+                                            <DataTrigger TargetType="Label" Binding="{Binding IsZoneFamily}" Value="True">
+                                                <Setter Property="TextColor" Value="#FFFFFF" />
+                                            </DataTrigger>
+                                        </Label.Triggers>
+                                    </Label>
+                                </Border>
+
+                                <Border HeightRequest="30"
+                                        Padding="12,0"
+                                        VerticalOptions="Center"
+                                        StrokeThickness="1.2"
+                                        BackgroundColor="Transparent"
+                                        Stroke="#5A4E46">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="15" />
+                                    </Border.StrokeShape>
+                                    <Border.Triggers>
+                                        <DataTrigger TargetType="Border" Binding="{Binding IsZoneMajlis}" Value="True">
+                                            <Setter Property="BackgroundColor" Value="#C84B11" />
+                                            <Setter Property="Stroke" Value="#C84B11" />
+                                        </DataTrigger>
+                                        <DataTrigger TargetType="Border" Binding="{Binding IsZoneMajlis}" Value="False">
+                                            <Setter Property="BackgroundColor" Value="Transparent" />
+                                            <Setter Property="Stroke" Value="#5A4E46" />
+                                        </DataTrigger>
+                                    </Border.Triggers>
+                                    <Border.GestureRecognizers>
+                                        <TapGestureRecognizer Command="{Binding SelectZoneCommand}" CommandParameter="Majlis" />
+                                    </Border.GestureRecognizers>
+                                    <Label Text="Majlis"
+                                           FontSize="11"
+                                           FontAttributes="Bold"
+                                           TextColor="#C7B8AE"
+                                           VerticalOptions="Center">
+                                        <Label.Triggers>
+                                            <DataTrigger TargetType="Label" Binding="{Binding IsZoneMajlis}" Value="True">
+                                                <Setter Property="TextColor" Value="#FFFFFF" />
+                                            </DataTrigger>
+                                        </Label.Triggers>
+                                    </Label>
+                                </Border>
+
+                                <Border HeightRequest="30"
+                                        Padding="12,0"
+                                        VerticalOptions="Center"
+                                        StrokeThickness="1.2"
+                                        BackgroundColor="Transparent"
+                                        Stroke="#5A4E46">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="15" />
+                                    </Border.StrokeShape>
+                                    <Border.Triggers>
+                                        <DataTrigger TargetType="Border" Binding="{Binding IsZoneCourtyard}" Value="True">
+                                            <Setter Property="BackgroundColor" Value="#C84B11" />
+                                            <Setter Property="Stroke" Value="#C84B11" />
+                                        </DataTrigger>
+                                        <DataTrigger TargetType="Border" Binding="{Binding IsZoneCourtyard}" Value="False">
+                                            <Setter Property="BackgroundColor" Value="Transparent" />
+                                            <Setter Property="Stroke" Value="#5A4E46" />
+                                        </DataTrigger>
+                                    </Border.Triggers>
+                                    <Border.GestureRecognizers>
+                                        <TapGestureRecognizer Command="{Binding SelectZoneCommand}" CommandParameter="Courtyard" />
+                                    </Border.GestureRecognizers>
+                                    <Label Text="Courtyard"
+                                           FontSize="11"
+                                           FontAttributes="Bold"
+                                           TextColor="#C7B8AE"
+                                           VerticalOptions="Center">
+                                        <Label.Triggers>
+                                            <DataTrigger TargetType="Label" Binding="{Binding IsZoneCourtyard}" Value="True">
+                                                <Setter Property="TextColor" Value="#FFFFFF" />
+                                            </DataTrigger>
+                                        </Label.Triggers>
+                                    </Label>
+                                </Border>
+                            </HorizontalStackLayout>
+                        </ScrollView>
+
+                        <Border Grid.Column="1"
+                                BackgroundColor="#2A241F"
+                                Stroke="#3D342E"
+                                StrokeThickness="1"
+                                Padding="10,5"
+                                VerticalOptions="Center"
+                                HorizontalOptions="End">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="14" />
+                            </Border.StrokeShape>
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding ToggleMyTablesCommand}" />
+                            </Border.GestureRecognizers>
+                            <Border.Triggers>
+                                <DataTrigger TargetType="Border" Binding="{Binding IsMyTablesOnly}" Value="True">
+                                    <Setter Property="BackgroundColor" Value="#3A2418" />
+                                    <Setter Property="Stroke" Value="#C84B11" />
+                                </DataTrigger>
+                                <DataTrigger TargetType="Border" Binding="{Binding IsMyTablesOnly}" Value="False">
+                                    <Setter Property="BackgroundColor" Value="#2A241F" />
+                                    <Setter Property="Stroke" Value="#3D342E" />
+                                </DataTrigger>
+                            </Border.Triggers>
+                            <HorizontalStackLayout Spacing="8"
+                                                   VerticalOptions="Center"
+                                                   HorizontalOptions="Start">
+                                <Label Text="My Tables"
+                                       FontSize="11"
+                                       FontAttributes="Bold"
+                                       TextColor="#C7B8AE"
+                                       VerticalOptions="Center" />
+                                <!-- Custom compact toggle (native Switch clips badly on Windows) -->
+                                <Border WidthRequest="36"
+                                        HeightRequest="20"
+                                        StrokeThickness="0"
+                                        VerticalOptions="Center"
+                                        BackgroundColor="#4A4038"
+                                        Padding="2">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="10" />
+                                    </Border.StrokeShape>
+                                    <Border.Triggers>
+                                        <DataTrigger TargetType="Border" Binding="{Binding IsMyTablesOnly}" Value="True">
+                                            <Setter Property="BackgroundColor" Value="#C84B11" />
+                                        </DataTrigger>
+                                        <DataTrigger TargetType="Border" Binding="{Binding IsMyTablesOnly}" Value="False">
+                                            <Setter Property="BackgroundColor" Value="#4A4038" />
+                                        </DataTrigger>
+                                    </Border.Triggers>
+                                    <BoxView WidthRequest="16"
+                                             HeightRequest="16"
+                                             Color="#FFFFFF"
+                                             CornerRadius="8"
+                                             VerticalOptions="Center">
+                                        <BoxView.Triggers>
+                                            <DataTrigger TargetType="BoxView" Binding="{Binding IsMyTablesOnly}" Value="True">
+                                                <Setter Property="HorizontalOptions" Value="End" />
+                                            </DataTrigger>
+                                            <DataTrigger TargetType="BoxView" Binding="{Binding IsMyTablesOnly}" Value="False">
+                                                <Setter Property="HorizontalOptions" Value="Start" />
+                                            </DataTrigger>
+                                        </BoxView.Triggers>
+                                    </BoxView>
+                                </Border>
+                            </HorizontalStackLayout>
+                        </Border>
+                    </Grid>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- 2. FLOOR COUNT + 2-COLUMN TABLE CARDS -->
+            <Grid Grid.Row="1" RowDefinitions="Auto,*" BackgroundColor="#FAF7F4">
+                <Label Grid.Row="0"
+                       Text="{Binding GridCountLabel}"
+                       FontSize="11"
+                       FontAttributes="Bold"
+                       TextColor="#5C5048"
+                       Margin="16,12,16,6" />
+
+                <CollectionView Grid.Row="1"
+                                ItemsSource="{Binding FilteredTables}"
+                                SelectionMode="None"
+                                BackgroundColor="#FAF7F4"
+                                Margin="16,0,16,16">
+                <CollectionView.ItemsLayout>
+                    <GridItemsLayout Orientation="Vertical"
+                                     Span="2"
+                                     HorizontalItemSpacing="10"
+                                     VerticalItemSpacing="10" />
+                </CollectionView.ItemsLayout>
+                <CollectionView.EmptyView>
+                    <VerticalStackLayout VerticalOptions="Center"
+                                         Padding="28"
+                                         Spacing="10"
+                                         Margin="0,24,0,0">
+                        <Border WidthRequest="64"
+                                HeightRequest="64"
+                                BackgroundColor="#FDF1EB"
+                                Stroke="#F0C4AE"
+                                StrokeThickness="1"
+                                HorizontalOptions="Center">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="16" />
+                            </Border.StrokeShape>
+                            <Label Text="⊞"
+                                   FontSize="22"
+                                   TextColor="#C84B11"
+                                   HorizontalOptions="Center"
+                                   VerticalOptions="Center"
+                                   HorizontalTextAlignment="Center" />
+                        </Border>
+                        <Label Text="No Matching Tables"
+                               FontFamily="Georgia"
+                               FontAttributes="Bold"
+                               FontSize="18"
+                               TextColor="#1E1916"
+                               HorizontalTextAlignment="Center" />
+                        <Label Text="No tables match your current zone, status, or My Tables filter."
+                               FontSize="12"
+                               TextColor="#5C5048"
+                               HorizontalTextAlignment="Center" />
+                    </VerticalStackLayout>
+                </CollectionView.EmptyView>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="models:RestaurantTableDto">
+                        <Border BackgroundColor="#FFFFFF"
+                                Stroke="#EAE2DA"
+                                StrokeThickness="1"
+                                Padding="12">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="18" />
+                            </Border.StrokeShape>
+                            <Border.Shadow>
+                                <Shadow Brush="#1E1916" Opacity="0.05" Radius="12" Offset="0,6" />
+                            </Border.Shadow>
+                            <Border.Triggers>
+                                <DataTrigger TargetType="Border" Binding="{Binding IsSelected}" Value="True">
+                                    <Setter Property="Stroke" Value="#C84B11" />
+                                    <Setter Property="StrokeThickness" Value="2" />
+                                    <Setter Property="BackgroundColor" Value="#FDF1EB" />
+                                </DataTrigger>
+                                <DataTrigger TargetType="Border" Binding="{Binding IsSelected}" Value="False">
+                                    <Setter Property="Stroke" Value="#EAE2DA" />
+                                    <Setter Property="StrokeThickness" Value="1" />
+                                    <Setter Property="BackgroundColor" Value="#FFFFFF" />
+                                </DataTrigger>
+                            </Border.Triggers>
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer
+                                    Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.SelectTableCommand}"
+                                    CommandParameter="{Binding .}" />
+                            </Border.GestureRecognizers>
+
+                            <VerticalStackLayout Spacing="8">
+                                <!-- Type eyebrow + status badge with dot -->
+                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="4">
+                                    <Label Text="{Binding TypeEyebrow}"
+                                           FontSize="8.5"
+                                           FontAttributes="Bold"
+                                           TextColor="#8C7E74"
+                                           CharacterSpacing="0.7"
+                                           LineBreakMode="TailTruncation"
+                                           VerticalOptions="Center" />
+                                    <Border Grid.Column="1"
+                                            Padding="6,2"
+                                            StrokeThickness="1"
+                                            BackgroundColor="#F4EFEA"
+                                            Stroke="#EAE2DA"
+                                            VerticalOptions="Center">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="6" />
+                                        </Border.StrokeShape>
+                                        <Border.Triggers>
+                                            <DataTrigger TargetType="Border" Binding="{Binding Status}" Value="1">
+                                                <Setter Property="BackgroundColor" Value="#FDF1EB" />
+                                                <Setter Property="Stroke" Value="#F0C4AE" />
+                                            </DataTrigger>
+                                            <DataTrigger TargetType="Border" Binding="{Binding Status}" Value="2">
+                                                <Setter Property="BackgroundColor" Value="#FEF6EB" />
+                                                <Setter Property="Stroke" Value="#F3D6B3" />
+                                            </DataTrigger>
+                                        </Border.Triggers>
+                                        <HorizontalStackLayout Spacing="4" VerticalOptions="Center">
+                                            <BoxView WidthRequest="6"
+                                                     HeightRequest="6"
+                                                     CornerRadius="3"
+                                                     VerticalOptions="Center"
+                                                     Color="#8C7E74">
+                                                <BoxView.Triggers>
+                                                    <DataTrigger TargetType="BoxView" Binding="{Binding Status}" Value="1">
+                                                        <Setter Property="Color" Value="#C84B11" />
+                                                    </DataTrigger>
+                                                    <DataTrigger TargetType="BoxView" Binding="{Binding Status}" Value="2">
+                                                        <Setter Property="Color" Value="#D9822B" />
+                                                    </DataTrigger>
+                                                </BoxView.Triggers>
+                                            </BoxView>
+                                            <Label Text="{Binding FloorStatusLabel}"
+                                                   FontSize="9"
+                                                   FontAttributes="Bold"
+                                                   TextColor="#5C5048"
+                                                   VerticalOptions="Center">
+                                                <Label.Triggers>
+                                                    <DataTrigger TargetType="Label" Binding="{Binding Status}" Value="1">
+                                                        <Setter Property="TextColor" Value="#C84B11" />
+                                                    </DataTrigger>
+                                                    <DataTrigger TargetType="Label" Binding="{Binding Status}" Value="2">
+                                                        <Setter Property="TextColor" Value="#D9822B" />
+                                                    </DataTrigger>
+                                                </Label.Triggers>
+                                            </Label>
+                                        </HorizontalStackLayout>
+                                    </Border>
+                                </Grid>
+
+                                <!-- Title + Rs./capacity -->
+                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="4">
+                                    <Label Text="{Binding DisplayTitle}"
+                                           FontFamily="Georgia"
+                                           FontSize="17"
+                                           FontAttributes="Bold"
+                                           TextColor="#1E1916"
+                                           LineBreakMode="TailTruncation"
+                                           VerticalOptions="End" />
+                                    <Label Grid.Column="1"
+                                           Text="{Binding CardTrailingValue}"
+                                           FontSize="11"
+                                           FontAttributes="Bold"
+                                           TextColor="{Binding CardTrailingColor}"
+                                           VerticalOptions="End"
+                                           HorizontalTextAlignment="End" />
+                                </Grid>
+
+                                <Label Text="{Binding CardElapsedDisplay}"
+                                       FontSize="10.5"
+                                       TextColor="#5C5048"
+                                       LineBreakMode="TailTruncation" />
+
+                                <BoxView HeightRequest="1" Color="#EAE2DA" />
+
+                                <!-- Waiter footer -->
+                                <Grid ColumnDefinitions="Auto,*">
+                                    <Label Text="Waiter"
+                                           FontSize="10"
+                                           TextColor="#8C7E74" />
+                                    <Label Grid.Column="1"
+                                           Text="{Binding WaiterFloorDisplay}"
+                                           FontSize="10.5"
+                                           FontAttributes="Bold"
+                                           TextColor="#C84B11"
+                                           HorizontalTextAlignment="End"
+                                           LineBreakMode="TailTruncation" />
+                                </Grid>
+                            </VerticalStackLayout>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+                </CollectionView>
+            </Grid>
+
+            <!-- 3. STICKY SELECTED TABLE ACTION DOCK -->
+            <Border Grid.Row="2"
+                    IsVisible="{Binding HasSelectedTable}"
+                    BackgroundColor="#FFFFFF"
+                    Stroke="#EAE2DA"
+                    StrokeThickness="1"
+                    Padding="16,10,16,10">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="0" />
+                </Border.StrokeShape>
+                <Grid ColumnDefinitions="*,Auto"
+                      ColumnSpacing="12"
+                      VerticalOptions="Center">
+                    <VerticalStackLayout Spacing="2" VerticalOptions="Center">
+                        <Label Text="{Binding SelectedDockEyebrow}"
+                               FontSize="9.5"
+                               FontAttributes="Bold"
+                               TextColor="#C84B11"
+                               CharacterSpacing="0.8"
+                               LineBreakMode="TailTruncation" />
+                        <Label Text="{Binding SelectedDockTitle}"
+                               FontSize="14.5"
+                               FontAttributes="Bold"
+                               TextColor="#1E1916"
+                               LineBreakMode="TailTruncation" />
+                        <Label Text="{Binding SelectedDockSubtitle}"
+                               FontSize="11.5"
+                               TextColor="#5C5048"
+                               LineBreakMode="TailTruncation" />
+                    </VerticalStackLayout>
+
+                    <Button Grid.Column="1"
+                            Text="{Binding PrimaryActionButtonText}"
+                            Command="{Binding OpenKotDrawerCommand}"
+                            HeightRequest="46"
+                            CornerRadius="14"
+                            BackgroundColor="#C84B11"
+                            TextColor="#FFFFFF"
+                            FontAttributes="Bold"
+                            FontSize="13"
+                            Padding="16,0"
+                            VerticalOptions="Center" />
+                </Grid>
+            </Border>
+
+            <!-- 4. PERSISTENT 4-TAB STAFF BOTTOM NAVIGATION BAR -->
+            <Grid Grid.Row="3"
+                  ColumnDefinitions="*,*,*,*"
+                  HeightRequest="66"
+                  BackgroundColor="#FFFFFF"
+                  Padding="8,6,8,8">
+                <BoxView Grid.ColumnSpan="4"
+                         HeightRequest="1"
+                         Color="#EAE2DA"
+                         VerticalOptions="Start" />
+
+                <!-- Tab 1: Tables (ACTIVE) -->
+                <VerticalStackLayout Grid.Column="0"
+                                     Spacing="3"
+                                     VerticalOptions="Center"
+                                     HorizontalOptions="Center">
+                    <Border Padding="12,4"
+                            BackgroundColor="#FDF1EB"
+                            Stroke="#F0C4AE"
+                            StrokeThickness="1"
+                            HorizontalOptions="Center">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="10" />
+                        </Border.StrokeShape>
+                        <Label Text="⊞"
+                               FontSize="14"
+                               TextColor="#C84B11"
+                               HorizontalTextAlignment="Center" />
+                    </Border>
+                    <Label Text="Tables"
+                           FontSize="10"
+                           FontAttributes="Bold"
+                           TextColor="#C84B11"
+                           HorizontalTextAlignment="Center" />
+                </VerticalStackLayout>
+
+                <!-- Tab 2: Order -->
+                <VerticalStackLayout Grid.Column="1"
+                                     Spacing="3"
+                                     VerticalOptions="Center"
+                                     HorizontalOptions="Center">
+                    <VerticalStackLayout.GestureRecognizers>
+                        <TapGestureRecognizer Command="{Binding NavigateOrderTabCommand}" />
+                    </VerticalStackLayout.GestureRecognizers>
+                    <Label Text="＋"
+                           FontSize="15"
+                           TextColor="#8C7E74"
+                           HorizontalTextAlignment="Center" />
+                    <Label Text="Order"
+                           FontSize="10"
+                           TextColor="#8C7E74"
+                           HorizontalTextAlignment="Center" />
+                </VerticalStackLayout>
+
+                <!-- Tab 3: Orders -->
+                <VerticalStackLayout Grid.Column="2"
+                                     Spacing="3"
+                                     VerticalOptions="Center"
+                                     HorizontalOptions="Center">
+                    <VerticalStackLayout.GestureRecognizers>
+                        <TapGestureRecognizer Command="{Binding NavigateOrdersTabCommand}" />
+                    </VerticalStackLayout.GestureRecognizers>
+                    <Label Text="☰"
+                           FontSize="15"
+                           TextColor="#8C7E74"
+                           HorizontalTextAlignment="Center" />
+                    <Label Text="Orders"
+                           FontSize="10"
+                           TextColor="#8C7E74"
+                           HorizontalTextAlignment="Center" />
+                </VerticalStackLayout>
+
+                <!-- Tab 4: Profile -->
+                <VerticalStackLayout Grid.Column="3"
+                                     Spacing="3"
+                                     VerticalOptions="Center"
+                                     HorizontalOptions="Center">
+                    <VerticalStackLayout.GestureRecognizers>
+                        <TapGestureRecognizer Command="{Binding NavigateProfileTabCommand}" />
+                    </VerticalStackLayout.GestureRecognizers>
+                    <Label Text="◉"
+                           FontSize="15"
+                           TextColor="#8C7E74"
+                           HorizontalTextAlignment="Center" />
+                    <Label Text="Profile"
+                           FontSize="10"
+                           TextColor="#8C7E74"
+                           HorizontalTextAlignment="Center" />
+                </VerticalStackLayout>
+            </Grid>
+        </Grid>
+
+        <controls:TabLoadingOverlay />
+
+        <!-- 5. INTERACTIVE KOT / QUICK-ORDER BOTTOM DRAWER -->
+        <Grid IsVisible="{Binding IsKotDrawerOpen}"
+              ZIndex="40">
+            <!-- Backdrop -->
+            <BoxView Color="#801E1916">
+                <BoxView.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding CloseKotDrawerCommand}" />
+                </BoxView.GestureRecognizers>
+            </BoxView>
+
+            <!-- Bottom Sheet -->
+            <Border BackgroundColor="#FFFFFF"
+                    StrokeThickness="0"
+                    Padding="20,14,20,28"
+                    VerticalOptions="End"
+                    Margin="0">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="28,28,0,0" />
+                </Border.StrokeShape>
+                <Border.Shadow>
+                    <Shadow Brush="#1E1916" Opacity="0.12" Radius="24" Offset="0,-8" />
+                </Border.Shadow>
+
+                <VerticalStackLayout Spacing="0">
+                    <!-- Drag handle -->
+                    <BoxView WidthRequest="40"
+                             HeightRequest="4"
+                             Color="#EAE2DA"
+                             CornerRadius="2"
+                             HorizontalOptions="Center"
+                             Margin="0,0,0,12" />
+
+                    <!-- Header Row -->
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                        <VerticalStackLayout Spacing="2">
+                            <Label Text="KITCHEN ORDER TICKET (KOT)"
+                                   FontSize="9.5"
+                                   FontAttributes="Bold"
+                                   TextColor="#C84B11"
+                                   CharacterSpacing="1.0" />
+                            <Label Text="{Binding DrawerTitle}"
+                                   FontFamily="Georgia"
+                                   FontSize="20"
+                                   FontAttributes="Bold"
+                                   TextColor="#1E1916"
+                                   LineBreakMode="TailTruncation" />
+                            <Label Text="{Binding DrawerSubtitle}"
+                                   FontSize="12"
+                                   TextColor="#5C5048"
+                                   LineBreakMode="TailTruncation" />
+                        </VerticalStackLayout>
+
+                        <Border Grid.Column="1"
+                                WidthRequest="34"
+                                HeightRequest="34"
+                                BackgroundColor="#F4EFEA"
+                                StrokeThickness="0"
+                                VerticalOptions="Start">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="17" />
+                            </Border.StrokeShape>
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding CloseKotDrawerCommand}" />
+                            </Border.GestureRecognizers>
+                            <Label Text="✕"
+                                   FontSize="14"
+                                   FontAttributes="Bold"
+                                   TextColor="#1E1916"
+                                   HorizontalOptions="Center"
+                                   VerticalOptions="Center"
+                                   HorizontalTextAlignment="Center" />
+                        </Border>
+                    </Grid>
+
+                    <!-- Guest Count & Dining Mode -->
+                    <Border Margin="0,12,0,0"
+                            BackgroundColor="#FAF7F4"
+                            Stroke="#EAE2DA"
+                            StrokeThickness="1"
+                            Padding="12">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="14" />
+                        </Border.StrokeShape>
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10" VerticalOptions="Center">
+                            <HorizontalStackLayout Spacing="10" VerticalOptions="Center">
+                                <Border WidthRequest="34"
+                                        HeightRequest="34"
+                                        BackgroundColor="#FFFFFF"
+                                        Stroke="#EAE2DA"
+                                        StrokeThickness="1"
+                                        VerticalOptions="Center">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="10" />
+                                    </Border.StrokeShape>
+                                    <Border.GestureRecognizers>
+                                        <TapGestureRecognizer Command="{Binding DecreaseDrawerGuestsCommand}" />
+                                    </Border.GestureRecognizers>
+                                    <Label Text="−"
+                                           FontSize="18"
+                                           FontAttributes="Bold"
+                                           TextColor="#1E1916"
+                                           HorizontalOptions="Center"
+                                           VerticalOptions="Center"
+                                           HorizontalTextAlignment="Center" />
+                                </Border>
+                                <Label Text="{Binding DrawerGuestCountText}"
+                                       FontSize="13"
+                                       FontAttributes="Bold"
+                                       TextColor="#1E1916"
+                                       VerticalOptions="Center" />
+                                <Border WidthRequest="34"
+                                        HeightRequest="34"
+                                        BackgroundColor="#FFFFFF"
+                                        Stroke="#EAE2DA"
+                                        StrokeThickness="1"
+                                        VerticalOptions="Center">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="10" />
+                                    </Border.StrokeShape>
+                                    <Border.GestureRecognizers>
+                                        <TapGestureRecognizer Command="{Binding IncreaseDrawerGuestsCommand}" />
+                                    </Border.GestureRecognizers>
+                                    <Label Text="+"
+                                           FontSize="16"
+                                           FontAttributes="Bold"
+                                           TextColor="#1E1916"
+                                           HorizontalOptions="Center"
+                                           VerticalOptions="Center"
+                                           HorizontalTextAlignment="Center" />
+                                </Border>
+                            </HorizontalStackLayout>
+
+                            <Border Grid.Column="1"
+                                    Padding="10,5"
+                                    BackgroundColor="#FDF1EB"
+                                    Stroke="#F0C4AE"
+                                    StrokeThickness="1"
+                                    VerticalOptions="Center">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="8" />
+                                </Border.StrokeShape>
+                                <Label Text="{Binding DrawerStatusLabel}"
+                                       FontSize="10"
+                                       FontAttributes="Bold"
+                                       TextColor="#C84B11"
+                                       HorizontalTextAlignment="Center" />
+                            </Border>
+                        </Grid>
+                    </Border>
+
+                    <!-- Current Running KOT Items -->
+                    <Border Margin="0,10,0,0"
+                            BackgroundColor="#FAF7F4"
+                            Stroke="#EAE2DA"
+                            StrokeThickness="1"
+                            Padding="12">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="14" />
+                        </Border.StrokeShape>
+                        <VerticalStackLayout Spacing="6">
+                            <Label Text="ACTIVE TABLE ITEMS"
+                                   FontSize="10"
+                                   FontAttributes="Bold"
+                                   TextColor="#8C7E74" />
+
+                            <Label Text="{Binding DrawerEmptyItemsText}"
+                                   IsVisible="{Binding DrawerHasItems, Converter={StaticResource InvertedBoolConverter}}"
+                                   FontSize="12"
+                                   TextColor="#5C5048" />
+
+                            <VerticalStackLayout BindableLayout.ItemsSource="{Binding DrawerKotLines}"
+                                                 IsVisible="{Binding DrawerHasItems}"
+                                                 Spacing="4">
+                                <BindableLayout.ItemTemplate>
+                                    <DataTemplate x:DataType="models:WaiterKotLineItem">
+                                        <Label Text="{Binding DisplayLine}"
+                                               FontSize="12"
+                                               TextColor="#1E1916"
+                                               LineBreakMode="TailTruncation" />
+                                    </DataTemplate>
+                                </BindableLayout.ItemTemplate>
+                            </VerticalStackLayout>
+
+                            <Grid ColumnDefinitions="*,Auto" Margin="0,4,0,0">
+                                <Label Text="Running Total"
+                                       FontSize="12"
+                                       FontAttributes="Bold"
+                                       TextColor="#5C5048" />
+                                <Label Grid.Column="1"
+                                       Text="{Binding DrawerRunningTotalText}"
+                                       FontSize="14"
+                                       FontAttributes="Bold"
+                                       TextColor="#C84B11"
+                                       HorizontalTextAlignment="End" />
+                            </Grid>
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <!-- Bottom Action Buttons -->
+                    <Grid Margin="0,14,0,0"
+                          ColumnDefinitions="*,*"
+                          ColumnSpacing="10">
+                        <Button Grid.Column="0"
+                                Text="Print / View Bill"
+                                Command="{Binding PrintOrViewBillCommand}"
+                                HeightRequest="48"
+                                CornerRadius="14"
+                                BackgroundColor="#F4EFEA"
+                                TextColor="#1E1916"
+                                FontAttributes="Bold"
+                                FontSize="13" />
+                        <Button Grid.Column="1"
+                                Text="Open Menu &amp; Add Items →"
+                                Command="{Binding OpenMenuFromDrawerCommand}"
+                                HeightRequest="48"
+                                CornerRadius="14"
+                                BackgroundColor="#C84B11"
+                                TextColor="#FFFFFF"
+                                FontAttributes="Bold"
+                                FontSize="13" />
+                    </Grid>
+                </VerticalStackLayout>
+            </Border>
+        </Grid>
+    </Grid>
+</ContentPage>

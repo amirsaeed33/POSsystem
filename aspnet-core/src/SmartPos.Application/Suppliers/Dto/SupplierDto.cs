@@ -21,7 +21,8 @@ namespace SmartPos.Suppliers.Dto
         [StringLength(Supplier.MaxEmailLength)]
         public string Email { get; set; }
 
-        [StringLength(Supplier.MaxAddressLength)]
+        /// <summary>Virtual — stored in AppSavedAddresses (OwnerType = Supplier).</summary>
+        [StringLength(512)]
         public string Address { get; set; }
 
         [StringLength(Supplier.MaxDescriptionLength)]

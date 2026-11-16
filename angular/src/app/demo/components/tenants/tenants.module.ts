@@ -11,11 +11,15 @@ import { ToastModule } from 'primeng/toast';
 import { TooltipModule } from 'primeng/tooltip';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { CheckboxModule } from 'primeng/checkbox';
+import { CalendarModule } from 'primeng/calendar';
+import { DropdownModule } from 'primeng/dropdown';
+import { InputNumberModule } from 'primeng/inputnumber';
 import { StyleClassModule } from 'primeng/styleclass';
 import { AppRowActionsComponent } from 'src/app/shared/components/row-actions/row-actions.component';
 import { TenantsRoutingModule } from './tenants-routing.module';
 import { TenantListComponent } from './tenant-list.component';
 import { TenantFormDialogComponent } from './tenant-form-dialog.component';
+import { TenantSubscriptionDialogComponent } from './tenant-subscription-dialog.component';
 
 @NgModule({
     imports: [
@@ -32,9 +36,12 @@ import { TenantFormDialogComponent } from './tenant-form-dialog.component';
         TooltipModule,
         ConfirmDialogModule,
         CheckboxModule,
+        CalendarModule,
+        DropdownModule,
+        InputNumberModule,
         StyleClassModule,
         AppRowActionsComponent,
     ],
-    declarations: [TenantListComponent, TenantFormDialogComponent],
+    declarations: [TenantListComponent, TenantFormDialogComponent, TenantSubscriptionDialogComponent],
 })
 export class TenantsModule {}

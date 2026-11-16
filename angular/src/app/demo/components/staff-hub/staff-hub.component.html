@@ -2,7 +2,7 @@
     <div class="flex align-items-center justify-content-between mb-3">
         <div>
             <h5 class="m-0">Staff</h5>
-            <div class="text-500 mt-1">Manage staff and payroll</div>
+            <div class="text-500 mt-1">Manage staff, attendance, and payroll</div>
         </div>
     </div>
 
@@ -17,6 +17,10 @@
 
         <p-tabPanel *ngIf="canAttendance" header="Attendance">
             <app-staff-attendance-list [embedded]="true"></app-staff-attendance-list>
+        </p-tabPanel>
+
+        <p-tabPanel *ngIf="canAttendance" header="Monthly Staff Attendance">
+            <app-staff-monthly-attendance-list [embedded]="true"></app-staff-monthly-attendance-list>
         </p-tabPanel>
 
         <p-tabPanel *ngIf="canPayroll" header="Payroll">

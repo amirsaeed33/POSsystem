@@ -35,6 +35,13 @@ export class ProductFormDialogComponent implements OnChanges {
     @Input() productId: number | null = null;
     @Output() visibleChange = new EventEmitter<boolean>();
     @Output() saved = new EventEmitter<void>();
+    @Output() manageDeal = new EventEmitter<ProductDto>();
+
+    onManageDealProducts(): void {
+        this.visible = false;
+        this.visibleChange.emit(false);
+        this.manageDeal.emit(this.product);
+    }
 
     product: ProductDto = this.emptyProduct();
     specItems: ProductSpecItem[] = [];
@@ -48,6 +55,15 @@ export class ProductFormDialogComponent implements OnChanges {
     loading = false;
     canManageBranches = false;
 
+    readonly cardTagOptions: { label: string; value: string }[] = [
+        { label: '🔥 Hot Deal', value: '🔥 Hot Deal' },
+        { label: '⭐ Best Seller', value: '⭐ Best Seller' },
+        { label: '🎉 Special Deal', value: '🎉 Special Deal' },
+        { label: '⚡ Verified', value: '⚡ Verified' },
+        { label: '👑 Signature', value: '👑 Signature' },
+        { label: '✨ New', value: '✨ New' },
+    ];
+
     constructor(
         private productService: ProductService,
         private categoryService: CategoryService,
@@ -58,6 +74,24 @@ export class ProductFormDialogComponent implements OnChanges {
         private permissionService: PermissionService,
         private messageService: MessageService
     ) {}
+
+    get isRestaurant(): boolean {
+        return this.branchContext.isRestaurant();
+    }
+
+    get isPermanentGroceryCategory(): boolean {
+        const category = (this.categories || []).find(
+            (c) => c.id === this.product.categoryId
+        );
+        return (
+            (category?.name || '').trim().toLowerCase() === 'permanent grocery'
+        );
+    }
+
+    /** Restaurant grocery inventory: show cost / allow stock-oriented fields. */
+    get isGroceryInventory(): boolean {
+        return this.isRestaurant && this.isPermanentGroceryCategory;
+    }
 
     get dialogTitle(): string {
         return this.productId ? 'Edit Product' : 'Create Product';
@@ -170,26 +204,62 @@ export class ProductFormDialogComponent implements OnChanges {
         }
 
         const name = (this.product.name || '').trim();
-        const barcode = (this.product.barcode || '').trim();
-        const price = Number(this.product.price);
-        const wholesalePrice = Number(this.product.wholesalePrice);
-        const costPrice = Number(this.product.costPrice);
+        let barcode = (this.product.barcode || '').trim();
+        let price = Number(this.product.price);
+        let wholesalePrice = Number(this.product.wholesalePrice);
+        let costPrice = Number(this.product.costPrice);
 
-        if (price < costPrice) {
-            this.messageService.add({
-                severity: 'warn',
-                summary: 'Validation',
-                detail: 'Selling price cannot be lower than the cost price.',
-            });
-            return;
+        if (this.isPermanentGroceryCategory) {
+            price = 0;
+            wholesalePrice = 0;
+            costPrice = 0;
         }
-        if (price < wholesalePrice) {
-            this.messageService.add({
-                severity: 'warn',
-                summary: 'Validation',
-                detail: 'Selling price cannot be lower than the wholesale price.',
-            });
-            return;
+        let brandId = this.product.brandId;
+
+        if (this.isRestaurant) {
+            if (!barcode) {
+                barcode = `REST-${Date.now()}`;
+            }
+            if (!brandId && this.brands.length > 0) {
+                brandId = this.brands[0].id;
+            }
+            wholesalePrice = 0;
+            // Menu dishes: optional estimated plate cost for Profit Report.
+            // Grocery inventory: purchase/cost price for stock valuation.
+            costPrice = Number.isFinite(costPrice) ? Math.max(0, costPrice) : 0;
+            if (this.isGroceryInventory && price > 0 && price < costPrice) {
+                this.messageService.add({
+                    severity: 'warn',
+                    summary: 'Validation',
+                    detail: 'Selling price cannot be lower than the purchase price.',
+                });
+                return;
+            }
+            if (!this.isGroceryInventory && costPrice > 0 && price < costPrice) {
+                this.messageService.add({
+                    severity: 'warn',
+                    summary: 'Validation',
+                    detail: 'Selling price cannot be lower than the estimated plate cost.',
+                });
+                return;
+            }
+        } else {
+            if (price < costPrice) {
+                this.messageService.add({
+                    severity: 'warn',
+                    summary: 'Validation',
+                    detail: 'Selling price cannot be lower than the cost price.',
+                });
+                return;
+            }
+            if (price < wholesalePrice) {
+                this.messageService.add({
+                    severity: 'warn',
+                    summary: 'Validation',
+                    detail: 'Selling price cannot be lower than the wholesale price.',
+                });
+                return;
+            }
         }
 
         this.saving = true;
@@ -213,30 +283,33 @@ export class ProductFormDialogComponent implements OnChanges {
                   name,
                   barcode,
                   description: this.product.description?.trim() || undefined,
-                  location: this.product.location?.trim() || undefined,
+                  location: this.isRestaurant ? undefined : (this.product.location?.trim() || undefined),
                   price,
                   wholesalePrice,
                   costPrice,
-                  alertQuantityLimit: Number(this.product.alertQuantityLimit),
+                  alertQuantityLimit: this.isRestaurant ? 0 : Number(this.product.alertQuantityLimit),
+                  brandId: brandId || undefined,
                   imageBase64,
                   specifications: specsJson,
+                  cardTag: (this.product.cardTag || '').toString().trim() || undefined,
                   ...assignment,
               })
             : this.productService.create({
                   name,
                   description: (this.product.description?.trim() || name),
-                  location: this.product.location?.trim() || undefined,
-                  barcode,
+                  location: this.isRestaurant ? undefined : (this.product.location?.trim() || undefined),
+                  barcode: barcode || undefined,
                   price,
                   wholesalePrice,
                   costPrice,
-                  alertQuantityLimit: this.product.alertQuantityLimit != null ? Number(this.product.alertQuantityLimit) : 10,
-                  stockQuantity: Number(this.product.stockQuantity) || 0,
+                  alertQuantityLimit: this.isRestaurant ? 0 : (this.product.alertQuantityLimit != null ? Number(this.product.alertQuantityLimit) : 10),
+                  stockQuantity: this.isRestaurant ? 0 : (Number(this.product.stockQuantity) || 0),
                   categoryId: this.product.categoryId,
-                  brandId: this.product.brandId,
+                  brandId: brandId || undefined,
                   unitId: this.product.unitId,
                   imageBase64: undefined,
                   specifications: specsJson,
+                  cardTag: (this.product.cardTag || '').toString().trim() || undefined,
                   ...assignment,
               } as CreateProductDto);
 
@@ -268,25 +341,27 @@ export class ProductFormDialogComponent implements OnChanges {
         if (!(this.product.name || '').trim()) {
             return 'Name is required.';
         }
-        if (!(this.product.barcode || '').trim()) {
+        if (!this.isRestaurant && !(this.product.barcode || '').trim()) {
             return 'Barcode is required.';
         }
-        if (this.product.price == null || Number(this.product.price) <= 0) {
+        if (this.isPermanentGroceryCategory) {
+            // Permanent grocery items do not have sell or purchase price in this form
+        } else if (this.product.price == null || Number(this.product.price) <= 0) {
             return 'Price is required.';
         }
-        if (this.product.wholesalePrice == null || Number(this.product.wholesalePrice) < 0) {
+        if (!this.isRestaurant && (this.product.wholesalePrice == null || Number(this.product.wholesalePrice) < 0)) {
             return 'Wholesale price is required.';
         }
-        if (this.product.costPrice == null || Number(this.product.costPrice) < 0) {
+        if (!this.isRestaurant && (this.product.costPrice == null || Number(this.product.costPrice) < 0)) {
             return 'Purchase price is required.';
         }
-        if (this.productId && (this.product.alertQuantityLimit == null || Number(this.product.alertQuantityLimit) < 0)) {
+        if (!this.isRestaurant && this.productId && (this.product.alertQuantityLimit == null || Number(this.product.alertQuantityLimit) < 0)) {
             return 'Alert quantity limit is required.';
         }
         if (!this.product.categoryId) {
             return 'Category is required.';
         }
-        if (!this.product.brandId) {
+        if (!this.isRestaurant && !this.product.brandId) {
             return 'Brand is required.';
         }
         if (!this.product.unitId) {
@@ -315,6 +390,7 @@ export class ProductFormDialogComponent implements OnChanges {
             imagePath: undefined,
             imageBase64: undefined,
             branchIds: [],
+            cardTag: undefined,
         };
     }
 
@@ -459,6 +535,9 @@ export class ProductFormDialogComponent implements OnChanges {
     }
 
     serializeSpecs(): string | undefined {
+        if (this.isRestaurant) {
+            return undefined;
+        }
         const valid = this.specItems
             .map((i) => ({ key: (i.key || '').trim(), value: (i.value || '').trim() }))
             .filter((i) => i.key && i.value);

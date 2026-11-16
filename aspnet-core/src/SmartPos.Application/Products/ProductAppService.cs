@@ -13,6 +13,7 @@ using Abp.UI;
 using Microsoft.EntityFrameworkCore;
 using SmartPos.Authorization;
 using SmartPos.Branches;
+using SmartPos.Caching;
 using SmartPos.Inventory;
 using SmartPos.Products.Dto;
 
@@ -32,6 +33,7 @@ namespace SmartPos.Products
         private readonly IRepository<SmartPos.Brands.Brand> _brandRepository;
         private readonly IRepository<SmartPos.Units.Unit> _unitRepository;
         private readonly IPermissionChecker _permissionChecker;
+        private readonly ISmartPosReadCacheInvalidator _readCacheInvalidator;
         private int? _effectiveBranchIdForQuery;
 
         public ProductAppService(
@@ -43,7 +45,8 @@ namespace SmartPos.Products
             IRepository<SmartPos.Categories.Category> categoryRepository,
             IRepository<SmartPos.Brands.Brand> brandRepository,
             IRepository<SmartPos.Units.Unit> unitRepository,
-            IPermissionChecker permissionChecker)
+            IPermissionChecker permissionChecker,
+            ISmartPosReadCacheInvalidator readCacheInvalidator)
             : base(repository)
         {
             _branchAccessChecker = branchAccessChecker;
@@ -54,6 +57,7 @@ namespace SmartPos.Products
             _brandRepository = brandRepository;
             _unitRepository = unitRepository;
             _permissionChecker = permissionChecker;
+            _readCacheInvalidator = readCacheInvalidator;
             CreatePermissionName = PermissionNames.Pages_Products_Create;
             UpdatePermissionName = PermissionNames.Pages_Products_Edit;
             DeletePermissionName = PermissionNames.Pages_Products_Delete;
@@ -65,6 +69,61 @@ namespace SmartPos.Products
         {
             CheckCreatePermission();
 
+            var effectiveBranchId = input.BranchId > 0
+                ? input.BranchId
+                : (await _branchAccessChecker.GetEffectiveBranchIdAsync() ?? 0);
+            var branch = effectiveBranchId > 0 ? await _branchRepository.FirstOrDefaultAsync(effectiveBranchId) : null;
+            var isRestaurant = branch != null && branch.BusinessType == BusinessType.Restaurant;
+
+            if (isRestaurant)
+            {
+                if (string.IsNullOrWhiteSpace(input.Barcode))
+                {
+                    input.Barcode = $"REST-{Guid.NewGuid():N}".Substring(0, 16).ToUpper();
+                }
+                if (!input.BrandId.HasValue || input.BrandId.Value <= 0)
+                {
+                    var defaultBrand = (branch != null ? await _brandRepository.FirstOrDefaultAsync(b => b.BranchId == branch.Id) : null)
+                                       ?? await _brandRepository.FirstOrDefaultAsync(b => true);
+                    if (defaultBrand == null)
+                    {
+                        using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant))
+                        {
+                            defaultBrand = await _brandRepository.FirstOrDefaultAsync(b => true);
+                        }
+                    }
+
+                    if (defaultBrand != null && defaultBrand.Id > 0)
+                    {
+                        input.BrandId = defaultBrand.Id;
+                    }
+                    else
+                    {
+                        input.BrandId = await _brandRepository.InsertAndGetIdAsync(new SmartPos.Brands.Brand
+                        {
+                            TenantId = branch?.TenantId ?? AbpSession.TenantId,
+                            BranchId = branch?.Id ?? 0,
+                            Name = "General",
+                            IsActive = true
+                        });
+                    }
+                }
+                input.CostPrice = Math.Max(0, input.CostPrice);
+                input.WholesalePrice = Math.Max(0, input.WholesalePrice);
+                input.AlertQuantityLimit = Math.Max(0, input.AlertQuantityLimit);
+            }
+
+            var createCategory = input.CategoryId > 0
+                ? await _categoryRepository.FirstOrDefaultAsync(input.CategoryId)
+                : null;
+            var isGroceryInventory = PermanentGrocery.IsInventoryProduct(
+                input.Barcode, input.Name, createCategory?.Name);
+
+            if (isRestaurant && !isGroceryInventory)
+            {
+                input.StockQuantity = 0;
+            }
+
             EnsureRequiredFields(
                 input.Name,
                 input.Barcode,
@@ -73,9 +132,16 @@ namespace SmartPos.Products
                 input.CostPrice,
                 input.AlertQuantityLimit,
                 input.CategoryId,
-                input.BrandId,
-                input.UnitId);
-            EnsureValidPricing(input.Price, input.WholesalePrice, input.CostPrice);
+                input.BrandId.GetValueOrDefault(),
+                input.UnitId,
+                isRestaurant,
+                isGroceryInventory);
+            EnsureValidPricing(input.Price, input.WholesalePrice, input.CostPrice, isRestaurant || isGroceryInventory);
+            await EnsureProductLookupsExistAsync(
+                input.CategoryId,
+                input.BrandId.GetValueOrDefault(),
+                input.UnitId,
+                isRestaurant);
 
             var barcode = NormalizeBarcode(input.Barcode);
             await EnsureBarcodeIsUniqueAsync(barcode, excludeProductId: null);
@@ -92,18 +158,22 @@ namespace SmartPos.Products
 
             var initialStock = input.StockQuantity > 0 ? input.StockQuantity : 0;
             var product = ObjectMapper.Map<Product>(input);
+            product.BrandId = input.BrandId.GetValueOrDefault();
             product.TenantId = AbpSession.TenantId;
             product.Barcode = barcode;
             product.ImagePath = ProductImageStore.SaveBase64Image(input.ImageBase64);
             product.Specifications = input.Specifications;
+            product.CardTag = string.IsNullOrWhiteSpace(input.CardTag)
+                ? null
+                : input.CardTag.Trim();
+            product.IsVisibleOnline = input.IsVisibleOnline;
 
             int resolvedBranchId = input.BranchId;
             if (resolvedBranchId <= 0)
             {
-                var effectiveBranchId = await _branchAccessChecker.GetEffectiveBranchIdAsync();
-                if (effectiveBranchId.HasValue && effectiveBranchId.Value > 0)
+                if (effectiveBranchId > 0)
                 {
-                    resolvedBranchId = effectiveBranchId.Value;
+                    resolvedBranchId = effectiveBranchId;
                 }
                 else if (targetBranchIds != null && targetBranchIds.Any())
                 {
@@ -148,8 +218,10 @@ namespace SmartPos.Products
                     product.CostPrice);
             }
 
-            // Skip visibility check: product may be assigned to branches other than the current topbar branch.
-            return await MapProductDtoByIdAsync(product.Id);
+            await _readCacheInvalidator.ClearCatalogAsync();
+            // Map the tracked entity — avoid re-query with Includes (tenant INNER JOINs can
+            // falsely report "Product not found" right after insert).
+            return await MapProductDtoAsync(product);
         }
 
         public override async Task<ProductDto> UpdateAsync(ProductDto input)
@@ -159,6 +231,34 @@ namespace SmartPos.Products
             var product = await GetEntityByIdAsync(input.Id);
             await EnsureProductVisibleAsync(product);
 
+            if (IsLegacyLockedGrocery(product))
+            {
+                throw new UserFriendlyException("The default Grocery entry cannot be edited.");
+            }
+
+            var branch = product.BranchId > 0 ? await _branchRepository.FirstOrDefaultAsync(product.BranchId) : null;
+            var isRestaurant = branch != null && branch.BusinessType == BusinessType.Restaurant;
+            if (isRestaurant)
+            {
+                if (string.IsNullOrWhiteSpace(input.Barcode))
+                {
+                    input.Barcode = product.Barcode ?? $"REST-{Guid.NewGuid():N}".Substring(0, 16).ToUpper();
+                }
+                if (!input.BrandId.HasValue || input.BrandId.Value <= 0)
+                {
+                    input.BrandId = product.BrandId;
+                }
+                input.CostPrice = Math.Max(0, input.CostPrice);
+                input.WholesalePrice = Math.Max(0, input.WholesalePrice);
+                input.AlertQuantityLimit = Math.Max(0, input.AlertQuantityLimit);
+            }
+
+            var updateCategory = input.CategoryId > 0
+                ? await _categoryRepository.FirstOrDefaultAsync(input.CategoryId)
+                : product.Category;
+            var isGroceryInventory = PermanentGrocery.IsInventoryProduct(
+                input.Barcode, input.Name, updateCategory?.Name);
+
             EnsureRequiredFields(
                 input.Name,
                 input.Barcode,
@@ -167,9 +267,11 @@ namespace SmartPos.Products
                 input.CostPrice,
                 input.AlertQuantityLimit,
                 input.CategoryId,
-                input.BrandId,
-                input.UnitId);
-            EnsureValidPricing(input.Price, input.WholesalePrice, input.CostPrice);
+                input.BrandId.GetValueOrDefault(),
+                input.UnitId,
+                isRestaurant,
+                isGroceryInventory);
+            EnsureValidPricing(input.Price, input.WholesalePrice, input.CostPrice, isRestaurant || isGroceryInventory);
 
             var barcode = NormalizeBarcode(input.Barcode);
             await EnsureBarcodeIsUniqueAsync(barcode, excludeProductId: product.Id);
@@ -183,9 +285,13 @@ namespace SmartPos.Products
             product.CostPrice = input.CostPrice;
             product.AlertQuantityLimit = input.AlertQuantityLimit;
             product.CategoryId = input.CategoryId;
-            product.BrandId = input.BrandId;
+            product.BrandId = input.BrandId.GetValueOrDefault();
             product.UnitId = input.UnitId;
             product.Specifications = input.Specifications;
+            product.CardTag = string.IsNullOrWhiteSpace(input.CardTag)
+                ? null
+                : input.CardTag.Trim();
+            product.IsVisibleOnline = input.IsVisibleOnline;
 
             if (input.BranchId > 0)
             {
@@ -233,8 +339,24 @@ namespace SmartPos.Products
                     input.CostPrice);
             }
 
-            // Skip visibility check: assignment may exclude the current topbar branch.
-            return await MapProductDtoByIdAsync(product.Id);
+            await _readCacheInvalidator.ClearCatalogAsync();
+            return await MapProductDtoAsync(product);
+        }
+
+        [AbpAuthorize(PermissionNames.Pages_Products_Edit)]
+        public async Task SetVisibleOnlineAsync(SetProductVisibleOnlineInput input)
+        {
+            var product = await Repository.GetAsync(input.Id);
+            await EnsureProductVisibleAsync(product);
+
+            if (IsLegacyLockedGrocery(product))
+            {
+                throw new UserFriendlyException("The default Grocery entry cannot be edited.");
+            }
+
+            product.IsVisibleOnline = input.IsVisibleOnline;
+            await CurrentUnitOfWork.SaveChangesAsync();
+            await _readCacheInvalidator.ClearCatalogAsync();
         }
 
         public override async Task DeleteAsync(EntityDto<int> input)
@@ -243,8 +365,16 @@ namespace SmartPos.Products
 
             var product = await Repository.GetAsync(input.Id);
             await EnsureProductVisibleAsync(product);
+
+            if (IsLegacyLockedGrocery(product))
+            {
+                throw new UserFriendlyException("The default Grocery entry cannot be deleted.");
+            }
+
             ProductImageStore.DeleteIfExists(product.ImagePath);
             await Repository.DeleteAsync(product);
+            await _readCacheInvalidator.ClearCatalogAsync();
+            await _readCacheInvalidator.ClearModifiersAsync();
         }
 
         public override async Task<ProductDto> GetAsync(EntityDto<int> input)
@@ -297,6 +427,7 @@ namespace SmartPos.Products
         protected override IQueryable<Product> CreateFilteredQuery(PagedProductResultRequestDto input)
         {
             var query = Repository.GetAllIncluding(x => x.Category, x => x.Brand, x => x.Unit)
+                .AsNoTracking()
                 .WhereIf(!input.Keyword.IsNullOrWhiteSpace(),
                     x => x.Name.Contains(input.Keyword)
                          || (x.Description != null && x.Description.Contains(input.Keyword))
@@ -311,16 +442,41 @@ namespace SmartPos.Products
                 return query;
             }
 
+            var currentBranch = _branchRepository.FirstOrDefault(_effectiveBranchIdForQuery.Value);
+            if (currentBranch != null && currentBranch.BusinessType != BusinessType.Restaurant)
+            {
+                query = query.Where(p => (p.Barcode == null || !p.Barcode.StartsWith("GROCERY-")) && p.Name != "Grocery");
+            }
+
             return query.WhereVisibleToBranch(
                 _branchStockRepository.GetAll(),
                 _effectiveBranchIdForQuery.Value);
         }
 
+        private static bool IsLegacyLockedGrocery(Product product)
+        {
+            if (product == null) return false;
+            return PermanentGrocery.IsLegacyLockedProduct(product.Barcode, product.Name);
+        }
+
         protected override async Task<Product> GetEntityByIdAsync(int id)
         {
-            return await AsyncQueryableExecuter.FirstOrDefaultAsync(
-                Repository.GetAllIncluding(x => x.Category, x => x.Brand, x => x.Unit)
-                    .Where(x => x.Id == id));
+            // Load product without required navigations. GetAllIncluding(Category/Brand/Unit)
+            // becomes INNER JOINs; with ABP MayHaveTenant filters those joins can drop the
+            // product row and surface a false "Product not found" (common right after Create).
+            var product = await AsyncQueryableExecuter.FirstOrDefaultAsync(
+                Repository.GetAll().Where(x => x.Id == id));
+            if (product == null)
+            {
+                return null;
+            }
+
+            product.Category = await _categoryRepository.FirstOrDefaultAsync(product.CategoryId);
+            product.Brand = product.BrandId > 0
+                ? await _brandRepository.FirstOrDefaultAsync(product.BrandId)
+                : null;
+            product.Unit = await _unitRepository.FirstOrDefaultAsync(product.UnitId);
+            return product;
         }
 
         private async Task EnsureProductVisibleAsync(Product product)
@@ -422,13 +578,13 @@ namespace SmartPos.Products
 
         private async Task<List<int>> GetActiveBranchIdsAsync()
         {
-            using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant))
+            var query = _branchRepository.GetAll().Where(x => x.IsActive && x.TenantId != null);
+            if (AbpSession.TenantId.HasValue)
             {
-                return await _branchRepository.GetAll()
-                    .Where(x => x.IsActive && x.TenantId != null)
-                    .Select(x => x.Id)
-                    .ToListAsync();
+                query = query.Where(x => x.TenantId == AbpSession.TenantId.Value);
             }
+
+            return await query.Select(x => x.Id).ToListAsync();
         }
 
         private async Task EnsureBranchesExistAndAccessibleAsync(IReadOnlyList<int> branchIds)
@@ -442,6 +598,47 @@ namespace SmartPos.Products
                 }
 
                 await _branchAccessChecker.EnsureCanAccessBranchAsync(branchId);
+            }
+        }
+
+        private async Task EnsureProductLookupsExistAsync(
+            int categoryId,
+            int brandId,
+            int unitId,
+            bool isRestaurant)
+        {
+            if (categoryId > 0)
+            {
+                var category = await _categoryRepository.FirstOrDefaultAsync(categoryId);
+                if (category == null)
+                {
+                    throw new UserFriendlyException(
+                        "Category not found for this company. Create a category first, then add the product.");
+                }
+            }
+
+            if (brandId > 0)
+            {
+                var brand = await _brandRepository.FirstOrDefaultAsync(brandId);
+                if (brand == null)
+                {
+                    throw new UserFriendlyException(
+                        "Brand not found for this company. Create a brand first, then add the product.");
+                }
+            }
+            else if (!isRestaurant)
+            {
+                throw new UserFriendlyException("Brand is required.");
+            }
+
+            if (unitId > 0)
+            {
+                var unit = await _unitRepository.FirstOrDefaultAsync(unitId);
+                if (unit == null)
+                {
+                    throw new UserFriendlyException(
+                        "Unit not found for this company. Create a unit first, then add the product.");
+                }
             }
         }
 
@@ -523,34 +720,44 @@ namespace SmartPos.Products
             decimal alertQuantityLimit,
             int categoryId,
             int brandId,
-            int unitId)
+            int unitId,
+            bool isRestaurant = false,
+            bool isGroceryInventory = false)
         {
             if (name.IsNullOrWhiteSpace())
             {
                 throw new UserFriendlyException("Name is required.");
             }
 
-            if (barcode.IsNullOrWhiteSpace())
+            if (!isRestaurant && barcode.IsNullOrWhiteSpace())
             {
                 throw new UserFriendlyException("Barcode is required.");
             }
 
-            if (price <= 0)
+            // Menu items need a selling price; grocery ingredients can be cost-only (price 0).
+            if (isGroceryInventory)
+            {
+                if (price < 0)
+                {
+                    throw new UserFriendlyException("Price cannot be negative.");
+                }
+            }
+            else if (price <= 0)
             {
                 throw new UserFriendlyException("Price is required.");
             }
 
-            if (wholesalePrice < 0)
+            if (!isRestaurant && wholesalePrice < 0)
             {
                 throw new UserFriendlyException("Wholesale price is required.");
             }
 
-            if (costPrice < 0)
+            if ((!isRestaurant || isGroceryInventory) && costPrice < 0)
             {
                 throw new UserFriendlyException("Cost price is required.");
             }
 
-            if (alertQuantityLimit < 0)
+            if (!isRestaurant && alertQuantityLimit < 0)
             {
                 throw new UserFriendlyException("Alert quantity limit is required.");
             }
@@ -560,7 +767,7 @@ namespace SmartPos.Products
                 throw new UserFriendlyException("Category is required.");
             }
 
-            if (brandId <= 0)
+            if (!isRestaurant && brandId <= 0)
             {
                 throw new UserFriendlyException("Brand is required.");
             }
@@ -571,8 +778,13 @@ namespace SmartPos.Products
             }
         }
 
-        private static void EnsureValidPricing(decimal price, decimal wholesalePrice, decimal costPrice)
+        private static void EnsureValidPricing(decimal price, decimal wholesalePrice, decimal costPrice, bool isRestaurant = false)
         {
+            if (isRestaurant)
+            {
+                return;
+            }
+
             if (price < costPrice)
             {
                 throw new UserFriendlyException(
@@ -629,6 +841,12 @@ namespace SmartPos.Products
             }
 
             var activeBranchId = await _branchAccessChecker.RequireEffectiveBranchIdAsync();
+            Branch branch;
+            using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant, AbpDataFilters.MustHaveTenant))
+            {
+                branch = await _branchRepository.FirstOrDefaultAsync(activeBranchId);
+            }
+            var isRestaurant = branch != null && branch.BusinessType == BusinessType.Restaurant;
 
             // Cache or find Categories, Brands, Units
             var categories = await _categoryRepository.GetAllListAsync();
@@ -636,9 +854,9 @@ namespace SmartPos.Products
             var units = await _unitRepository.GetAllListAsync();
 
             // Default fallback or matching category
-            var defaultCategory = categories.FirstOrDefault() ?? await _categoryRepository.InsertAsync(new SmartPos.Categories.Category { Name = "General", BranchId = activeBranchId });
-            var defaultBrand = brands.FirstOrDefault() ?? await _brandRepository.InsertAsync(new SmartPos.Brands.Brand { Name = "General", BranchId = activeBranchId });
-            var defaultUnit = units.FirstOrDefault() ?? await _unitRepository.InsertAsync(new SmartPos.Units.Unit { Name = "Pcs", Symbol = "pcs", BranchId = activeBranchId });
+            var defaultCategory = categories.FirstOrDefault() ?? await _categoryRepository.InsertAsync(new SmartPos.Categories.Category { Name = isRestaurant ? "Food" : "General", BranchId = activeBranchId });
+            var defaultBrand = brands.FirstOrDefault() ?? await _brandRepository.InsertAsync(new SmartPos.Brands.Brand { Name = isRestaurant ? "Kitchen" : "General", BranchId = activeBranchId });
+            var defaultUnit = units.FirstOrDefault() ?? await _unitRepository.InsertAsync(new SmartPos.Units.Unit { Name = isRestaurant ? "Serving" : "Pcs", Symbol = isRestaurant ? "srv" : "pcs", BranchId = activeBranchId });
 
             int rowIndex = 1;
             foreach (var row in inputs)
@@ -653,14 +871,17 @@ namespace SmartPos.Products
                         continue;
                     }
 
-                    if (row.Barcode.IsNullOrWhiteSpace())
+                    var cleanBarcode = !row.Barcode.IsNullOrWhiteSpace()
+                        ? row.Barcode.Trim()
+                        : (isRestaurant ? $"REST-{Guid.NewGuid():N}".Substring(0, 16).ToUpper() : null);
+
+                    if (cleanBarcode.IsNullOrWhiteSpace())
                     {
                         result.ErrorCount++;
                         result.ErrorMessages.Add($"Row {rowIndex}: Barcode is required for product '{row.Name}'.");
                         continue;
                     }
 
-                    var cleanBarcode = row.Barcode.Trim();
                     var existingWithBarcode = await Repository.FirstOrDefaultAsync(x => x.Barcode == cleanBarcode);
                     if (existingWithBarcode != null)
                     {
@@ -728,15 +949,15 @@ namespace SmartPos.Products
                         Name = row.Name.Trim(),
                         Barcode = cleanBarcode,
                         Price = row.Price > 0 ? row.Price : 1,
-                        WholesalePrice = row.WholesalePrice >= 0 ? row.WholesalePrice : 0,
-                        CostPrice = row.CostPrice >= 0 ? row.CostPrice : 0,
-                        StockQuantity = row.StockQuantity >= 0 ? row.StockQuantity : 0,
-                        AlertQuantityLimit = row.AlertQuantityLimit >= 0 ? row.AlertQuantityLimit : 10,
+                        WholesalePrice = isRestaurant ? 0 : (row.WholesalePrice >= 0 ? row.WholesalePrice : 0),
+                        CostPrice = isRestaurant ? 0 : (row.CostPrice >= 0 ? row.CostPrice : 0),
+                        StockQuantity = isRestaurant ? 0 : (row.StockQuantity >= 0 ? row.StockQuantity : 0),
+                        AlertQuantityLimit = isRestaurant ? 0 : (row.AlertQuantityLimit >= 0 ? row.AlertQuantityLimit : 10),
                         CategoryId = categoryId,
                         BrandId = brandId,
                         UnitId = unitId,
                         BranchId = activeBranchId,
-                        Location = row.Location?.Trim(),
+                        Location = isRestaurant ? null : row.Location?.Trim(),
                         Description = row.Description?.Trim()
                     };
 

@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:SmartPos.Mobile.ViewModels"
+             xmlns:models="clr-namespace:SmartPos.Mobile.Models"
+             xmlns:controls="clr-namespace:SmartPos.Mobile.Controls"
+             x:Class="SmartPos.Mobile.Views.Waiter.WaiterMyOrdersPage"
+             x:DataType="vm:WaiterMyOrdersViewModel"
+             Title="My Orders"
+             Shell.NavBarIsVisible="False"
+             Shell.TabBarIsVisible="False"
+             BackgroundColor="{StaticResource StaffPageBackgroundAlt}">
+    <Grid RowDefinitions="*,Auto" BackgroundColor="{StaticResource StaffPageBackgroundAlt}">
+        <Grid Grid.Row="0" RowDefinitions="Auto,*" BackgroundColor="{StaticResource StaffPageBackgroundAlt}">
+            <Border BackgroundColor="{StaticResource StaffPrimary}"
+                    Padding="16,18,16,16"
+                    StrokeThickness="0">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="0,0,20,20" />
+                </Border.StrokeShape>
+                <VerticalStackLayout Spacing="4">
+                    <Label Text="My Orders"
+                           FontSize="22"
+                           FontAttributes="Bold"
+                           TextColor="{StaticResource White}" />
+                    <Label Text="Open tickets assigned to you"
+                           FontSize="13"
+                           TextColor="{StaticResource StaffTextOnHero}" />
+                </VerticalStackLayout>
+            </Border>
+
+            <RefreshView Grid.Row="1"
+                         Command="{Binding RefreshCommand}"
+                         IsRefreshing="{Binding IsBusy}">
+                <CollectionView ItemsSource="{Binding Orders}" Margin="14,14,14,72">
+                    <CollectionView.ItemsLayout>
+                        <LinearItemsLayout Orientation="Vertical" ItemSpacing="10" />
+                    </CollectionView.ItemsLayout>
+                    <CollectionView.EmptyView>
+                        <VerticalStackLayout VerticalOptions="Center" Padding="28" Spacing="8">
+                            <Label Text="No active orders"
+                                   FontAttributes="Bold"
+                                   FontSize="18"
+                                   TextColor="{StaticResource CartText}"
+                                   HorizontalTextAlignment="Center" />
+                            <Label Text="Orders you open from a table will show up here."
+                                   TextColor="{StaticResource CartMuted}"
+                                   FontSize="13"
+                                   HorizontalTextAlignment="Center" />
+                        </VerticalStackLayout>
+                    </CollectionView.EmptyView>
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="models:RestaurantOrderDto">
+                            <Border Stroke="{StaticResource StaffBorderCool}"
+                                    BackgroundColor="{StaticResource CardBackground}"
+                                    Padding="14"
+                                    StrokeThickness="1">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="16" />
+                                </Border.StrokeShape>
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer
+                                        Command="{Binding Source={RelativeSource AncestorType={x:Type vm:WaiterMyOrdersViewModel}}, Path=OpenOrderCommand}"
+                                        CommandParameter="{Binding .}" />
+                                </Border.GestureRecognizers>
+                                <Grid ColumnDefinitions="*,Auto"
+                                      RowDefinitions="Auto,Auto,Auto"
+                                      RowSpacing="6">
+                                    <Label Text="{Binding OrderNo}"
+                                           FontAttributes="Bold"
+                                           FontSize="17"
+                                           TextColor="{StaticResource CartText}" />
+                                    <Label Grid.Column="1"
+                                           Text="{Binding GrandTotalText, StringFormat='Rs {0}'}"
+                                           FontAttributes="Bold"
+                                           TextColor="{StaticResource StaffPrimary}"
+                                           FontSize="15"
+                                           VerticalOptions="Center" />
+                                    <Label Grid.Row="1"
+                                           Text="{Binding TableNo, StringFormat='Table {0}'}"
+                                           TextColor="{StaticResource CartMuted}"
+                                           FontSize="13" />
+                                    <Border Grid.Row="2"
+                                            StrokeThickness="0"
+                                            BackgroundColor="{StaticResource CartAccentBackground}"
+                                            Padding="10,4"
+                                            HorizontalOptions="Start">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="10" />
+                                        </Border.StrokeShape>
+                                        <Label Text="{Binding StatusName}"
+                                               TextColor="{StaticResource StaffPrimary}"
+                                               FontSize="12"
+                                               FontAttributes="Bold" />
+                                    </Border>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+            </RefreshView>
+        </Grid>
+
+        <controls:TabLoadingOverlay Grid.Row="0" />
+
+        <controls:BubbleTabBar Grid.Row="1"
+                               Mode="Waiter"
+                               SelectedIndex="2"
+                               VerticalOptions="Fill"
+                               HorizontalOptions="Fill" />
+    </Grid>
+</ContentPage>

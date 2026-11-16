@@ -18,6 +18,11 @@ namespace SmartPos.Authorization
         public const string Pages_Roles_Edit = "Pages.Roles.Edit";
         public const string Pages_Roles_Delete = "Pages.Roles.Delete";
 
+        public const string Pages_Departments = "Pages.Departments";
+        public const string Pages_Departments_Create = "Pages.Departments.Create";
+        public const string Pages_Departments_Edit = "Pages.Departments.Edit";
+        public const string Pages_Departments_Delete = "Pages.Departments.Delete";
+
         public const string Pages_Categories = "Pages.Categories";
         public const string Pages_Categories_Create = "Pages.Categories.Create";
         public const string Pages_Categories_Edit = "Pages.Categories.Edit";
@@ -106,6 +111,12 @@ namespace SmartPos.Authorization
         public const string Pages_CustomerOrders_Create = "Pages.CustomerOrders.Create";
         public const string Pages_CustomerOrders_Edit = "Pages.CustomerOrders.Edit";
         public const string Pages_CustomerOrders_Delete = "Pages.CustomerOrders.Delete";
+        public const string Pages_CustomerOrders_OverrideDeliveryFee = "Pages.CustomerOrders.OverrideDeliveryFee";
+
+        public const string Pages_DeliveryAreas = "Pages.DeliveryAreas";
+        public const string Pages_DeliveryAreas_Create = "Pages.DeliveryAreas.Create";
+        public const string Pages_DeliveryAreas_Edit = "Pages.DeliveryAreas.Edit";
+        public const string Pages_DeliveryAreas_Delete = "Pages.DeliveryAreas.Delete";
 
         public const string Pages_EmailTemplates = "Pages.EmailTemplates";
         public const string Pages_EmailTemplates_Create = "Pages.EmailTemplates.Create";
@@ -123,7 +134,45 @@ namespace SmartPos.Authorization
         public const string Pages_HostCatalog_Edit = "Pages.HostCatalog.Edit";
         public const string Pages_HostCatalog_Delete = "Pages.HostCatalog.Delete";
 
+        /// <summary>Host-only: developer profile cards (super admin).</summary>
+        public const string Pages_Developers = "Pages.Developers";
+        public const string Pages_Developers_Create = "Pages.Developers.Create";
+        public const string Pages_Developers_Edit = "Pages.Developers.Edit";
+        public const string Pages_Developers_Delete = "Pages.Developers.Delete";
+
+        /// <summary>Host-only: software reseller applications (review / approve).</summary>
+        public const string Pages_Sellers = "Pages.Sellers";
+        public const string Pages_Sellers_Approve = "Pages.Sellers.Approve";
+        public const string Pages_Sellers_Edit = "Pages.Sellers.Edit";
+        public const string Pages_Sellers_Delete = "Pages.Sellers.Delete";
+
+        /// <summary>Host-only: subscription plans, payment methods, and receipt approval.</summary>
+        public const string Pages_Subscriptions = "Pages.Subscriptions";
+
+        /// <summary>Tenant admin: view the business plan and submit a payment receipt.</summary>
+        public const string Pages_Billing = "Pages.Billing";
+
+        /// <summary>Host-only: pricing packages for the public product page.</summary>
+        public const string Pages_Packages = "Pages.Packages";
+        public const string Pages_Packages_Create = "Pages.Packages.Create";
+        public const string Pages_Packages_Edit = "Pages.Packages.Edit";
+        public const string Pages_Packages_Delete = "Pages.Packages.Delete";
+
         public const string Pages_NotificationSettings = "Pages.NotificationSettings";
         public const string Pages_NotificationSettings_Edit = "Pages.NotificationSettings.Edit";
+
+        public const string Pages_Rider = "Pages.Rider";
+        public const string Pages_Rider_Dashboard = "Pages.Rider.Dashboard";
+        public const string Pages_Rider_OrderHistory = "Pages.Rider.OrderHistory";
+
+        public const string Pages_Pos = "Pages.Pos";
+        public const string Pages_Pos_Create = "Pages.Pos.Create";
+        public const string Pages_Pos_Edit = "Pages.Pos.Edit";
+        public const string Pages_Pos_Delete = "Pages.Pos.Delete";
+
+        public const string Pages_DiningTables = "Pages.DiningTables";
+        public const string Pages_DiningTables_Create = "Pages.DiningTables.Create";
+        public const string Pages_DiningTables_Edit = "Pages.DiningTables.Edit";
+        public const string Pages_DiningTables_Delete = "Pages.DiningTables.Delete";
     }
 }

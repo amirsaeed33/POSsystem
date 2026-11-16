@@ -6,6 +6,13 @@ export const BranchStatuses = {
 
 export type BranchStatus = (typeof BranchStatuses)[keyof typeof BranchStatuses];
 
+export const BusinessTypes = {
+    Retail: 1,
+    Restaurant: 2,
+} as const;
+
+export type BusinessType = (typeof BusinessTypes)[keyof typeof BusinessTypes];
+
 export interface BranchDto {
     id: number;
     name: string;
@@ -25,12 +32,34 @@ export interface BranchDto {
     invoiceContactPhone?: string;
     taxNumber?: string;
     website?: string;
+    /** Custom storefront hostname without protocol (e.g. almeezanfoods.com). */
+    customDomain?: string;
+    /** Public brand title for SEO on the custom-domain storefront. */
+    storefrontTitle?: string;
+    facebookUrl?: string;
+    instagramUrl?: string;
+    youtubeUrl?: string;
     invoiceFooter?: string;
+    softwareDeveloperName?: string;
+    softwareDeveloperPhone?: string;
+    customerFeedbackName?: string;
+    customerFeedbackRole?: string;
+    customerFeedbackCity?: string;
+    customerFeedbackComment?: string;
+    customerFeedbackRating?: number;
+    showCustomerFeedback?: boolean;
     taxPercent?: number;
     discountPercent?: number;
     discountAmount?: number;
+    businessType?: BusinessType;
+    serviceChargePercent?: number;
+    autoAssignWaiterToTables?: boolean;
     dateFormat?: string;
     currencyFormat?: string;
+    latitude?: number | null;
+    longitude?: number | null;
+    /** Auto attendance check-in radius in feet. Default 200. */
+    attendanceAutoCheckInRadiusFeet?: number;
 }
 
 export interface CreateBranchDto {
@@ -43,14 +72,34 @@ export interface CreateBranchDto {
     invoiceContactPhone?: string;
     taxNumber?: string;
     website?: string;
+    customDomain?: string;
+    storefrontTitle?: string;
+    facebookUrl?: string;
+    instagramUrl?: string;
+    youtubeUrl?: string;
     invoiceFooter?: string;
+    softwareDeveloperName?: string;
+    softwareDeveloperPhone?: string;
+    customerFeedbackName?: string;
+    customerFeedbackRole?: string;
+    customerFeedbackCity?: string;
+    customerFeedbackComment?: string;
+    customerFeedbackRating?: number;
+    showCustomerFeedback?: boolean;
     taxPercent?: number;
     discountPercent?: number;
     discountAmount?: number;
+    businessType?: BusinessType;
+    serviceChargePercent?: number;
+    autoAssignWaiterToTables?: boolean;
     companyTypeId?: number;
     hostCatalogItemIds?: number[];
     dateFormat?: string;
     currencyFormat?: string;
+    latitude?: number | null;
+    longitude?: number | null;
+    /** Auto attendance check-in radius in feet. Default 200. */
+    attendanceAutoCheckInRadiusFeet?: number;
 }
 
 export interface PagedBranchResultRequestDto {
@@ -69,4 +118,16 @@ export interface ActivateBranchResultDto {
     branchName?: string;
     tenancyName?: string;
     tenantName?: string;
+}
+
+/** Public product-page testimonial from AppBranches. */
+export interface BranchPublicFeedbackDto {
+    branchId: number;
+    branchName?: string;
+    name: string;
+    role?: string;
+    business?: string;
+    city?: string;
+    quote: string;
+    rating: number;
 }

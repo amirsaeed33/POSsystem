@@ -1,35 +1,328 @@
-<div class="pos-page">
-    <div class="flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
-        <h4 class="m-0">POS</h4>
-        <div class="flex flex-wrap gap-2 pos-header-actions">
+﻿<div class="pos-page pos-page--restaurant">
+    <!-- Waiter: currently assigned open/billed tables & car orders -->
+    <div *ngIf="isWaiter" class="pos-waiter-assigned card mb-3">
+        <div class="pos-waiter-assigned-head">
+            <div class="flex align-items-center gap-2 min-w-0">
+                <i class="pi pi-bookmark text-primary"></i>
+                <div class="min-w-0">
+                    <div class="font-bold text-900">My Assigned Orders</div>
+                    <div class="text-xs text-600">
+                        Tables and cars currently assigned to
+                        <strong>{{ waiterName || 'you' }}</strong>
+                    </div>
+                </div>
+            </div>
+            <div class="flex align-items-center gap-2">
+                <span class="pos-waiter-assigned-count">
+                    {{ myAssignedTables.length }}
+                </span>
+                <button
+                    pButton
+                    pRipple
+                    type="button"
+                    icon="pi pi-refresh"
+                    class="p-button-rounded p-button-text p-button-sm"
+                    [loading]="loadingMyAssignedOrders || loadingTables"
+                    (click)="loadTables(); loadMyAssignedOrders()"
+                    title="Refresh my assigned orders"
+                ></button>
+            </div>
+        </div>
+
+        <div *ngIf="loadingMyAssignedOrders && !myAssignedTables.length" class="text-sm text-500 py-2">
+            <i class="pi pi-spin pi-spinner mr-2"></i>Loading your assigned orders...
+        </div>
+
+        <div *ngIf="!loadingMyAssignedOrders && !myAssignedTables.length" class="pos-waiter-assigned-empty">
+            <i class="pi pi-inbox"></i>
+            <span>No active tables assigned to you yet. Select a table or car to start.</span>
             <button
                 pButton
                 pRipple
                 type="button"
-                label="Clear Cart"
-                class="p-button-outlined"
-                [disabled]="!cart.length || saving"
-                (click)="clearCart()"
+                label="Select Table / Car"
+                icon="pi pi-th-large"
+                class="p-button-sm p-button-outlined"
+                (click)="openTableDialog(false)"
             ></button>
+        </div>
+
+        <div *ngIf="myAssignedTables.length" class="pos-waiter-assigned-grid">
             <button
-                pButton
-                pRipple
                 type="button"
-                label="Complete Sale"
-                icon="pi pi-check"
-                class="hidden md:inline-flex"
-                [disabled]="!canSave()"
-                [loading]="saving"
-                (click)="completeSale()"
-            ></button>
+                class="pos-waiter-assigned-card"
+                *ngFor="let table of myAssignedTables"
+                [class.active]="selectedTable?.id === table.id"
+                (click)="openAssignedTable(table)"
+            >
+                <div class="flex align-items-center justify-content-between gap-2 w-full">
+                    <div class="flex align-items-center gap-2 min-w-0">
+                        <i [class]="isCarBay(table) ? 'pi pi-car' : 'pi pi-table'"></i>
+                        <div class="min-w-0 text-left">
+                            <div class="font-bold text-900 white-space-nowrap overflow-hidden text-overflow-ellipsis">
+                                {{ table.tableNo }}
+                                <span *ngIf="isCarBay(table) && table.currentVehicleNumber" class="text-600 font-semibold">
+                                    · {{ table.currentVehicleNumber }}
+                                </span>
+                            </div>
+                            <div class="text-xs text-500">
+                                {{ table.area || (isCarBay(table) ? 'Car Parking' : 'Main Hall') }}
+                            </div>
+                            <div class="pos-waiter-assigned-meta">
+                                <span
+                                    class="pos-waiter-order-status"
+                                    [ngClass]="getMyAssignedOrderStatusClass(table)"
+                                >
+                                    {{ getMyAssignedOrderStatusLabel(table) }}
+                                </span>
+                                <span
+                                    class="pos-waiter-order-timer"
+                                    *ngIf="assignedOrdersNowMs && getMyAssignedOrderElapsed(table) as elapsed"
+                                    [class.is-late]="isMyAssignedOrderLate(table)"
+                                >
+                                    <i class="pi pi-clock"></i>
+                                    {{ elapsed }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-right flex-shrink-0">
+                        <div class="font-bold text-primary text-sm" *ngIf="getMyAssignedOrderForTable(table) as order">
+                            {{ order.grandTotal | number: '1.0-0' }}
+                        </div>
+                        <div class="text-xs text-500" *ngIf="getMyAssignedOrderForTable(table) as order">
+                            {{ order.lines.length || 0 }} items
+                        </div>
+                        <div class="text-xs text-orange-600 font-semibold" *ngIf="!getMyAssignedOrderForTable(table)">
+                            Open
+                        </div>
+                    </div>
+                </div>
+            </button>
         </div>
     </div>
 
-    <div class="grid">
-        <div class="col-12 lg:col-8">
-            <div class="card pos-scan-card mb-3">
-                <label class="font-bold block mb-2">Scan barcode or search by name</label>
-                <div class="p-inputgroup">
+    <!-- Restaurant Mode Order Bar -->
+    <div *ngIf="isRestaurantMode" class="pos-resto-bar card mb-3">
+        <div class="pos-resto-bar-main">
+            <div class="pos-resto-bar-info">
+                <div class="pos-resto-bar-icon">
+                    <i class="pi pi-shop"></i>
+                </div>
+                <div class="min-w-0">
+                    <div class="pos-resto-bar-title">
+                        <span>Restaurant Mode</span>
+                    </div>
+                    <div class="pos-resto-bar-status">
+                        <ng-container *ngIf="orderType === 'dineIn'">
+                            <ng-container *ngIf="isCarService">
+                                <i class="pi pi-car"></i>
+                                <strong>{{ carServiceLabel }}</strong>
+                                <span *ngIf="selectedCarLocation" class="text-500">· {{ selectedCarLocation }}</span>
+                            </ng-container>
+                            <ng-container *ngIf="!isCarService && selectedTable">
+                                <i class="pi pi-table"></i>
+                                <strong>{{ selectedTable.tableNo }}</strong>
+                                <span class="text-500">· {{ selectedTable.area || 'Main Hall' }} · {{ selectedTable.capacity }} seats</span>
+                            </ng-container>
+                            <ng-container *ngIf="!isCarService && !selectedTable">
+                                <i class="pi pi-exclamation-triangle text-orange-500"></i>
+                                <span class="text-orange-600">No table or car selected</span>
+                            </ng-container>
+                            <button
+                                *ngIf="selectedTable || isCarService"
+                                type="button"
+                                class="pos-resto-waiter"
+                                (click)="openAssignWaiterDialog()"
+                                [title]="waiterName ? 'Change waiter' : 'Assign waiter'"
+                            >
+                                <i [class]="waiterName ? 'pi pi-user' : 'pi pi-user-plus'"></i>
+                                {{ waiterName || 'Assign Waiter' }}
+                            </button>
+                        </ng-container>
+                        <ng-container *ngIf="orderType === 'takeaway' && isFoodpandaOrder">
+                            <i class="pi pi-send"></i>
+                            <span>Third-party takeaway · customer <strong>Third Party</strong></span>
+                        </ng-container>
+                        <ng-container *ngIf="orderType === 'takeaway' && !isFoodpandaOrder && !isOnlineOrder">
+                            <i class="pi pi-shopping-bag"></i>
+                            <span>Quick counter takeaway order</span>
+                        </ng-container>
+                        <ng-container *ngIf="isOnlineOrder">
+                            <i class="pi pi-globe"></i>
+                            <span>Online delivery order</span>
+                        </ng-container>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pos-resto-actions">
+                <div
+                    class="pos-order-type"
+                    role="group"
+                    aria-label="Order type"
+                    [attr.data-selected-channel]="selectedChannel"
+                >
+                    <button
+                        type="button"
+                        class="pos-order-type-btn"
+                        [ngClass]="{ 'is-selected': selectedChannel === 'dineIn' }"
+                        [attr.aria-pressed]="selectedChannel === 'dineIn'"
+                        (click)="selectOrderChannel('dineIn')"
+                    >
+                        <i class="pi pi-building"></i>
+                        <span>Dine-In</span>
+                    </button>
+                    <button
+                        type="button"
+                        class="pos-order-type-btn"
+                        [ngClass]="{ 'is-selected': selectedChannel === 'takeaway' }"
+                        [attr.aria-pressed]="selectedChannel === 'takeaway'"
+                        (click)="selectOrderChannel('takeaway')"
+                    >
+                        <i class="pi pi-shopping-bag"></i>
+                        <span>Takeaway</span>
+                    </button>
+                    <button
+                        type="button"
+                        class="pos-order-type-btn pos-order-type-btn--foodpanda"
+                        [ngClass]="{ 'is-selected': selectedChannel === 'foodpanda' }"
+                        [attr.aria-pressed]="selectedChannel === 'foodpanda'"
+                        (click)="selectOrderChannel('foodpanda')"
+                        title="Third Party order (uses Takeaway)"
+                    >
+                        <i class="pi pi-send"></i>
+                        <span>Third Party</span>
+                    </button>
+                    <button
+                        type="button"
+                        class="pos-order-type-btn"
+                        [ngClass]="{ 'is-selected': selectedChannel === 'online' }"
+                        [attr.aria-pressed]="selectedChannel === 'online'"
+                        (click)="selectOrderChannel('online')"
+                        title="Online delivery order"
+                    >
+                        <i class="pi pi-globe"></i>
+                        <span>Online</span>
+                    </button>
+                </div>
+
+                <div class="pos-resto-action-group">
+                    <button
+                        *ngIf="orderType === 'takeaway' && !isWaiter"
+                        pButton
+                        pRipple
+                        type="button"
+                        icon="pi pi-inbox"
+                        [label]="unpaidTakeawayOrders.length ? ('Unpaid (' + unpaidTakeawayOrders.length + ')') : 'Unpaid'"
+                        class="pos-resto-btn"
+                        [ngClass]="unpaidTakeawayOrders.length > 0 ? 'p-button-danger' : 'p-button-outlined p-button-secondary'"
+                        (click)="openUnpaidTakeawayDialog()"
+                        title="View unpaid takeaway orders"
+                    ></button>
+
+                    <button
+                        *ngIf="orderType === 'dineIn'"
+                        pButton
+                        pRipple
+                        type="button"
+                        [icon]="isCarService ? 'pi pi-car' : (selectedTable ? 'pi pi-sync' : 'pi pi-th-large')"
+                        [label]="isCarService || selectedTable ? 'Switch' : 'Select Table / Car'"
+                        class="pos-resto-btn"
+                        [ngClass]="(isCarService || selectedTable) ? 'p-button-outlined p-button-primary' : 'p-button-primary'"
+                        (click)="openTableDialog(false)"
+                        [title]="isCarService ? ('Current: ' + carServiceLabel) : (selectedTable ? ('Current: ' + selectedTable.tableNo) : 'Select table or car')"
+                    ></button>
+
+                    <button
+                        *ngIf="orderType === 'dineIn' && selectedTable && activeOrderId"
+                        pButton
+                        pRipple
+                        type="button"
+                        icon="pi pi-arrows-h"
+                        label="Transfer"
+                        class="pos-resto-btn p-button-outlined p-button-warning"
+                        title="Move this order to another free table or car bay"
+                        (click)="openTransferDialog()"
+                    ></button>
+
+                    <button
+                        *ngIf="orderType === 'dineIn' && (selectedTable || isCarService || cart.length)"
+                        pButton
+                        pRipple
+                        type="button"
+                        icon="pi pi-plus"
+                        label="New"
+                        class="pos-resto-btn p-button-success"
+                        title="Hold current order and start another"
+                        (click)="startNewOrder()"
+                    ></button>
+
+                    <button
+                        *ngIf="(orderType === 'dineIn' || orderType === 'takeaway') && activeOrderId"
+                        pButton
+                        pRipple
+                        type="button"
+                        icon="pi pi-times"
+                        label="Cancel"
+                        class="pos-resto-btn p-button-outlined p-button-danger"
+                        title="Cancel this active order"
+                        (click)="openCancelOrderDialog()"
+                    ></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid pos-main-grid">
+        <div class="col-12 lg:col-8 pos-main-left">
+            <!-- Hub left tabs: Products/Menu | Cart/Order Details -->
+            <div class="pos-left-tabs mb-2" role="tablist" aria-label="POS left panel">
+                <button
+                    type="button"
+                    class="pos-left-tab"
+                    role="tab"
+                    [class.active]="posLeftTab === 'menu'"
+                    [attr.aria-selected]="posLeftTab === 'menu'"
+                    (click)="posLeftTab = 'menu'"
+                >
+                    <i class="pi pi-th-large"></i>
+                    <span>{{ isRestaurantMode ? 'Menu' : 'Products' }}</span>
+                </button>
+                <button
+                    type="button"
+                    class="pos-left-tab"
+                    role="tab"
+                    id="storeCartFlyTarget"
+                    [class.active]="posLeftTab === 'order'"
+                    [attr.aria-selected]="posLeftTab === 'order'"
+                    (click)="posLeftTab = 'order'"
+                >
+                    <i class="pi pi-list"></i>
+                    <span>{{ isRestaurantMode ? 'Order Details' : 'Cart' }}</span>
+                    <span class="pos-left-tab-count" *ngIf="cart.length">{{ cart.length }}</span>
+                </button>
+            </div>
+
+            <!-- Search + categories + product grid (Dine Hub layout for all branches) -->
+            <div class="card mb-3 pos-menu-card" *ngIf="posLeftTab === 'menu'">
+                <div class="flex align-items-center justify-content-between mb-2">
+                    <h5 class="m-0">{{ isRestaurantMode ? 'Menu' : 'Products' }}</h5>
+                    <span class="text-xs text-500 font-medium">
+                        {{ filteredMenuProducts.length }} item(s)
+                        <button
+                            type="button"
+                            class="p-link text-primary text-xs ml-2"
+                            (click)="loadMenuProducts()"
+                            [disabled]="loadingMenu"
+                            title="Refresh products"
+                        >
+                            {{ loadingMenu ? 'Loading…' : 'Refresh' }}
+                        </button>
+                    </span>
+                </div>
+
+                <div class="pos-menu-search-wrap mb-3">
                     <input
                         #barcodeInput
                         pInputText
@@ -37,8 +330,8 @@
                         class="pos-barcode-input w-full"
                         [(ngModel)]="searchText"
                         (input)="onSearchInput()"
-                        (keyup.enter)="onSearchEnter()"
-                        placeholder="Barcode or product name, then Enter"
+                        (keydown)="onSearchKeydown($event)"
+                        [placeholder]="isRestaurantMode ? 'Search food by name…' : 'Scan barcode or search by name…'"
                         [disabled]="scanning || saving"
                         autocomplete="off"
                         autocorrect="off"
@@ -46,66 +339,168 @@
                         spellcheck="false"
                         inputmode="search"
                         enterkeyhint="go"
+                        aria-autocomplete="list"
+                        [attr.aria-expanded]="suggestions.length > 0"
                     />
-                    <button
-                        pButton
-                        pRipple
-                        type="button"
-                        icon="pi pi-plus"
-                        label="Add"
-                        [disabled]="scanning || saving || !(searchText || '').trim()"
-                        [loading]="scanning"
-                        (click)="onSearchEnter()"
-                    ></button>
+                    <div
+                        class="pos-menu-suggestions"
+                        *ngIf="suggestions.length"
+                        role="listbox"
+                    >
+                        <button
+                            type="button"
+                            class="pos-menu-suggestion-item"
+                            *ngFor="let product of suggestions; let i = index"
+                            [class.is-active]="i === suggestionHighlightIndex"
+                            (click)="selectSuggestion(product)"
+                            [disabled]="scanning || saving"
+                            role="option"
+                            [attr.aria-selected]="i === suggestionHighlightIndex"
+                        >
+                            <span class="pos-menu-suggestion-main">
+                                <span class="pos-menu-suggestion-name">{{ product.name }}</span>
+                                <span class="pos-menu-suggestion-cat text-500" *ngIf="product.categoryName">
+                                    {{ product.categoryName }}
+                                </span>
+                            </span>
+                            <span class="pos-menu-suggestion-price font-semibold">
+                                {{ getUnitPrice(product) | number: '1.2-2' }}
+                            </span>
+                        </button>
+                    </div>
                 </div>
 
-                <div class="pos-suggestions" *ngIf="suggestions.length">
+                <div class="pos-menu-categories-wrap mb-3">
                     <button
                         type="button"
-                        class="pos-suggestion-item"
-                        *ngFor="let product of suggestions"
-                        (click)="selectSuggestion(product)"
-                        [disabled]="scanning || saving"
+                        class="pos-menu-cat-nav"
+                        (click)="scrollMenuCategories(-1)"
+                        title="Scroll categories left"
+                        aria-label="Scroll categories left"
                     >
-                        <span class="pos-suggestion-name">{{ product.name }}</span>
-                        <span class="pos-suggestion-meta text-500">
-                            <span *ngIf="product.barcode">{{ product.barcode }} · </span>
-                            Stock: {{ product.stockQuantity || 0 }} ·
-                            {{ product.price | number: '1.2-2' }}
-                        </span>
+                        <i class="pi pi-chevron-left"></i>
+                    </button>
+                    <div
+                        class="pos-menu-categories"
+                        #menuCategoriesTrack
+                        [style.grid-template-columns]="'repeat(' + menuCategoryColumnCount + ', max-content)'"
+                    >
+                        <button
+                            type="button"
+                            class="pos-menu-cat"
+                            [class.active]="isMenuCategorySelected(null)"
+                            (click)="selectMenuCategory(null)"
+                        >
+                            All
+                            <span class="pos-menu-cat-count">{{ menuProducts.length }}</span>
+                        </button>
+                        <button
+                            type="button"
+                            class="pos-menu-cat"
+                            *ngFor="let cat of menuCategories"
+                            [class.active]="isMenuCategorySelected(cat.id)"
+                            (click)="selectMenuCategory(cat.id)"
+                        >
+                            {{ cat.name }}
+                            <i class="pi pi-check text-xs ml-1" *ngIf="isMenuCategorySelected(cat.id)"></i>
+                            <span class="pos-menu-cat-count">{{ cat.count }}</span>
+                        </button>
+                    </div>
+                    <button
+                        type="button"
+                        class="pos-menu-cat-nav"
+                        (click)="scrollMenuCategories(1)"
+                        title="Scroll categories right"
+                        aria-label="Scroll categories right"
+                    >
+                        <i class="pi pi-chevron-right"></i>
                     </button>
                 </div>
 
-                <!-- Default Top 5 Selling Products Badges -->
-                <div class="mt-3" *ngIf="!suggestions.length && topProducts.length">
-                    <div class="flex align-items-center justify-content-between mb-2">
-                        <span class="text-xs font-bold text-700 uppercase tracking-wider flex align-items-center gap-1">
-                            <i class="pi pi-bolt text-amber-500"></i> Top Sale Products
-                        </span>
-                        <span class="text-xs text-500 font-medium">Click badge to quick-add</span>
-                    </div>
-                    <div class="flex flex-wrap gap-2">
+                <div class="pos-menu-products-scroll">
+                    <div class="pos-menu-grid" *ngIf="filteredMenuProducts.length; else emptyMenu">
                         <div
-                            *ngFor="let product of topProducts; let idx = index"
-                            class="surface-card border-1 surface-border border-round-pill px-3 py-1.5 flex align-items-center gap-2 cursor-pointer hover:border-primary hover:surface-hover transition-colors transition-duration-150 shadow-1"
-                            (click)="selectSuggestion(product)"
-                            [title]="'Quick add ' + product.name + ' (' + (getUnitPrice(product) | number: '1.2-2') + ')'"
+                            class="pos-menu-tile"
+                            *ngFor="let product of filteredMenuProducts"
+                            [class.in-cart]="getMenuCartQty(product.id) > 0"
+                            [class.out-of-stock]="!isRestaurantMode && (product.stockQuantity || 0) <= 0"
+                            [title]="product.name + ' — ' + (getUnitPrice(product) | number: '1.2-2')"
                         >
-                            <i class="pi pi-star-fill text-amber-500 text-xs"></i>
-                            <span class="font-semibold text-sm text-900 line-clamp-1" style="max-width: 150px;">
-                                {{ product.name }}
-                            </span>
-                            <span class="text-xs font-bold text-primary bg-primary-50 px-2 py-0.5 border-round-pill">
-                                {{ getUnitPrice(product) | number: '1.2-2' }}
-                            </span>
+                            <button
+                                type="button"
+                                class="pos-menu-tile-main"
+                                (click)="bumpMenuProduct(product, 1, $event)"
+                                [disabled]="scanning || saving || (!isRestaurantMode && (product.stockQuantity || 0) <= 0)"
+                            >
+                                <div class="pos-menu-tile-media">
+                                    <img
+                                        *ngIf="product.imagePath"
+                                        [src]="getMenuProductImage(product)"
+                                        [alt]="product.name"
+                                        loading="lazy"
+                                    />
+                                    <span *ngIf="!product.imagePath" class="pos-menu-tile-initials">
+                                        {{ getMenuProductInitials(product) }}
+                                    </span>
+                                    <span
+                                        class="pos-menu-tile-stock-badge"
+                                        *ngIf="!isRestaurantMode"
+                                        [class.is-oos]="(product.stockQuantity || 0) <= 0"
+                                    >
+                                        {{ (product.stockQuantity || 0) <= 0 ? 'OOS' : (product.stockQuantity || 0) }}
+                                    </span>
+                                    <span class="pos-menu-tile-deal" *ngIf="isDealProduct(product)">Deal</span>
+                                    <span class="pos-menu-tile-qty-badge" *ngIf="getMenuCartQty(product.id) > 0">
+                                        {{ getMenuCartQty(product.id) }}
+                                    </span>
+                                </div>
+                                <div class="pos-menu-tile-body">
+                                    <span class="pos-menu-tile-name">{{ product.name }}</span>
+                                    <span class="pos-menu-tile-meta" *ngIf="product.categoryName">{{ product.categoryName }}</span>
+                                    <span class="pos-menu-tile-price">{{ getUnitPrice(product) | number: '1.2-2' }}</span>
+                                </div>
+                            </button>
+                            <div class="pos-menu-tile-qty" (click)="$event.stopPropagation()">
+                                <button
+                                    type="button"
+                                    class="pos-menu-qty-btn"
+                                    (click)="bumpMenuProduct(product, -1)"
+                                    [disabled]="scanning || saving || getMenuCartQty(product.id) <= 0"
+                                    title="Decrease quantity"
+                                    aria-label="Decrease quantity"
+                                >
+                                    <i class="pi pi-minus"></i>
+                                </button>
+                                <span class="pos-menu-qty-value">{{ getMenuCartQty(product.id) }}</span>
+                                <button
+                                    type="button"
+                                    class="pos-menu-qty-btn add"
+                                    (click)="bumpMenuProduct(product, 1, $event)"
+                                    [disabled]="scanning || saving || (!isRestaurantMode && (product.stockQuantity || 0) <= getMenuCartQty(product.id))"
+                                    title="Increase quantity"
+                                    aria-label="Increase quantity"
+                                >
+                                    <i class="pi pi-plus"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
+                    <ng-template #emptyMenu>
+                        <div class="text-center text-500 py-4 border-1 surface-border border-round">
+                            <div *ngIf="loadingMenu">Loading menu…</div>
+                            <div *ngIf="!loadingMenu">
+                                No items
+                                <span *ngIf="searchText"> matching “{{ searchText }}”</span>
+                                <span *ngIf="!searchText && selectedMenuCategoryIds.length"> in selected categories</span>.
+                            </div>
+                        </div>
+                    </ng-template>
                 </div>
             </div>
 
-            <div class="card">
+            <div class="card pos-order-card" *ngIf="posLeftTab === 'order'">
                 <div class="flex align-items-center justify-content-between mb-3">
-                    <h5 class="m-0">Cart</h5>
+                    <h5 class="m-0">{{ isRestaurantMode ? 'Order Details' : 'Cart' }}</h5>
                     <span class="text-500">{{ cart.length }} item(s)</span>
                 </div>
 
@@ -115,7 +510,7 @@
                         <ng-template pTemplate="header">
                             <tr>
                                 <th>Product</th>
-                                <th style="width: 8rem">Quantity</th>
+                                <th style="width: 7.5rem">Quantity</th>
                                 <th style="width: 9rem">Unit Price</th>
                                 <th style="width: 8rem" class="text-right">Line Total</th>
                                 <th style="width: 4rem"></th>
@@ -124,17 +519,119 @@
                         <ng-template pTemplate="body" let-line>
                             <tr>
                                 <td>
-                                    <div class="font-medium">{{ line.productName }}</div>
-                                    <small class="text-500">Stock: {{ line.stockQuantity }}</small>
+                                    <div class="font-medium flex align-items-center gap-2">
+                                        <span *ngIf="isDealCartLine(line)" class="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 border-round font-bold flex align-items-center gap-1">
+                                            <i class="pi pi-bolt"></i> DEAL
+                                        </span>
+                                        <span>{{ line.productName }}</span>
+                                        <button
+                                            *ngIf="isRestaurantMode && isDealCartLine(line)"
+                                            pButton
+                                            pRipple
+                                            type="button"
+                                            icon="pi pi-eye"
+                                            class="p-button-text p-button-info p-button-xs p-0"
+                                            style="width: 1.5rem; height: 1.5rem;"
+                                            title="View Deal items & details"
+                                            (click)="viewCartDealDetails(line)"
+                                        ></button>
+                                        <button
+                                            *ngIf="isRestaurantMode"
+                                            pButton
+                                            pRipple
+                                            type="button"
+                                            icon="pi pi-pencil"
+                                            class="p-button-text p-button-secondary p-button-xs p-0"
+                                            style="width: 1.5rem; height: 1.5rem;"
+                                            title="Add / edit cooking instruction"
+                                            (click)="openEditLineNote(line)"
+                                        ></button>
+                                    </div>
+                                    <div class="text-xs text-purple-700 mt-1" *ngIf="getDealItemsFromLine(line)?.length">
+                                        <div
+                                            *ngFor="let d of getDealItemsFromLine(line)"
+                                            class="font-medium pl-1"
+                                        >
+                                            &bull; {{ d }}
+                                        </div>
+                                    </div>
+                                    <div
+                                        class="flex flex-wrap gap-1 mt-1"
+                                        *ngIf="!isDealCartLine(line) && getExtraModifiersFromLine(line)?.length"
+                                    >
+                                        <span
+                                            class="surface-200 text-700 text-xs px-2 py-0.5 border-round font-medium"
+                                            *ngFor="let m of getExtraModifiersFromLine(line)"
+                                        >
+                                            {{ m }}
+                                        </span>
+                                    </div>
+                                    <div
+                                        class="text-xs text-orange-600 font-medium italic mt-1 flex align-items-center gap-1 cursor-pointer"
+                                        *ngIf="line.kitchenNotes"
+                                        (click)="openEditLineNote(line)"
+                                    >
+                                        <i class="pi pi-comment"></i>
+                                        <span>{{ line.kitchenNotes }}</span>
+                                    </div>
+                                    <div class="mt-1 flex align-items-center gap-2">
+                                        <small class="text-500" *ngIf="!isRestaurantMode">Stock: {{ line.stockQuantity }}</small>
+                                        <span
+                                            *ngIf="isRestaurantMode && line.isSentToKitchen && line.printedQuantity && line.quantity < line.printedQuantity"
+                                            class="text-xs text-red-700 bg-red-50 px-2 py-0.5 border-round font-semibold flex align-items-center gap-1"
+                                        >
+                                            <i class="pi pi-minus-circle"></i> Sent: {{ line.printedQuantity }} &bull; Void: −{{ line.printedQuantity - line.quantity }}
+                                        </span>
+                                        <span
+                                            *ngIf="isRestaurantMode && line.isSentToKitchen && (!line.printedQuantity || line.quantity === line.printedQuantity)"
+                                            class="text-xs text-green-600 font-semibold flex align-items-center gap-1"
+                                        >
+                                            <i class="pi pi-check-circle"></i>
+                                            {{ orderType === 'takeaway' ? 'Sent to KOT' : (isCarService ? 'Sent to Car' : 'Sent to Table') }}
+                                        </span>
+                                        <span
+                                            *ngIf="isRestaurantMode && line.isSentToKitchen && line.printedQuantity && line.quantity > line.printedQuantity"
+                                            class="text-xs text-blue-700 bg-blue-50 px-2 py-0.5 border-round font-semibold flex align-items-center gap-1"
+                                        >
+                                            <i class="pi pi-plus-circle"></i> Sent: {{ line.printedQuantity }} &bull; New: +{{ line.quantity - line.printedQuantity }}
+                                        </span>
+                                        <span
+                                            *ngIf="isRestaurantMode && !line.isSentToKitchen"
+                                            class="text-xs text-amber-600 font-semibold flex align-items-center gap-1"
+                                        >
+                                            <i class="pi pi-clock"></i>
+                                            {{ orderType === 'takeaway' ? 'Not Sent to KOT' : (isCarService ? 'Not Sent to Car' : 'Not Sent to Table') }}
+                                        </span>
+                                    </div>
                                 </td>
                                 <td>
-                                    <p-inputNumber
-                                        [ngModel]="line.quantity"
-                                        (ngModelChange)="updateQty(line, $event)"
-                                        [min]="0.01"
-                                        [showButtons]="false"
-                                        styleClass="w-full"
-                                    ></p-inputNumber>
+                                    <div class="pos-qty-control pos-qty-control--table">
+                                        <button
+                                            pButton
+                                            pRipple
+                                            type="button"
+                                            label="−"
+                                            class="p-button-outlined pos-touch-btn"
+                                            [disabled]="isWaiter && line.quantity <= getMinQty(line)"
+                                            (click)="bumpQty(line, -1)"
+                                        ></button>
+                                        <p-inputNumber
+                                            [ngModel]="line.quantity"
+                                            (ngModelChange)="updateQty(line, $event)"
+                                            [min]="getMinQty(line)"
+                                            [showButtons]="false"
+                                            inputStyleClass="text-center"
+                                            styleClass="pos-qty-input-sm"
+                                        ></p-inputNumber>
+                                        <button
+                                            pButton
+                                            pRipple
+                                            type="button"
+                                            label="+"
+                                            class="p-button-outlined pos-touch-btn"
+                                            (click)="bumpQty(line, 1)"
+                                        ></button>
+                                    </div>
                                 </td>
                                 <td class="white-space-nowrap">
                                     {{ line.unitPrice | number: '1.2-2' }}
@@ -144,13 +641,20 @@
                                 </td>
                                 <td class="text-center">
                                     <button
+                                        *ngIf="canRemoveLine(line)"
                                         pButton
                                         pRipple
                                         type="button"
                                         icon="pi pi-times"
                                         class="p-button-text p-button-danger p-button-sm"
                                         (click)="removeLine(line)"
+                                        title="Remove Item"
                                     ></button>
+                                    <i
+                                        *ngIf="!canRemoveLine(line)"
+                                        class="pi pi-lock text-400 text-sm"
+                                        title="Waiters cannot remove previously sent KOT items."
+                                    ></i>
                                 </td>
                             </tr>
                         </ng-template>
@@ -172,17 +676,104 @@
                     <div *ngFor="let line of cart" class="pos-cart-item">
                         <div class="flex justify-content-between align-items-start">
                             <div class="pr-2">
-                                <div class="font-medium">{{ line.productName }}</div>
-                                <small class="text-500">Stock: {{ line.stockQuantity }}</small>
+                                <div class="font-medium flex align-items-center gap-2">
+                                    <span *ngIf="isDealCartLine(line)" class="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 border-round font-bold flex align-items-center gap-1">
+                                        <i class="pi pi-bolt"></i> DEAL
+                                    </span>
+                                    <span>{{ line.productName }}</span>
+                                    <button
+                                        *ngIf="isRestaurantMode && isDealCartLine(line)"
+                                        pButton
+                                        pRipple
+                                        type="button"
+                                        icon="pi pi-eye"
+                                        class="p-button-text p-button-info p-button-xs p-0"
+                                        style="width: 1.5rem; height: 1.5rem;"
+                                        title="View Deal items & details"
+                                        (click)="viewCartDealDetails(line)"
+                                    ></button>
+                                    <button
+                                        *ngIf="isRestaurantMode"
+                                        pButton
+                                        pRipple
+                                        type="button"
+                                        icon="pi pi-pencil"
+                                        class="p-button-text p-button-secondary p-button-xs p-0"
+                                        (click)="openEditLineNote(line)"
+                                    ></button>
+                                </div>
+                                <div class="text-xs text-purple-700 mt-1" *ngIf="getDealItemsFromLine(line)?.length">
+                                    <div
+                                        *ngFor="let d of getDealItemsFromLine(line)"
+                                        class="font-medium pl-1"
+                                    >
+                                        &bull; {{ d }}
+                                    </div>
+                                </div>
+                                <div
+                                    class="flex flex-wrap gap-1 mt-1"
+                                    *ngIf="!isDealCartLine(line) && getExtraModifiersFromLine(line)?.length"
+                                >
+                                    <span
+                                        class="surface-200 text-700 text-xs px-2 py-0.5 border-round font-medium"
+                                        *ngFor="let m of getExtraModifiersFromLine(line)"
+                                    >
+                                        {{ m }}
+                                    </span>
+                                </div>
+                                <div
+                                    class="text-xs text-orange-600 font-medium italic mt-1 flex align-items-center gap-1"
+                                    *ngIf="line.kitchenNotes"
+                                    (click)="openEditLineNote(line)"
+                                >
+                                    <i class="pi pi-comment"></i>
+                                    <span>{{ line.kitchenNotes }}</span>
+                                </div>
+                                <div class="mt-1 flex align-items-center gap-2">
+                                    <small class="text-500" *ngIf="!isRestaurantMode">Stock: {{ line.stockQuantity }}</small>
+                                    <span
+                                        *ngIf="isRestaurantMode && line.isSentToKitchen && line.printedQuantity && line.quantity < line.printedQuantity"
+                                        class="text-xs text-red-700 bg-red-50 px-2 py-0.5 border-round font-semibold flex align-items-center gap-1"
+                                    >
+                                        <i class="pi pi-minus-circle"></i> Sent: {{ line.printedQuantity }} &bull; Void: −{{ line.printedQuantity - line.quantity }}
+                                    </span>
+                                    <span
+                                        *ngIf="isRestaurantMode && line.isSentToKitchen && (!line.printedQuantity || line.quantity === line.printedQuantity)"
+                                        class="text-xs text-green-600 font-semibold flex align-items-center gap-1"
+                                    >
+                                        <i class="pi pi-check-circle"></i>
+                                        {{ orderType === 'takeaway' ? 'Sent to KOT' : (isCarService ? 'Sent to Car' : 'Sent to Table') }}
+                                    </span>
+                                    <span
+                                        *ngIf="isRestaurantMode && line.isSentToKitchen && line.printedQuantity && line.quantity > line.printedQuantity"
+                                        class="text-xs text-blue-700 bg-blue-50 px-2 py-0.5 border-round font-semibold flex align-items-center gap-1"
+                                    >
+                                        <i class="pi pi-plus-circle"></i> Sent: {{ line.printedQuantity }} &bull; New: +{{ line.quantity - line.printedQuantity }}
+                                    </span>
+                                    <span
+                                        *ngIf="isRestaurantMode && !line.isSentToKitchen"
+                                        class="text-xs text-amber-600 font-semibold flex align-items-center gap-1"
+                                    >
+                                        <i class="pi pi-clock"></i>
+                                        {{ orderType === 'takeaway' ? 'Not Sent to KOT' : (isCarService ? 'Not Sent to Car' : 'Not Sent to Table') }}
+                                    </span>
+                                </div>
                             </div>
                             <button
+                                *ngIf="canRemoveLine(line)"
                                 pButton
                                 pRipple
                                 type="button"
                                 icon="pi pi-trash"
                                 class="p-button-outlined p-button-danger pos-touch-btn"
                                 (click)="removeLine(line)"
+                                title="Remove Item"
                             ></button>
+                            <i
+                                *ngIf="!canRemoveLine(line)"
+                                class="pi pi-lock text-400 text-sm p-2"
+                                title="Waiters cannot remove previously sent KOT items."
+                            ></i>
                         </div>
                         <div class="pos-cart-item-controls mt-2">
                             <div class="pos-qty-control">
@@ -192,12 +783,13 @@
                                     type="button"
                                     label="−"
                                     class="p-button-outlined pos-touch-btn"
+                                    [disabled]="isWaiter && line.quantity <= getMinQty(line)"
                                     (click)="bumpQty(line, -1)"
                                 ></button>
                                 <p-inputNumber
                                     [ngModel]="line.quantity"
                                     (ngModelChange)="updateQty(line, $event)"
-                                    [min]="0.01"
+                                    [min]="getMinQty(line)"
                                     [showButtons]="false"
                                     inputStyleClass="text-center"
                                     styleClass="w-full"
@@ -225,9 +817,52 @@
             </div>
         </div>
 
-        <div class="col-12 lg:col-4">
+        <div
+            class="col-12 lg:col-4 pos-main-right lg:block"
+            [class.hidden]="posLeftTab !== 'order'"
+        >
             <div class="card pos-checkout-card">
-                <div class="field">
+                <div class="field" *ngIf="isOnlineOrder">
+                    <label for="onlineCustomerPhone">Phone Number</label>
+                    <div class="flex gap-2 align-items-center">
+                        <input
+                            pInputText
+                            id="onlineCustomerPhone"
+                            class="w-full flex-1"
+                            [(ngModel)]="onlineCustomerPhone"
+                            (ngModelChange)="onOnlinePhoneChanged()"
+                            placeholder="Enter phone to find customer"
+                            autocomplete="tel"
+                        />
+                        <button
+                            pButton
+                            pRipple
+                            type="button"
+                            icon="pi pi-times"
+                            class="p-button-outlined p-button-secondary p-button-icon-only flex-shrink-0"
+                            (click)="clearOnlineCustomerData()"
+                            [disabled]="!hasOnlineCustomerDraft"
+                            pTooltip="Clear data"
+                            tooltipPosition="top"
+                            aria-label="Clear data"
+                        ></button>
+                    </div>
+                    <small class="text-500 block mt-1" *ngIf="onlineCustomerLookingUp">Looking up customer…</small>
+                </div>
+
+                <div class="field" *ngIf="isOnlineOrder">
+                    <label for="onlineCustomerName">Customer Name</label>
+                    <input
+                        pInputText
+                        id="onlineCustomerName"
+                        class="w-full"
+                        [(ngModel)]="onlineCustomerName"
+                        placeholder="Customer name"
+                        autocomplete="name"
+                    />
+                </div>
+
+                <div class="field" *ngIf="!isOnlineOrder">
                     <label for="customerId">Customer</label>
                     <p-dropdown
                         inputId="customerId"
@@ -245,7 +880,69 @@
                     ></p-dropdown>
                 </div>
 
-                <div class="pos-totals">
+                <!-- Staff: saved address + delivery zone (takeaway / online / retail) -->
+                <div class="field" *ngIf="showDeliveryAddressPanel">
+                    <p-dropdown
+                        *ngIf="showDeliveryAreaDropdown && savedAddresses.length > 0"
+                        [options]="savedAddresses"
+                        [(ngModel)]="selectedSavedAddressId"
+                        (onChange)="onPosSavedAddressPicked($event.value)"
+                        optionLabel="address"
+                        optionValue="id"
+                        placeholder="Saved addresses"
+                        [showClear]="true"
+                        [filter]="true"
+                        filterBy="address,deliveryAreaName,label"
+                        styleClass="w-full mb-2"
+                        appendTo="body"
+                    >
+                        <ng-template let-addr pTemplate="item">
+                            <div>
+                                <div class="font-medium text-sm">{{ addr.label || addr.address }}</div>
+                                <div class="text-xs text-500" *ngIf="addr.deliveryAreaName">Zone: {{ addr.deliveryAreaName }}</div>
+                            </div>
+                        </ng-template>
+                    </p-dropdown>
+                    <ng-container *ngIf="showDeliveryAreaDropdown && deliveryAreas.length > 0">
+                        <label class="font-medium block mb-1">Delivery Area</label>
+                        <p-dropdown
+                            [options]="deliveryAreas"
+                            [(ngModel)]="selectedDeliveryAreaId"
+                            (ngModelChange)="selectedSavedAddressId = null"
+                            optionLabel="name"
+                            optionValue="id"
+                            placeholder="Select delivery area"
+                            styleClass="w-full mb-2"
+                            appendTo="body"
+                        ></p-dropdown>
+                    </ng-container>
+                    <label class="font-medium">Delivery address / zone</label>
+
+                    <input
+                        pInputText
+                        class="w-full mb-2"
+                        [(ngModel)]="deliveryAddress"
+                        (ngModelChange)="selectedSavedAddressId = null"
+                        placeholder="House / street address"
+                    />
+                    <input
+                        pInputText
+                        class="w-full"
+                        [(ngModel)]="deliveryLandmark"
+                        placeholder="Landmark (optional)"
+                    />
+                    <small class="text-500 block mt-1" *ngIf="loadingSavedAddresses">Loading saved addresses…</small>
+                    <small
+                        class="text-500 block mt-1"
+                        *ngIf="showDeliveryAreaDropdown && selectedDeliveryArea"
+                    >
+                        Fee: {{ deliveryCharges === 0 ? 'FREE' : (deliveryCharges | number:'1.0-0') }}
+                        · Delivery Area {{ selectedDeliveryArea.name }}
+                    </small>
+                </div>
+
+                <!-- Totals stay desktop-only; mobile bottom bar already shows total -->
+                <div class="pos-totals hidden md:block">
                     <div class="flex justify-content-between mb-2">
                         <span>Sub Total</span>
                         <strong>{{ subTotal | number: '1.2-2' }}</strong>
@@ -258,42 +955,247 @@
                         <span>Tax</span>
                         <strong>{{ taxAmount | number: '1.2-2' }}</strong>
                     </div>
+                    <div
+                        class="flex justify-content-between mb-2 text-primary"
+                        *ngIf="isRestaurantMode && orderType === 'dineIn' && serviceChargePercent > 0"
+                    >
+                        <span>Service Charge ({{ serviceChargePercent }}%)</span>
+                        <strong>+{{ serviceChargeAmount | number: '1.2-2' }}</strong>
+                    </div>
                     <div class="flex justify-content-between pos-grand">
                         <span>Total Amount</span>
                         <strong>{{ grandTotal | number: '1.2-2' }}</strong>
                     </div>
                 </div>
 
-                <button
-                    pButton
-                    pRipple
-                    type="button"
-                    label="Complete Sale"
-                    icon="pi pi-check"
-                    class="w-full mt-3 hidden md:flex"
-                    [disabled]="!canSave()"
-                    [loading]="saving"
-                    (click)="completeSale()"
-                ></button>
+                <!-- Restaurant Actions Bar (desktop only — mobile uses bottom bar) -->
+                <div class="hidden md:flex flex-column gap-2 mt-3" *ngIf="isRestaurantMode">
+                    <!-- Waiter Mode: Send to KOT only (dine-in / takeaway / car → kitchen screen) -->
+                    <div *ngIf="isWaiter" class="w-full">
+                        <button
+                            pButton
+                            pRipple
+                            type="button"
+                            [label]="sendKotButtonLabel"
+                            class="p-button-warning w-full p-button-lg font-bold shadow-1"
+                            [disabled]="!cart.length || sendingKOT"
+                            [loading]="sendingKOT"
+                            (click)="sendToTable()"
+                            [title]="sendKotButtonTitle"
+                        ></button>
+                    </div>
+
+                    <!-- Admin / Cashier Mode: Send to Kitchen + Guest Bill -->
+                    <div *ngIf="!isWaiter" class="grid formgrid p-fluid">
+                        <div class="col-6 pr-1">
+                            <button
+                                pButton
+                                pRipple
+                                type="button"
+                                [label]="sendKotButtonLabel"
+                                class="p-button-warning p-button-outlined w-full p-button-sm font-semibold"
+                                [disabled]="!cart.length || sendingKOT"
+                                [loading]="sendingKOT"
+                                (click)="sendToTable()"
+                                [title]="sendKotButtonTitle"
+                            ></button>
+                        </div>
+                        <div class="col-6 pl-1">
+                            <button
+                                pButton
+                                pRipple
+                                type="button"
+                                label="🧾 Guest Bill"
+                                class="p-button-info p-button-outlined w-full p-button-sm font-semibold"
+                                [disabled]="!cart.length || printingBill"
+                                [loading]="printingBill"
+                                (click)="printGuestBill()"
+                                title="Print customer guest check / bill preview"
+                            ></button>
+                        </div>
+                        <div class="col-12 mt-1" *ngIf="!isOnlineOrder">
+                            <button
+                                pButton
+                                pRipple
+                                type="button"
+                                label="Short Guest Bill"
+                                icon="pi pi-file"
+                                class="p-button-help p-button-outlined w-full p-button-sm font-semibold"
+                                [disabled]="!canSave() || saving"
+                                [loading]="saving && shortGuestBillMode"
+                                (click)="openShortGuestBill()"
+                                title="Settle payment and print short receipt (no logo / customer / complaint)"
+                            ></button>
+                        </div>
+                    </div>
+                </div>
+
+                <div
+                    *ngIf="isRestaurantMode && orderType === 'dineIn' && selectedTable"
+                    class="p-2 surface-100 border-round mt-3 flex justify-content-between align-items-center text-sm"
+                >
+                    <span class="text-600 font-medium"><i class="pi pi-user mr-1 text-primary"></i>Assigned Waiter:</span>
+                    <span class="font-bold text-900" *ngIf="waiterName">{{ waiterName }}</span>
+                    <span class="text-primary font-semibold cursor-pointer" *ngIf="!waiterName" (click)="openAssignWaiterDialog()">
+                        <i class="pi pi-plus mr-1"></i>Assign Waiter
+                    </span>
+                </div>
+
+                <div *ngIf="!isWaiter" class="align-items-stretch gap-2 mt-3 hidden md:flex">
+                    <button
+                        *ngIf="!isOnlineOrder"
+                        pButton
+                        pRipple
+                        type="button"
+                        [label]="isRestaurantMode ? (isCarService ? 'Settle & Close Car' : (orderType === 'takeaway' ? 'Complete' : 'Paid')) : 'Complete Sale'"
+                        icon="pi pi-check"
+                        class="flex-grow-1"
+                        [disabled]="!canSave()"
+                        [loading]="saving"
+                        (click)="completeSale({ shortReceipt: false })"
+                        [title]="settleButtonTooltip"
+                    ></button>
+                    <button
+                        pButton
+                        pRipple
+                        type="button"
+                        label="Clear"
+                        class="p-button-outlined pos-settle-clear-btn"
+                        [class.flex-grow-1]="isOnlineOrder"
+                        [disabled]="!cart.length || saving"
+                        (click)="clearCart()"
+                    ></button>
+                </div>
+                <small
+                    class="text-xs text-primary font-medium block text-center mt-2 hidden md:block"
+                    *ngIf="isOnlineOrder && !isWaiter"
+                >
+                    <i class="pi pi-info-circle mr-1"></i>
+                    Online: use KOT or Guest Bill, assign rider, then finish from Orders page
+                </small>
+                <div *ngIf="isWaiter" class="p-2 border-round bg-yellow-50 border-1 border-yellow-200 text-center text-xs text-yellow-800 mt-3 font-medium">
+                    <i class="pi pi-lock mr-1"></i> Waiter Account: Orders are sent to KOT / Table. Payments are settled by Cashier or Admin.
+                </div>
+                <small
+                    class="text-xs text-amber-700 font-medium block text-center mt-2"
+                    *ngIf="isRestaurantMode && orderType === 'dineIn' && cart.length && hasUnsentItems && !isWaiter"
+                >
+                    <i class="pi pi-info-circle mr-1"></i> Send to KOT first to enable settlement
+                </small>
+
+                <!-- Compact current cart under settle actions (fills empty checkout space) -->
+                <div class="pos-checkout-cart-summary hidden md:block mt-3">
+                    <div class="pos-checkout-cart-summary__head">
+                        <span>Current cart</span>
+                        <span class="text-500">{{ cart.length ? (cart.length + ' item(s)') : 'Empty' }}</span>
+                    </div>
+                    <div *ngIf="cart.length; else checkoutCartEmpty" class="pos-checkout-cart-summary__list">
+                        <div
+                            class="pos-checkout-cart-summary__row"
+                            *ngFor="let line of cart"
+                        >
+                            <span class="pos-checkout-cart-summary__name" [title]="line.productName">
+                                {{ line.productName }}
+                            </span>
+                            <span class="pos-checkout-cart-summary__qty">×{{ line.quantity }}</span>
+                            <span class="pos-checkout-cart-summary__amt">
+                                {{ line.quantity * line.unitPrice | number: '1.0-0' }}
+                            </span>
+                        </div>
+                    </div>
+                    <ng-template #checkoutCartEmpty>
+                        <div class="pos-checkout-cart-summary__empty">
+                            No products in cart yet
+                        </div>
+                    </ng-template>
+                </div>
             </div>
         </div>
     </div>
 
     <div class="pos-mobile-bar md:hidden">
-        <div class="pos-mobile-bar-total">
-            <small class="text-500 block">Total Amount</small>
-            <strong>{{ grandTotal | number: '1.2-2' }}</strong>
+        <!-- Cashier/admin secondary actions only (waiters get a single Send button below) -->
+        <div class="pos-mobile-bar-actions" *ngIf="isRestaurantMode && !isWaiter">
+            <button
+                pButton
+                pRipple
+                type="button"
+                [label]="sendKotButtonLabel"
+                class="p-button-warning p-button-outlined p-button-sm flex-grow-1"
+                [disabled]="!cart.length || sendingKOT"
+                [loading]="sendingKOT"
+                (click)="sendToTable()"
+                [title]="sendKotButtonTitle"
+            ></button>
+            <button
+                pButton
+                pRipple
+                type="button"
+                label="Tab"
+                class="p-button-secondary p-button-outlined p-button-sm flex-grow-1"
+                [disabled]="!cart.length || savingOrder"
+                (click)="saveRunningTab()"
+            ></button>
+            <button
+                pButton
+                pRipple
+                type="button"
+                label="Bill"
+                class="p-button-info p-button-outlined p-button-sm flex-grow-1"
+                [disabled]="!cart.length || printingBill"
+                (click)="printGuestBill()"
+            ></button>
+            <button
+                pButton
+                pRipple
+                type="button"
+                label="Split"
+                class="p-button-help p-button-outlined p-button-sm flex-grow-1"
+                [disabled]="!cart.length"
+                (click)="openSplitBill()"
+            ></button>
         </div>
-        <button
-            pButton
-            pRipple
-            type="button"
-            label="Complete Sale"
-            class="flex-grow-1"
-            [disabled]="!canSave()"
-            [loading]="saving"
-            (click)="completeSale()"
-        ></button>
+        <div class="pos-mobile-bar-main">
+            <div class="pos-mobile-bar-total">
+                <small class="text-500 block">Total</small>
+                <strong>{{ grandTotal | number: '1.2-2' }}</strong>
+            </div>
+            <button
+                *ngIf="!isWaiter && !isOnlineOrder"
+                pButton
+                pRipple
+                type="button"
+                [label]="isRestaurantMode ? (isCarService ? 'Settle' : 'Settle') : 'Complete Sale'"
+                class="flex-grow-1 p-button-sm"
+                [disabled]="!canSave()"
+                [loading]="saving"
+                (click)="completeSale({ shortReceipt: false })"
+                [title]="settleButtonTooltip"
+            ></button>
+            <button
+                *ngIf="isWaiter"
+                pButton
+                pRipple
+                type="button"
+                [label]="sendKotButtonLabel"
+                class="p-button-warning flex-grow-1 font-bold"
+                [disabled]="!cart.length || sendingKOT"
+                [loading]="sendingKOT"
+                (click)="sendToTable()"
+                [title]="sendKotButtonTitle"
+            ></button>
+            <button
+                pButton
+                pRipple
+                type="button"
+                icon="pi pi-trash"
+                class="p-button-outlined pos-settle-config-btn"
+                [disabled]="!cart.length || saving"
+                (click)="clearCart()"
+                title="Clear Cart"
+                aria-label="Clear Cart"
+            ></button>
+        </div>
     </div>
 
     <p-dialog
@@ -312,6 +1214,10 @@
             <div class="surface-ground border-round p-3">
                 <div class="text-500 text-sm mb-1">Total bill</div>
                 <div class="text-2xl font-bold">{{ grandTotal | number: '1.2-2' }}</div>
+                <div *ngIf="isRestaurantMode && orderType === 'dineIn'" class="flex justify-content-between align-items-center mt-2 pt-2 border-top-1 surface-border">
+                    <span class="text-sm text-600 font-medium"><i class="pi pi-user mr-1 text-primary"></i>Assigned Waiter:</span>
+                    <span class="font-bold text-sm text-900">{{ waiterName || 'Not Assigned' }}</span>
+                </div>
             </div>
 
             <div class="field mb-0">
@@ -388,10 +1294,1938 @@
                 pRipple
                 type="button"
                 label="Confirm &amp; save"
-                icon="pi pi-check"
+                [icon]="saving ? '' : 'pi pi-check'"
                 [loading]="saving"
                 (click)="confirmPaymentAndSave()"
             ></button>
+        </ng-template>
+    </p-dialog>
+    <!-- Final Completed Customer Thermal Receipt Dialog -->
+    <p-dialog
+        header="Customer Sales Receipt"
+        [(visible)]="completedReceiptVisible"
+        [modal]="true"
+        [style]="{ width: '28rem', maxWidth: '95vw' }"
+        [draggable]="false"
+        [resizable]="false"
+        [closable]="true"
+    >
+        <div *ngIf="completedReceipt" class="p-3 surface-ground border-round">
+            <div class="pos-customer-receipt shadow-2 p-3 surface-card border-round-sm">
+                <div class="text-center">
+                    <img
+                        *ngIf="completedReceiptLogoUrl"
+                        [src]="completedReceiptLogoUrl"
+                        alt="Logo"
+                        class="pos-customer-receipt-logo"
+                    />
+                    <div class="pos-customer-receipt-title">{{ completedReceipt.branchName }}</div>
+                    <div class="pos-customer-receipt-meta">{{ completedReceiptCity }}</div>
+                    <div class="pos-customer-receipt-status">Paid</div>
+                </div>
+
+                <div
+                    class="pos-customer-receipt-row"
+                    *ngIf="completedReceipt.tokenNo != null && completedReceipt.tokenNo > 0"
+                    style="margin-top: 6px;"
+                >
+                    <span class="font-bold">Token# {{ completedReceipt.tokenNo }}</span>
+                    <span></span>
+                </div>
+
+                <div style="margin-top: 4px; font-size: 10.5px;">
+                    <div class="pos-customer-receipt-row" style="white-space: nowrap;">
+                        <span style="white-space: nowrap;"><strong>Order ID:</strong> {{ completedReceipt.orderNo }}</span>
+                        <span style="white-space: nowrap;"><strong>Date:</strong> {{ formatReceiptDate(completedReceipt.date) }}</span>
+                    </div>
+                    <div class="pos-customer-receipt-row" style="white-space: nowrap;">
+                        <span style="white-space: nowrap;"><strong>Invoice#:</strong> {{ completedReceipt.invoiceNo || completedReceipt.orderNo }}</span>
+                        <span style="white-space: nowrap;"><strong>User:</strong> {{ completedReceipt.cashierName || completedReceipt.serverName || 'Staff' }}</span>
+                    </div>
+                    <div class="pos-customer-receipt-row" style="white-space: nowrap;">
+                        <span style="white-space: nowrap;"><strong>Order Type:</strong> {{ completedReceiptOrderType }}</span>
+                        <span *ngIf="completedReceiptSubLocation" style="white-space: nowrap;"><strong>{{ completedReceiptSubLocation }}</strong></span>
+                    </div>
+                </div>
+
+                <div class="pos-customer-receipt-divider"></div>
+                <div class="text-center font-bold uppercase text-xs">Order Detail</div>
+                <div class="pos-customer-receipt-divider"></div>
+
+                <table class="pos-customer-receipt-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 46%; text-align: left;">Item</th>
+                            <th style="width: 14%; text-align: center;">Qty</th>
+                            <th style="width: 20%; text-align: right;">Rate</th>
+                            <th style="width: 20%; text-align: right;">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr *ngFor="let item of completedReceipt.lines">
+                            <td>
+                                <span class="font-bold">
+                                    <span *ngIf="item.isDeal" class="pos-customer-receipt-badge">DEAL</span>
+                                    {{ item.productName }}
+                                </span>
+                                <div *ngIf="item.dealItems?.length" class="pos-customer-receipt-extra">
+                                    <div *ngFor="let d of item.dealItems">&bull; {{ d }}</div>
+                                </div>
+                                <div *ngIf="item.modifiers?.length" class="pos-customer-receipt-extra">
+                                    Options: {{ item.modifiers.join(', ') }}
+                                </div>
+                                <div *ngIf="item.notes" class="pos-customer-receipt-extra">* {{ item.notes }}</div>
+                            </td>
+                            <td style="text-align: center;" class="font-bold">{{ item.quantity }}</td>
+                            <td style="text-align: right;">{{ item.unitPrice | number:'1.0-0' }}</td>
+                            <td style="text-align: right;" class="font-bold">{{ item.lineTotal | number:'1.0-0' }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="pos-customer-receipt-divider"></div>
+
+                <div class="pos-customer-receipt-row">
+                    <span>Sub Total</span>
+                    <span class="font-bold">{{ completedReceipt.subTotal | number:'1.0-0' }} Rs</span>
+                </div>
+                <div
+                    class="pos-customer-receipt-row"
+                    *ngIf="completedReceipt.discountAmount > 0"
+                >
+                    <span>Discount{{ completedReceipt.discountPercent ? ' (' + completedReceipt.discountPercent + '%)' : '' }}</span>
+                    <span>-{{ completedReceipt.discountAmount | number:'1.0-0' }} Rs</span>
+                </div>
+                <div
+                    class="pos-customer-receipt-row"
+                    *ngIf="completedReceipt.taxAmount > 0"
+                >
+                    <span>Tax{{ completedReceipt.taxPercent ? ' (' + completedReceipt.taxPercent + '%)' : '' }}</span>
+                    <span>+{{ completedReceipt.taxAmount | number:'1.0-0' }} Rs</span>
+                </div>
+                <div
+                    class="pos-customer-receipt-row"
+                    *ngIf="completedReceipt.serviceChargeAmount > 0"
+                >
+                    <span>Service Charge{{ completedReceipt.serviceChargePercent ? ' (' + completedReceipt.serviceChargePercent + '%)' : '' }}</span>
+                    <span>+{{ completedReceipt.serviceChargeAmount | number:'1.0-0' }} Rs</span>
+                </div>
+                <div class="pos-customer-receipt-row pos-customer-receipt-grand">
+                    <span>GRAND TOTAL</span>
+                    <span>{{ completedReceipt.grandTotal | number:'1.0-0' }} Rs</span>
+                </div>
+                <div class="pos-customer-receipt-row" *ngIf="completedReceipt.paidAmount">
+                    <span>Cash Paid</span>
+                    <span>{{ completedReceipt.paidAmount | number:'1.0-0' }} Rs</span>
+                </div>
+                <div
+                    class="pos-customer-receipt-row font-bold"
+                    *ngIf="completedReceipt.changeAmount > 0"
+                >
+                    <span>Change Returned</span>
+                    <span>{{ completedReceipt.changeAmount | number:'1.0-0' }} Rs</span>
+                </div>
+                <div
+                    class="pos-customer-receipt-row font-bold"
+                    *ngIf="completedReceipt.dueAmount > 0.009"
+                >
+                    <span>Due Amount</span>
+                    <span>{{ completedReceipt.dueAmount | number:'1.0-0' }} Rs</span>
+                </div>
+
+                <div class="pos-customer-receipt-divider"></div>
+                <div class="text-center font-bold uppercase text-xs">Customer Detail</div>
+                <div class="pos-customer-receipt-divider"></div>
+
+                <div class="font-bold">Customer: {{ completedReceipt.customerName || 'Walk-in' }}</div>
+                <div class="text-sm mt-1" *ngIf="completedReceipt.customerPhone">
+                    Phone: {{ completedReceipt.customerPhone }}
+                </div>
+                <div class="text-sm mt-1" *ngIf="completedReceipt.deliveryAreaName">
+                    Delivery Area: {{ completedReceipt.deliveryAreaName }}
+                </div>
+                <div class="text-sm mt-1" *ngIf="completedReceipt.deliveryAddress">
+                    Address: {{ completedReceipt.deliveryAddress }}
+                </div>
+                <div class="pos-customer-receipt-row" style="margin-top: 4px;">
+                    <span>Order-Taker: <strong>{{ completedReceipt.serverName || 'Staff' }}</strong></span>
+                    <span class="pos-customer-receipt-printed">Printed: {{ formatReceiptDate(completedReceipt.date) }}</span>
+                </div>
+
+                <div class="pos-customer-receipt-solid"></div>
+                <div class="text-center text-xs">
+                    <div
+                        *ngIf="completedReceiptInvoiceFooter"
+                        style="margin-bottom: 5px; white-space: pre-wrap;"
+                    >
+                        {{ completedReceiptInvoiceFooter }}
+                    </div>
+                    <div class="font-bold">{{ completedReceiptUan }}</div>
+                    <div style="margin-top: 4px;">{{ completedReceiptSoftwareBy }}</div>
+                    <div *ngIf="completedReceiptSoftwarePhone" style="margin-top: 1px;">
+                        {{ completedReceiptSoftwarePhone }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <ng-template pTemplate="footer">
+            <button
+                pButton
+                pRipple
+                type="button"
+                label="Close"
+                icon="pi pi-times"
+                class="p-button-text"
+                (click)="completedReceiptVisible = false"
+            ></button>
+            <button
+                pButton
+                pRipple
+                type="button"
+                label="Print"
+                icon="pi pi-print"
+                class="p-button-warning font-bold"
+                (click)="reprintCompletedReceipt()"
+            ></button>
+        </ng-template>
+    </p-dialog>
+
+    <!-- Restaurant Table / Car Bay Selection Dialog -->
+    <p-dialog
+        header="Dine-In: Tables &amp; Car Bays"
+        [(visible)]="tableDialogVisible"
+        (onHide)="onTableDialogHide()"
+        [modal]="true"
+        [style]="{ width: '56rem', maxWidth: '95vw' }"
+        [draggable]="false"
+        [resizable]="false"
+    >
+        <div class="flex flex-column gap-3">
+            <div
+                *ngIf="pendingSendToTable"
+                class="p-3 border-round-lg bg-orange-50 border-1 border-orange-200 text-orange-900 font-medium text-sm flex align-items-center gap-2"
+            >
+                <i class="pi pi-send text-orange-600 text-lg"></i>
+                <div>
+                    <strong>Select a table or car bay</strong> to send this order.
+                </div>
+            </div>
+
+            <div class="flex flex-wrap align-items-center justify-content-between gap-2 p-2 surface-50 border-round">
+                <div class="flex flex-wrap align-items-center gap-2 sm:gap-3 text-xs sm:text-sm">
+                    <span class="flex align-items-center gap-1">
+                        <span class="border-circle bg-green-500" style="width: 10px; height: 10px;"></span> Available
+                    </span>
+                    <span class="flex align-items-center gap-1">
+                        <span class="border-circle bg-red-500" style="width: 10px; height: 10px;"></span> Occupied
+                    </span>
+                    <span class="flex align-items-center gap-1">
+                        <span class="border-circle bg-yellow-500" style="width: 10px; height: 10px;"></span> Billed
+                    </span>
+                    <span class="text-500 text-xs ml-1">Cars: tap bay → enter plate</span>
+                </div>
+                <button
+                    pButton
+                    pRipple
+                    type="button"
+                    icon="pi pi-refresh"
+                    label="Refresh"
+                    class="p-button-text p-button-sm"
+                    [loading]="loadingTables"
+                    (click)="loadTables()"
+                ></button>
+            </div>
+
+            <div *ngIf="loadingTables" class="text-center py-5 text-500">
+                <i class="pi pi-spin pi-spinner text-2xl mr-2"></i> Loading...
+            </div>
+
+            <ng-container *ngIf="!loadingTables">
+                <!-- TABLES SECTION -->
+                <div class="flex flex-column gap-2">
+                    <div class="flex align-items-center justify-content-between gap-2 pt-1">
+                        <div class="font-semibold text-800 flex align-items-center gap-2">
+                            <i class="pi pi-table text-primary"></i>
+                            Tables
+                            <span class="text-xs text-500 font-normal">({{ diningTables.length }})</span>
+                        </div>
+                    </div>
+
+                    <div *ngIf="diningTables.length" class="grid">
+                        <div class="col-6 sm:col-4 md:col-3" *ngFor="let table of diningTables">
+                            <div
+                                class="pos-floor-card p-3 border-round-xl border-1 cursor-pointer transition-all transition-duration-150 flex flex-column align-items-center text-center shadow-1 hover:shadow-3"
+                                [class.has-admin-actions]="canManageTableBill(table)"
+                                [style.background]="
+                                    selectedTable?.id === table.id
+                                        ? '#e0f2fe'
+                                        : table.status === 0
+                                          ? '#f0fdf4'
+                                          : table.status === 1
+                                            ? '#fef2f2'
+                                            : '#fefce8'
+                                "
+                                [style.borderColor]="
+                                    selectedTable?.id === table.id
+                                        ? '#0284c7'
+                                        : table.status === 0
+                                          ? '#86efac'
+                                          : table.status === 1
+                                            ? '#fca5a5'
+                                            : '#fde047'
+                                "
+                                (click)="onTableClicked(table)"
+                            >
+                                <button
+                                    *ngIf="canManageTableBill(table)"
+                                    pButton
+                                    pRipple
+                                    type="button"
+                                    icon="pi pi-print"
+                                    class="pos-floor-card-print p-button-rounded p-button-text p-button-info"
+                                    pTooltip="Print Guest Bill"
+                                    tooltipPosition="top"
+                                    [loading]="tableBillBusyId === table.id && printingBill"
+                                    [disabled]="tableBillBusyId === table.id"
+                                    (click)="printGuestBillFromTable(table, $event)"
+                                ></button>
+                                <i
+                                    class="pi pi-table text-2xl mb-2"
+                                    [style.color]="
+                                        selectedTable?.id === table.id
+                                            ? '#0284c7'
+                                            : table.status === 0
+                                              ? '#16a34a'
+                                              : table.status === 1
+                                                ? '#dc2626'
+                                                : '#ca8a04'
+                                    "
+                                ></i>
+                                <div class="font-bold text-900 text-lg">{{ table.tableNo }}</div>
+                                <div class="text-xs text-500 mb-1">
+                                    {{ table.area || 'Main Hall' }} &bull; {{ table.capacity }} Seats
+                                </div>
+                                <span
+                                    class="text-xs px-2 py-1 border-round font-medium"
+                                    [style.background]="
+                                        table.status === 0
+                                            ? '#dcfce7'
+                                            : table.status === 1
+                                              ? '#fee2e2'
+                                              : '#fef9c3'
+                                    "
+                                    [style.color]="
+                                        table.status === 0
+                                            ? '#15803d'
+                                            : table.status === 1
+                                              ? '#b91c1c'
+                                              : '#a16207'
+                                    "
+                                >
+                                    {{ table.statusName || (table.status === 0 ? 'Available' : table.status === 1 ? 'Occupied' : 'Billed') }}
+                                </span>
+                                <div *ngIf="table.waiterName" class="text-xs text-primary font-semibold mt-1">
+                                    <i class="pi pi-user mr-1"></i>{{ table.waiterName }}
+                                </div>
+                                <div
+                                    *ngIf="isWaiter && isAssignedToCurrentWaiter(table)"
+                                    class="text-xs font-bold mt-1 px-2 py-1 border-round"
+                                    style="background:#dbeafe;color:#1d4ed8"
+                                >
+                                    MY ORDER
+                                </div>
+                                <button
+                                    *ngIf="canManageTableBill(table)"
+                                    pButton
+                                    pRipple
+                                    type="button"
+                                    icon="pi pi-check"
+                                    label="Complete"
+                                    class="pos-floor-card-complete p-button-success"
+                                    pTooltip="Complete Bill / Settle Payment"
+                                    tooltipPosition="top"
+                                    [loading]="tableBillBusyId === table.id && !printingBill"
+                                    [disabled]="tableBillBusyId === table.id"
+                                    (click)="completeBillFromTable(table, $event)"
+                                ></button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div *ngIf="!diningTables.length" class="text-sm text-500 surface-50 border-round p-3">
+                        No dining tables yet. Use Quick Add Table below.
+                    </div>
+
+                    <div *ngIf="!isWaiter" class="surface-50 border-round-xl p-3 border-1 border-200">
+                        <div class="font-semibold text-800 mb-2 flex align-items-center gap-2">
+                            <i class="pi pi-plus-circle text-primary"></i> Quick Add Table
+                        </div>
+                        <div class="grid formgrid p-fluid">
+                            <div class="field col-12 sm:col-4 mb-2">
+                                <label class="text-xs font-medium">Table No / Name *</label>
+                                <input
+                                    pInputText
+                                    type="text"
+                                    placeholder="e.g. Table 1"
+                                    [(ngModel)]="newTableNo"
+                                    class="p-inputtext-sm"
+                                />
+                            </div>
+                            <div class="field col-12 sm:col-4 mb-2">
+                                <label class="text-xs font-medium">Area / Floor</label>
+                                <input
+                                    pInputText
+                                    type="text"
+                                    placeholder="e.g. Main Hall"
+                                    [(ngModel)]="newTableArea"
+                                    class="p-inputtext-sm"
+                                />
+                            </div>
+                            <div class="field col-8 sm:col-2 mb-2">
+                                <label class="text-xs font-medium">Seats</label>
+                                <p-inputNumber
+                                    [(ngModel)]="newTableCapacity"
+                                    [min]="1"
+                                    [max]="50"
+                                    styleClass="p-inputtext-sm"
+                                ></p-inputNumber>
+                            </div>
+                            <div class="field col-4 sm:col-2 mb-2 flex align-items-end">
+                                <button
+                                    pButton
+                                    pRipple
+                                    type="button"
+                                    label="Add"
+                                    icon="pi pi-check"
+                                    class="p-button-sm w-full"
+                                    [disabled]="!newTableNo.trim() || creatingTable"
+                                    [loading]="creatingTable"
+                                    (click)="createQuickTable()"
+                                ></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="border-top-1 surface-border my-2"></div>
+
+                <!-- CAR BAYS SECTION -->
+                <div class="flex flex-column gap-2">
+                    <div class="font-semibold text-800 flex align-items-center gap-2">
+                        <i class="pi pi-car text-orange-600"></i>
+                        Car Bays
+                        <span class="text-xs text-500 font-normal">({{ carBays.length }})</span>
+                        <span class="text-xs text-500 font-normal ml-1">— tap bay, enter plate</span>
+                    </div>
+
+                    <div *ngIf="carBays.length" class="grid">
+                        <div class="col-6 sm:col-4 md:col-3" *ngFor="let table of carBays">
+                            <div
+                                class="pos-floor-card p-3 border-round-xl border-1 cursor-pointer transition-all transition-duration-150 flex flex-column align-items-center text-center shadow-1 hover:shadow-3"
+                                [class.has-admin-actions]="canManageTableBill(table)"
+                                [style.background]="
+                                    selectedTable?.id === table.id
+                                        ? '#e0f2fe'
+                                        : table.status === 0
+                                          ? '#f0fdf4'
+                                          : table.status === 1
+                                            ? '#fef2f2'
+                                            : '#fefce8'
+                                "
+                                [style.borderColor]="
+                                    selectedTable?.id === table.id
+                                        ? '#0284c7'
+                                        : table.status === 0
+                                          ? '#86efac'
+                                          : table.status === 1
+                                            ? '#fca5a5'
+                                            : '#fde047'
+                                "
+                                (click)="onTableClicked(table)"
+                            >
+                                <button
+                                    *ngIf="canManageTableBill(table)"
+                                    pButton
+                                    pRipple
+                                    type="button"
+                                    icon="pi pi-print"
+                                    class="pos-floor-card-print p-button-rounded p-button-text p-button-info"
+                                    pTooltip="Print Guest Bill"
+                                    tooltipPosition="top"
+                                    [loading]="tableBillBusyId === table.id && printingBill"
+                                    [disabled]="tableBillBusyId === table.id"
+                                    (click)="printGuestBillFromTable(table, $event)"
+                                ></button>
+                                <i
+                                    class="pi pi-car text-2xl mb-2"
+                                    [style.color]="
+                                        selectedTable?.id === table.id
+                                            ? '#0284c7'
+                                            : table.status === 0
+                                              ? '#16a34a'
+                                              : table.status === 1
+                                                ? '#dc2626'
+                                                : '#ca8a04'
+                                    "
+                                ></i>
+                                <div class="font-bold text-900 text-lg">{{ table.tableNo }}</div>
+                                <div class="text-xs text-500 mb-1">{{ table.area || 'Car Parking' }}</div>
+                                <div
+                                    *ngIf="table.currentVehicleNumber"
+                                    class="text-xs font-bold text-orange-700 mb-1 px-2 py-0.5 border-round bg-orange-50"
+                                >
+                                    {{ table.currentVehicleNumber }}
+                                </div>
+                                <span
+                                    class="text-xs px-2 py-1 border-round font-medium"
+                                    [style.background]="
+                                        table.status === 0
+                                            ? '#dcfce7'
+                                            : table.status === 1
+                                              ? '#fee2e2'
+                                              : '#fef9c3'
+                                    "
+                                    [style.color]="
+                                        table.status === 0
+                                            ? '#15803d'
+                                            : table.status === 1
+                                              ? '#b91c1c'
+                                              : '#a16207'
+                                    "
+                                >
+                                    {{ table.statusName || (table.status === 0 ? 'Available' : table.status === 1 ? 'Occupied' : 'Billed') }}
+                                </span>
+                                <div *ngIf="table.waiterName" class="text-xs text-primary font-semibold mt-1">
+                                    <i class="pi pi-user mr-1"></i>{{ table.waiterName }}
+                                </div>
+                                <div
+                                    *ngIf="isWaiter && isAssignedToCurrentWaiter(table)"
+                                    class="text-xs font-bold mt-1 px-2 py-1 border-round"
+                                    style="background:#dbeafe;color:#1d4ed8"
+                                >
+                                    MY ORDER
+                                </div>
+                                <button
+                                    *ngIf="canManageTableBill(table)"
+                                    pButton
+                                    pRipple
+                                    type="button"
+                                    icon="pi pi-check"
+                                    label="Complete"
+                                    class="pos-floor-card-complete p-button-success"
+                                    pTooltip="Complete Bill / Settle Payment"
+                                    tooltipPosition="top"
+                                    [loading]="tableBillBusyId === table.id && !printingBill"
+                                    [disabled]="tableBillBusyId === table.id"
+                                    (click)="completeBillFromTable(table, $event)"
+                                ></button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div *ngIf="!carBays.length" class="text-sm text-500 surface-50 border-round p-3">
+                        No car bays yet. Add Car 1–5 below for parking service.
+                    </div>
+
+                    <div *ngIf="!isWaiter" class="surface-50 border-round-xl p-3 border-1 border-200">
+                        <div class="font-semibold text-800 mb-2 flex align-items-center gap-2">
+                            <i class="pi pi-car text-orange-600"></i> Quick Add Car Bay
+                        </div>
+                        <div class="text-xs text-500 mb-2">
+                            Permanent slots (Car 1, Car 2…). When a car arrives, tap the bay and enter the plate number.
+                        </div>
+                        <div class="flex flex-wrap gap-2">
+                            <button
+                                pButton
+                                pRipple
+                                type="button"
+                                label="Add next Car"
+                                icon="pi pi-plus"
+                                class="p-button-sm p-button-outlined"
+                                [loading]="creatingCarBay"
+                                (click)="createQuickCarBay()"
+                            ></button>
+                            <button
+                                pButton
+                                pRipple
+                                type="button"
+                                label="Add Car 1–5"
+                                icon="pi pi-car"
+                                class="p-button-sm p-button-warning"
+                                [loading]="creatingCarBay"
+                                (click)="createCarBaysBatch(5)"
+                            ></button>
+                        </div>
+                    </div>
+                </div>
+            </ng-container>
+        </div>
+
+        <ng-template pTemplate="footer">
+            <button
+                *ngIf="selectedTable || isCarService"
+                pButton
+                pRipple
+                type="button"
+                [label]="isCarService ? 'Clear Car Selection' : 'Clear Table'"
+                icon="pi pi-times"
+                class="p-button-text p-button-danger mr-auto"
+                (click)="clearTableSelection(); tableDialogVisible = false"
+            ></button>
+            <button
+                pButton
+                pRipple
+                type="button"
+                label="Close"
+                class="p-button-text"
+                (click)="tableDialogVisible = false"
+            ></button>
+        </ng-template>
+    </p-dialog>
+
+    <!-- Vehicle plate for car bay -->
+    <p-dialog
+        header="Assign Vehicle Number"
+        [(visible)]="vehicleDialogVisible"
+        (onHide)="cancelVehicleDialog()"
+        [modal]="true"
+        [style]="{ width: '26rem', maxWidth: '95vw' }"
+        [draggable]="false"
+        [resizable]="false"
+    >
+        <div class="flex flex-column gap-3">
+            <div class="surface-50 border-round p-3">
+                <div class="text-xs text-500 uppercase font-semibold">Car Bay</div>
+                <div class="font-bold text-lg text-900 mt-1">
+                    {{ pendingVehicleTable?.tableNo }}
+                    <span class="text-sm text-500 font-normal">
+                        ({{ pendingVehicleTable?.area || 'Car Parking' }})
+                    </span>
+                </div>
+            </div>
+            <div class="field mb-0 p-fluid">
+                <label class="text-sm font-semibold" for="vehiclePlate">Vehicle number / plate *</label>
+                <input
+                    id="vehiclePlate"
+                    pInputText
+                    type="text"
+                    placeholder="e.g. LEA-4021"
+                    [(ngModel)]="pendingVehicleNumber"
+                    class="w-full text-lg font-semibold"
+                    (keydown.enter)="confirmVehicleNumber()"
+                    autofocus
+                />
+                <small class="text-500">Shown on KOT and bill so kitchen/staff know which car.</small>
+            </div>
+        </div>
+        <ng-template pTemplate="footer">
+            <button
+                pButton
+                pRipple
+                type="button"
+                label="Cancel"
+                class="p-button-text"
+                (click)="cancelVehicleDialog()"
+            ></button>
+            <button
+                pButton
+                pRipple
+                type="button"
+                label="Continue"
+                icon="pi pi-check"
+                class="p-button-success"
+                [disabled]="!(pendingVehicleNumber || '').trim()"
+                (click)="confirmVehicleNumber()"
+            ></button>
+        </ng-template>
+    </p-dialog>
+
+    <!-- 🔄 Shift / Transfer Table Dialog -->
+    <p-dialog
+        header="Transfer Order"
+        [(visible)]="transferDialogVisible"
+        [modal]="true"
+        [style]="{ width: '32rem', maxWidth: '95vw' }"
+        [draggable]="false"
+        [resizable]="false"
+    >
+        <div class="flex flex-column gap-3">
+            <div class="surface-50 border-round p-3">
+                <div class="text-xs text-500 uppercase font-semibold">Current</div>
+                <div class="font-bold text-lg text-900 mt-1">
+                    <ng-container *ngIf="isCarBay(selectedTable); else transferFromTable">
+                        <i class="pi pi-car mr-1 text-orange-600"></i>{{ selectedTable?.tableNo }}
+                        <span class="text-sm font-medium text-600" *ngIf="selectedCarNumber"> · {{ selectedCarNumber }}</span>
+                    </ng-container>
+                    <ng-template #transferFromTable>
+                        <i class="pi pi-table mr-1"></i>Table {{ selectedTable?.tableNo }}
+                        <span class="text-sm font-medium text-600">({{ selectedTable?.area || 'Main Hall' }})</span>
+                    </ng-template>
+                </div>
+                <div class="text-xs text-600 mt-1" *ngIf="activeOrderNo">
+                    Active Order: #{{ activeOrderNo }}
+                </div>
+            </div>
+
+            <div>
+                <label class="font-semibold block mb-2">Move order to free table / car</label>
+                <div *ngIf="!availableTransferTables.length" class="text-center py-3 text-500 text-sm surface-100 border-round">
+                    No free tables or car bays available. Free one first, then try again.
+                </div>
+                <div class="grid" *ngIf="availableTransferTables.length">
+                    <div
+                        class="col-6 sm:col-4"
+                        *ngFor="let t of availableTransferTables"
+                    >
+                        <div
+                            class="p-2 border-round-xl border-1 text-center cursor-pointer transition-all surface-hover"
+                            [style.background]="selectedTargetTableId === t.id ? '#e0f2fe' : (isCarBay(t) ? '#fff7ed' : '#f0fdf4')"
+                            [style.borderColor]="selectedTargetTableId === t.id ? '#0284c7' : (isCarBay(t) ? '#fdba74' : '#86efac')"
+                            (click)="selectedTargetTableId = t.id"
+                        >
+                            <i
+                                class="text-xl mb-1"
+                                [class]="isCarBay(t) ? 'pi pi-car text-orange-600' : 'pi pi-table text-green-600'"
+                            ></i>
+                            <div class="font-bold text-sm">{{ t.tableNo }}</div>
+                            <div class="text-xs text-500">{{ t.area || (isCarBay(t) ? 'Car Parking' : 'Main Hall') }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <ng-template pTemplate="footer">
+            <button
+                pButton
+                pRipple
+                type="button"
+                label="Cancel"
+                class="p-button-text"
+                (click)="transferDialogVisible = false"
+            ></button>
+            <button
+                pButton
+                pRipple
+                type="button"
+                label="Transfer Order"
+                icon="pi pi-check"
+                class="p-button-warning"
+                [disabled]="!selectedTargetTableId || transferringTable"
+                [loading]="transferringTable"
+                (click)="confirmTransfer()"
+            ></button>
+        </ng-template>
+    </p-dialog>
+
+    <!-- 🍽️ Table Order Ticket / KOT Dialog -->
+    <p-dialog
+        header="🍽️ Table Order Ticket"
+        [(visible)]="kotDialogVisible"
+        [modal]="true"
+        [style]="{ width: '36rem', maxWidth: '95vw' }"
+        [draggable]="false"
+        [resizable]="false"
+        styleClass="pos-kot-dialog"
+    >
+        <div class="flex flex-column gap-3">
+            <div class="p-3 surface-50 border-round text-center">
+                <i class="pi pi-check-circle text-green-500 text-3xl mb-1 block"></i>
+                <div class="font-bold text-900">{{ isCarService ? 'Sent to Car (KOT)' : 'Sent to Kitchen KOT' }}</div>
+                <div class="text-xs text-500 mt-1">Ticket dispatched for {{ (kotResult?.carNumber || isCarService) ? (carServiceLabel || ('Car: ' + (kotResult?.carName || '') + ' (' + (kotResult?.carNumber || '') + ')')) : (kotResult?.tableNo || selectedTable?.tableNo || 'Takeaway') }} — visible on kitchen screen</div>
+            </div>
+
+            <!-- Thermal KOT Ticket Preview Container -->
+            <div
+                id="kotThermalPrint"
+                class="surface-0 p-3 border-1 border-dashed surface-border border-round font-monospace shadow-1"
+                style="font-family: 'Courier New', monospace; font-size: 13px; line-height: 1.4;"
+            >
+                <div class="text-center pb-2 border-bottom-1 border-dashed border-400 mb-2">
+                    <div class="font-bold text-base">*** KITCHEN ORDER TICKET ***</div>
+                    <div class="text-xs font-semibold mt-1">
+                        <span *ngIf="kotResult?.carNumber || isCarService">
+                            Car: <strong>{{ carServiceLabel || ((kotResult?.carName || selectedCarName) + ' • ' + (kotResult?.carNumber || selectedCarNumber)) }}</strong>
+                            <span *ngIf="kotResult?.carLocation || selectedCarLocation">&bull; {{ kotResult?.carLocation || selectedCarLocation }}</span>
+                        </span>
+                        <span *ngIf="!kotResult?.carNumber && !isCarService">
+                            Table: <strong>{{ kotResult?.tableNo || selectedTable?.tableNo || 'Takeaway' }}</strong>
+                        </span>
+                    </div>
+                    <div class="text-xs text-600">Order: #{{ kotResult?.orderNo || activeOrderNo }}</div>
+                    <div class="text-xs text-600">Time: {{ kotResult?.printTime | date: 'medium' }}</div>
+                    <div class="text-xs text-600" *ngIf="waiterName">Server: {{ waiterName }}</div>
+                </div>
+
+                <table style="width: 100%; border-collapse: collapse; margin-bottom: 8px;">
+                    <thead>
+                        <tr style="border-bottom: 1px dashed #666;">
+                            <th style="text-align: left; padding: 4px 0;">Qty</th>
+                            <th style="text-align: left; padding: 4px 0;">Item &amp; Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr *ngFor="let item of kotResult?.newItems" style="border-bottom: 1px dotted #ccc;">
+                            <td style="vertical-align: top; font-weight: bold; padding: 4px 0; width: 2.5rem;">
+                                {{ item.previousQuantity && item.previousQuantity > 0 ? '+' : '' }}{{ item.quantity }}x
+                            </td>
+                            <td style="padding: 4px 0;">
+                                <div style="font-weight: bold;" class="flex align-items-center gap-1">
+                                    <span *ngIf="isDealItemOrModifiers(item)" style="background: #000; color: #fff; font-size: 10px; padding: 1px 4px; border-radius: 2px; font-weight: bold;">DEAL</span>
+                                    <span>{{ item.productName }}</span>
+                                </div>
+                                <div *ngIf="item.previousQuantity && item.previousQuantity > 0" style="font-size: 11px; font-weight: bold; color: #1e40af; margin-top: 1px;">
+                                    (Add-on &bull; Previous: {{ item.previousQuantity }}, Total: {{ item.totalQuantity }})
+                                </div>
+                                <!-- Deal Constituent Items for Kitchen -->
+                                <div *ngIf="getDealItemsFromLine(item)?.length" style="margin: 3px 0; padding-left: 6px; border-left: 2px solid #333; font-size: 12px; color: #111;">
+                                    <div style="font-size: 10px; font-weight: bold; text-transform: uppercase; color: #555;">Includes:</div>
+                                    <div *ngFor="let dItem of getDealItemsFromLine(item)" style="font-weight: 600;">
+                                        &bull; {{ dItem }}
+                                    </div>
+                                </div>
+                                <div *ngIf="getExtraModifiersFromLine(item)?.length" style="font-size: 11px; color: #444; margin-top: 2px;">
+                                    Options: {{ getExtraModifiersFromLine(item).join(', ') }}
+                                </div>
+                                <div *ngIf="item.kitchenNotes" style="font-size: 11px; font-weight: bold; color: #b91c1c; font-style: italic; margin-top: 2px;">
+                                    &bull; Note: {{ item.kitchenNotes }}
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="text-center pt-2 border-top-1 border-dashed border-400 text-xs text-600">
+                    * * * End of KOT * * *
+                </div>
+            </div>
+        </div>
+
+        <ng-template pTemplate="footer">
+            <div class="pos-kot-footer">
+                <button
+                    pButton
+                    pRipple
+                    type="button"
+                    label="Close"
+                    icon="pi pi-times"
+                    class="p-button-outlined p-button-secondary pos-kot-footer-btn"
+                    (click)="kotDialogVisible = false"
+                ></button>
+                <div class="pos-kot-footer-actions">
+                    <button
+                        pButton
+                        pRipple
+                        type="button"
+                        label="Print"
+                        icon="pi pi-print"
+                        class="p-button-warning pos-kot-footer-btn pos-kot-footer-btn--primary"
+                        (click)="printCurrentModal('kotThermalPrint', 'all')"
+                    ></button>
+                </div>
+            </div>
+        </ng-template>
+    </p-dialog>
+
+    <!-- 🧾 Guest Check / Pre-Bill Dialog -->
+    <p-dialog
+        header="🧾 Guest Check / Bill Preview"
+        [(visible)]="guestBillDialogVisible"
+        [modal]="true"
+        [style]="{ width: '32rem', maxWidth: '95vw' }"
+        [draggable]="false"
+        [resizable]="false"
+    >
+        <div class="flex flex-column gap-3">
+            <div
+                id="guestCheckPrint"
+                class="surface-0 p-3 border-1 border-dashed surface-border border-round font-monospace shadow-1"
+                style="font-family: 'Courier New', monospace; font-size: 13px; line-height: 1.4;"
+            >
+                <div class="text-center pb-2 border-bottom-1 border-dashed border-400 mb-2">
+                    <div class="font-bold text-base uppercase">{{ invoiceBranchName }}</div>
+                    <div class="text-xs" *ngIf="invoiceBranchAddress">{{ invoiceBranchAddress }}</div>
+                    <div class="text-xs font-bold uppercase mt-1">Unpaid</div>
+                    <div class="text-sm font-bold mt-2" *ngIf="activeTokenNo != null">
+                        Token#: {{ activeTokenNo }}
+                    </div>
+                    <div class="text-xs mt-1">Order Type: <strong>{{ guestOrderTypeLabel }}</strong></div>
+                    <div class="text-xs">
+                        <span *ngIf="isCarService">
+                            Car: <strong>{{ carServiceLabel }}</strong><span *ngIf="selectedCarLocation"> &bull; {{ selectedCarLocation }}</span> &bull; Order: #{{ activeOrderNo || 'N/A' }}
+                        </span>
+                        <span *ngIf="!isCarService">
+                            Table: <strong>{{ selectedTable?.tableNo || 'Takeaway' }}</strong> &bull; Order: #{{ activeOrderNo || 'N/A' }}
+                        </span>
+                    </div>
+                    <div class="text-xs text-600">Server: {{ waiterName || 'Staff' }} &bull; {{ todayDate | date: 'short' }}</div>
+                </div>
+
+                <table style="width: 100%; border-collapse: collapse; margin-bottom: 8px;">
+                    <thead>
+                        <tr style="border-bottom: 1px dashed #666;">
+                            <th style="text-align: left; padding: 4px 0;">Item</th>
+                            <th style="text-align: center; padding: 4px 0;">Qty</th>
+                            <th style="text-align: right; padding: 4px 0;">Price</th>
+                            <th style="text-align: right; padding: 4px 0;">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr *ngFor="let line of cart" style="border-bottom: 1px dotted #eee;">
+                            <td style="padding: 4px 0;">
+                                <div style="font-weight: 500;">
+                                    <span *ngIf="isDealCartLine(line)" style="background: #000; color: #fff; font-size: 9px; padding: 1px 3px; border-radius: 2px; font-weight: bold; margin-right: 3px;">DEAL</span>
+                                    <span>{{ line.productName }}</span>
+                                </div>
+                                <div *ngIf="getDealItemsFromLine(line)?.length" style="margin: 2px 0; padding-left: 6px; border-left: 2px solid #555; font-size: 11px; color: #222;">
+                                    <div style="font-size: 9.5px; font-weight: bold; color: #555;">INCLUDES:</div>
+                                    <div *ngFor="let dItem of getDealItemsFromLine(line)">
+                                        &bull; {{ dItem }}
+                                    </div>
+                                </div>
+                                <div *ngIf="getExtraModifiersFromLine(line)?.length" style="font-size: 10px; color: #555; margin-top: 1px;">
+                                    Options: {{ getExtraModifiersFromLine(line).join(', ') }}
+                                </div>
+                                <div *ngIf="line.kitchenNotes" style="font-size: 10px; color: #b91c1c; font-style: italic;">
+                                    Note: {{ line.kitchenNotes }}
+                                </div>
+                            </td>
+                            <td style="text-align: center; padding: 4px 0;">{{ line.quantity }}</td>
+                            <td style="text-align: right; padding: 4px 0;">{{ line.unitPrice | number: '1.2-2' }}</td>
+                            <td style="text-align: right; padding: 4px 0;">{{ line.quantity * line.unitPrice | number: '1.2-2' }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="pt-2 border-top-1 border-dashed border-400 flex flex-column gap-1 text-xs">
+                    <div class="flex justify-content-between">
+                        <span>Subtotal:</span>
+                        <span>{{ subTotal | number: '1.2-2' }}</span>
+                    </div>
+                    <div class="flex justify-content-between" *ngIf="computedDiscount > 0">
+                        <span>Discount:</span>
+                        <span>-{{ computedDiscount | number: '1.2-2' }}</span>
+                    </div>
+                    <div class="flex justify-content-between" *ngIf="taxAmount > 0">
+                        <span>Tax ({{ taxPercent }}%):</span>
+                        <span>{{ taxAmount | number: '1.2-2' }}</span>
+                    </div>
+                    <div class="flex justify-content-between" *ngIf="serviceChargeAmount > 0">
+                        <span>Service Charge ({{ serviceChargePercent }}%):</span>
+                        <span>+{{ serviceChargeAmount | number: '1.2-2' }}</span>
+                    </div>
+                    <div class="flex justify-content-between font-bold text-sm pt-1 border-top-1 border-dashed border-400 mt-1">
+                        <span>TOTAL AMOUNT:</span>
+                        <span>{{ grandTotal | number: '1.2-2' }}</span>
+                    </div>
+                </div>
+
+                <div class="text-center pt-3 border-top-1 border-dashed border-400 text-xs text-600 mt-2">
+                    {{ invoiceBranchFooter }}<br />
+                    * Please present this check at payment *
+                </div>
+            </div>
+        </div>
+
+        <ng-template pTemplate="footer">
+            <div class="flex align-items-center justify-content-between gap-2 w-full pt-2">
+                <button
+                    pButton
+                    pRipple
+                    type="button"
+                    label="Close"
+                    icon="pi pi-times"
+                    class="p-button-outlined p-button-secondary border-round-lg px-3"
+                    (click)="guestBillDialogVisible = false"
+                ></button>
+                <div class="flex align-items-center gap-2">
+                    <button
+                        pButton
+                        pRipple
+                        type="button"
+                        label="Print Check"
+                        icon="pi pi-print"
+                        class="p-button-outlined p-button-info border-round-lg px-3"
+                        (click)="printCurrentModal('guestCheckPrint')"
+                    ></button>
+                    <button
+                        *ngIf="!isWaiter && !isOnlineOrder"
+                        pButton
+                        pRipple
+                        type="button"
+                        label="Settle Payment"
+                        icon="pi pi-check"
+                        class="p-button-success border-round-lg px-3 font-semibold shadow-2"
+                        (click)="guestBillDialogVisible = false; completeSale({ shortReceipt: false })"
+                    ></button>
+                </div>
+            </div>
+        </ng-template>
+    </p-dialog>
+
+    <!-- ➗ Split Bill Dialog -->
+    <p-dialog
+        header="➗ Split Bill Calculator"
+        [(visible)]="splitBillDialogVisible"
+        [modal]="true"
+        [style]="{ width: '32rem', maxWidth: '95vw' }"
+        [draggable]="false"
+        [resizable]="false"
+    >
+        <div class="flex flex-column gap-3">
+            <div class="surface-50 border-round p-3 text-center">
+                <div class="text-xs text-500 font-medium uppercase mb-1">Total Bill to Split</div>
+                <div class="text-3xl font-bold text-primary">{{ grandTotal | number: '1.2-2' }}</div>
+            </div>
+
+            <div class="p-fluid">
+                <label class="font-semibold block mb-2">Number of Guests / Paying Persons</label>
+                <div class="flex align-items-center gap-2">
+                    <button
+                        pButton
+                        pRipple
+                        type="button"
+                        icon="pi pi-minus"
+                        class="p-button-outlined"
+                        (click)="splitCount = (splitCount > 2 ? splitCount - 1 : 1)"
+                    ></button>
+                    <p-inputNumber
+                        [(ngModel)]="splitCount"
+                        [min]="1"
+                        [max]="50"
+                        styleClass="w-full text-center"
+                        inputStyleClass="text-center font-bold text-lg"
+                    ></p-inputNumber>
+                    <button
+                        pButton
+                        pRipple
+                        type="button"
+                        icon="pi pi-plus"
+                        class="p-button-outlined"
+                        (click)="splitCount = splitCount + 1"
+                    ></button>
+                </div>
+            </div>
+
+            <!-- Equal Split Results Card -->
+            <div class="surface-card border-1 border-primary-200 border-round-xl p-3 shadow-1">
+                <div class="flex align-items-center justify-content-between mb-2">
+                    <span class="font-bold text-900">Each Person Pays</span>
+                    <span class="text-2xl font-bold text-green-600">
+                        {{ splitAmountPerPerson | number: '1.2-2' }}
+                    </span>
+                </div>
+                <div class="text-xs text-500">
+                    Divided equally among {{ splitCount }} person(s).
+                </div>
+            </div>
+
+            <!-- Guest Breakdown Chips -->
+            <div class="flex flex-column gap-2 max-h-12rem overflow-y-auto">
+                <div
+                    *ngFor="let idx of [].constructor(splitCount > 10 ? 10 : splitCount); let i = index"
+                    class="surface-50 border-round p-2 flex justify-content-between align-items-center text-sm"
+                >
+                    <span class="font-medium text-700">Guest #{{ i + 1 }}</span>
+                    <span class="font-bold text-900">{{ splitAmountPerPerson | number: '1.2-2' }}</span>
+                </div>
+                <div *ngIf="splitCount > 10" class="text-center text-xs text-500 italic">
+                    ... and {{ splitCount - 10 }} more guests
+                </div>
+            </div>
+        </div>
+
+        <ng-template pTemplate="footer">
+            <button
+                pButton
+                pRipple
+                type="button"
+                label="Close"
+                icon="pi pi-times"
+                class="p-button-outlined p-button-secondary border-round-lg px-3"
+                (click)="splitBillDialogVisible = false"
+            ></button>
+            <button
+                pButton
+                pRipple
+                type="button"
+                label="Done"
+                icon="pi pi-check"
+                class="p-button-primary border-round-lg px-3 font-semibold shadow-2"
+                (click)="splitBillDialogVisible = false"
+            ></button>
+        </ng-template>
+    </p-dialog>
+
+    <!-- 🍕 Product Modifiers & Options Dialog -->
+    <p-dialog
+        [header]="'Customise ' + (selectedProductForModifiers?.name || 'Item')"
+        [(visible)]="modifierDialogVisible"
+        [modal]="true"
+        [style]="{ width: '32rem', maxWidth: '95vw' }"
+        [draggable]="false"
+        [resizable]="false"
+        (onHide)="cancelModifiers()"
+    >
+        <div class="flex flex-column gap-3" *ngIf="selectedProductForModifiers">
+            <div class="surface-50 border-round p-3 flex justify-content-between align-items-center">
+                <div>
+                    <div class="font-bold text-900 text-lg">{{ selectedProductForModifiers.name }}</div>
+                    <div class="text-xs text-500">Select options and kitchen preferences</div>
+                </div>
+                <div class="text-right">
+                    <span class="text-xs text-500 block">Total Price</span>
+                    <span class="font-bold text-lg text-primary">
+                        {{ currentCustomisedTotal | number: '1.2-2' }}
+                    </span>
+                    <small class="text-xs text-500 block" *ngIf="currentCustomisedTotal !== getUnitPrice(selectedProductForModifiers)">
+                        (Base: {{ getUnitPrice(selectedProductForModifiers) | number: '1.2-2' }})
+                    </small>
+                </div>
+            </div>
+
+            <!-- Modifier Groups -->
+            <div class="flex flex-column gap-3 max-h-20rem overflow-y-auto pr-1">
+                <div
+                    *ngFor="let group of availableModifierGroups"
+                    class="surface-card border-1 surface-border border-round-xl p-3"
+                >
+                    <div class="flex align-items-center justify-content-between mb-2">
+                        <div class="flex align-items-center gap-2">
+                            <span class="font-bold text-900">{{ group.name }}</span>
+                            <small class="text-500 font-normal">({{ isGroupSingleSelect(group) ? 'Single-choice' : 'Multi-select' }})</small>
+                        </div>
+                        <span
+                            class="text-xs px-2 py-0.5 border-round font-medium"
+                            [style.background]="group.isRequired ? '#fee2e2' : '#f1f5f9'"
+                            [style.color]="group.isRequired ? '#b91c1c' : '#475569'"
+                        >
+                            {{ group.isRequired ? 'Required' : 'Optional' }}
+                        </span>
+                    </div>
+
+                    <div class="flex flex-column gap-2">
+                        <div
+                            *ngFor="let opt of group.options"
+                            class="flex align-items-center justify-content-between p-2 border-round surface-hover cursor-pointer"
+                            [class.surface-100]="isOptionSelected(group.id, opt.id)"
+                            (click)="toggleModifierOption(group, opt)"
+                        >
+                            <div class="flex align-items-center gap-2">
+                                <p-checkbox
+                                    [binary]="true"
+                                    [ngModel]="isOptionSelected(group.id, opt.id)"
+                                    (click)="$event.stopPropagation(); toggleModifierOption(group, opt)"
+                                ></p-checkbox>
+                                <label class="cursor-pointer font-medium text-sm m-0">{{ opt.name }}</label>
+                            </div>
+                            <span
+                                class="text-xs font-semibold"
+                                [class.text-primary]="hasModifierPlusSign(opt)"
+                                [class.text-500]="!hasModifierPlusSign(opt)"
+                            >
+                                {{ formatModifierOptionPrice(opt) }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Special Cooking Instructions -->
+                <div class="surface-card border-1 surface-border border-round-xl p-3">
+                    <label class="font-bold text-900 block mb-1">Kitchen / Cooking Note</label>
+                    <input
+                        pInputText
+                        type="text"
+                        placeholder="e.g. Extra crispy, less spice, no onion"
+                        [(ngModel)]="pendingKitchenNote"
+                        class="w-full p-inputtext-sm"
+                    />
+                </div>
+            </div>
+        </div>
+
+        <ng-template pTemplate="footer">
+            <button
+                pButton
+                pRipple
+                type="button"
+                label="Cancel"
+                class="p-button-text"
+                (click)="cancelModifiers()"
+            ></button>
+            <button
+                pButton
+                pRipple
+                type="button"
+                label="Add to Order"
+                icon="pi pi-check"
+                class="p-button-primary"
+                (click)="confirmModifiersAndAddToCart()"
+            ></button>
+        </ng-template>
+    </p-dialog>
+
+    <!-- 🎁 Deal Customisation & Item Options Dialog -->
+    <p-dialog
+        [header]="'Customise Deal: ' + (selectedDealProduct?.name || currentDeal?.name || 'Deal')"
+        [(visible)]="dealCustomiseDialogVisible"
+        [modal]="true"
+        [style]="{ width: '38rem', maxWidth: '95vw' }"
+        [draggable]="false"
+        [resizable]="false"
+        (onHide)="cancelDealCustomise()"
+    >
+        <div class="flex flex-column gap-3" *ngIf="selectedDealProduct">
+            <div class="surface-50 border-round p-3 flex justify-content-between align-items-center">
+                <div>
+                    <div class="font-bold text-900 text-lg flex align-items-center gap-2">
+                        <i class="pi pi-bolt text-amber-500"></i>
+                        <span>{{ selectedDealProduct.name }}</span>
+                    </div>
+                    <div class="text-xs text-500 mt-1">Select options for items in this deal and kitchen preferences</div>
+                </div>
+                <div class="text-right">
+                    <span class="text-xs text-500 block">Total Deal Price</span>
+                    <span class="font-bold text-lg text-primary">
+                        {{ currentDealCustomisedTotal | number: '1.2-2' }}
+                    </span>
+                    <small class="text-xs text-500 block" *ngIf="currentDeal?.dealPrice">
+                        (Base: {{ currentDeal?.dealPrice | number: '1.2-2' }})
+                    </small>
+                </div>
+            </div>
+
+            <!-- Items inside the Deal -->
+            <div class="flex flex-column gap-3 max-h-24rem overflow-y-auto pr-1">
+                <div
+                    *ngFor="let item of dealCustomiseItems"
+                    class="surface-card border-1 surface-border border-round-xl p-3"
+                >
+                    <!-- Item Header -->
+                    <div class="flex align-items-center justify-content-between mb-2 pb-2 border-bottom-1 surface-border">
+                        <div class="flex align-items-center gap-2">
+                            <span class="bg-primary-100 text-primary-700 text-xs px-2 py-0.5 border-round font-bold">
+                                {{ item.quantity }}x
+                            </span>
+                            <span class="font-bold text-900 text-base">{{ item.productName }}</span>
+                        </div>
+                        <span class="text-xs text-500 font-medium">Included in Deal</span>
+                    </div>
+
+                    <!-- Item Modifier Groups (Options) -->
+                    <div *ngIf="item.modifierGroups && item.modifierGroups.length > 0" class="flex flex-column gap-3 mt-2">
+                        <div
+                            *ngFor="let group of item.modifierGroups"
+                            class="surface-50 border-round-lg p-2"
+                        >
+                            <div class="flex align-items-center justify-content-between mb-2">
+                                <div class="flex align-items-center gap-2">
+                                    <span class="font-semibold text-800 text-sm">{{ group.name }}</span>
+                                    <small class="text-500 font-normal">({{ group.allowMultiple ? 'Multi-select' : 'Single-select' }})</small>
+                                </div>
+                                <span
+                                    class="text-xs px-2 py-0.5 border-round font-medium"
+                                    [style.background]="group.isRequired ? '#fee2e2' : '#f1f5f9'"
+                                    [style.color]="group.isRequired ? '#b91c1c' : '#475569'"
+                                >
+                                    {{ group.isRequired ? 'Required' : 'Optional' }}
+                                </span>
+                            </div>
+
+                            <div class="flex flex-column gap-1">
+                                <div
+                                    *ngFor="let opt of group.options"
+                                    class="flex align-items-center justify-content-between p-2 border-round surface-hover cursor-pointer"
+                                    [class.surface-200]="isDealOptionSelected(item, group.id, opt.id)"
+                                    (click)="toggleDealModifierOption(item, group, opt)"
+                                >
+                                    <div class="flex align-items-center gap-2">
+                                        <p-checkbox
+                                            [binary]="true"
+                                            [ngModel]="isDealOptionSelected(item, group.id, opt.id)"
+                                            (click)="$event.stopPropagation(); toggleDealModifierOption(item, group, opt)"
+                                        ></p-checkbox>
+                                        <label class="cursor-pointer font-medium text-sm m-0">{{ opt.name }}</label>
+                                    </div>
+                                    <span
+                                        class="text-xs font-semibold"
+                                        [class.text-primary]="hasModifierPlusSign(opt)"
+                                        [class.text-500]="!hasModifierPlusSign(opt)"
+                                    >
+                                        {{ formatModifierOptionPrice(opt) }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- No Modifiers fallback -->
+                    <div *ngIf="!item.modifierGroups || item.modifierGroups.length === 0" class="text-xs text-500 italic py-1">
+                        <i class="pi pi-check text-xs text-green-500 mr-1"></i> Standard preparation (no options needed)
+                    </div>
+                </div>
+
+                <!-- Special Cooking Instructions for the Deal -->
+                <div class="surface-card border-1 surface-border border-round-xl p-3">
+                    <label class="font-bold text-900 block mb-1">Kitchen / Cooking Note</label>
+                    <input
+                        pInputText
+                        type="text"
+                        placeholder="e.g. Extra crispy, less spice, no onion"
+                        [(ngModel)]="dealKitchenNote"
+                        class="w-full p-inputtext-sm"
+                    />
+                </div>
+            </div>
+        </div>
+
+        <ng-template pTemplate="footer">
+            <button
+                pButton
+                pRipple
+                type="button"
+                label="Cancel"
+                class="p-button-text"
+                (click)="cancelDealCustomise()"
+            ></button>
+            <button
+                pButton
+                pRipple
+                type="button"
+                label="Add Deal to Order"
+                icon="pi pi-check"
+                class="p-button-success"
+                (click)="confirmDealAndAddToCart()"
+            ></button>
+        </ng-template>
+    </p-dialog>
+
+    <!-- 🔍 Deal View Details Modal for Cart -->
+    <p-dialog
+        header="Deal Breakdown & Details"
+        [(visible)]="viewCartDealDialogVisible"
+        [modal]="true"
+        [style]="{ width: '32rem', maxWidth: '95vw' }"
+        [draggable]="false"
+        [resizable]="false"
+    >
+        <div class="flex flex-column gap-3" *ngIf="selectedCartDealLine">
+            <div class="surface-50 border-round p-3 flex justify-content-between align-items-center">
+                <div>
+                    <div class="font-bold text-900 text-lg flex align-items-center gap-2">
+                        <span class="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 border-round font-bold">DEAL</span>
+                        <span>{{ selectedCartDealLine.productName }}</span>
+                    </div>
+                    <div class="text-xs text-500 mt-1">Quantity in Order: {{ selectedCartDealLine.quantity }}</div>
+                </div>
+                <div class="text-right">
+                    <span class="text-xs text-500 block">Line Total</span>
+                    <span class="font-bold text-lg text-primary">
+                        {{ selectedCartDealLine.quantity * selectedCartDealLine.unitPrice | number: '1.2-2' }}
+                    </span>
+                    <small class="text-xs text-500 block">({{ selectedCartDealLine.unitPrice | number: '1.2-2' }} / deal)</small>
+                </div>
+            </div>
+
+            <!-- Items breakdown -->
+            <div class="surface-card border-1 surface-border border-round-xl p-3" *ngIf="getDealItemsFromLine(selectedCartDealLine).length > 0 || selectedCartDealLine.dealSummary">
+                <label class="font-bold text-900 block mb-2">Included Products</label>
+                <div class="flex flex-column gap-2">
+                    <div
+                        *ngFor="let item of (getDealItemsFromLine(selectedCartDealLine).length ? getDealItemsFromLine(selectedCartDealLine) : [selectedCartDealLine.dealSummary])"
+                        class="flex align-items-center gap-2 p-2 border-round surface-100"
+                    >
+                        <i class="pi pi-check-circle text-primary"></i>
+                        <span class="font-medium text-800">{{ item }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modifiers Chips -->
+            <div *ngIf="getExtraModifiersFromLine(selectedCartDealLine).length > 0">
+                <label class="font-bold text-900 block mb-1">Customised Modifiers & Options</label>
+                <div class="flex flex-wrap gap-1">
+                    <span
+                        class="surface-200 text-700 text-xs px-2 py-1 border-round font-medium"
+                        *ngFor="let m of getExtraModifiersFromLine(selectedCartDealLine)"
+                    >
+                        {{ m }}
+                    </span>
+                </div>
+            </div>
+
+            <!-- Kitchen note -->
+            <div *ngIf="selectedCartDealLine.kitchenNotes">
+                <label class="font-bold text-900 block mb-1">Kitchen / Cooking Note</label>
+                <div class="text-sm text-orange-600 font-medium italic">
+                    <i class="pi pi-comment mr-1"></i> {{ selectedCartDealLine.kitchenNotes }}
+                </div>
+            </div>
+        </div>
+        <ng-template pTemplate="footer">
+            <button
+                pButton
+                pRipple
+                type="button"
+                label="Close"
+                class="p-button-text"
+                (click)="viewCartDealDialogVisible = false"
+            ></button>
+        </ng-template>
+    </p-dialog>
+
+    <!-- 📝 Line Cooking Note Dialog -->
+    <p-dialog
+        header="📝 Cooking Instruction / Kitchen Note"
+        [(visible)]="lineNoteDialogVisible"
+        [modal]="true"
+        [style]="{ width: '28rem', maxWidth: '95vw' }"
+        [draggable]="false"
+        [resizable]="false"
+    >
+        <div class="flex flex-column gap-3" *ngIf="editingLineForNote">
+            <div>
+                <div class="font-bold text-900">{{ editingLineForNote.productName }}</div>
+                <div class="text-xs text-500 mt-1">This note will appear on the Kitchen Order Ticket (KOT).</div>
+            </div>
+
+            <div class="p-fluid">
+                <input
+                    pInputText
+                    type="text"
+                    [(ngModel)]="tempLineNote"
+                    placeholder="Enter instructions (e.g. Less spicy, well done)"
+                    autofocus
+                    (keyup.enter)="saveLineNote()"
+                />
+            </div>
+
+            <!-- Quick Preset Chips -->
+            <div>
+                <div class="text-xs text-500 font-medium mb-2">Quick Presets</div>
+                <div class="flex flex-wrap gap-2">
+                    <span
+                        *ngFor="let preset of ['Less Spicy', 'Extra Spicy', 'No Onion', 'No Sugar', 'Well Done', 'Pack Separately', 'Extra Sauce']"
+                        class="surface-200 hover:surface-300 text-700 text-xs px-2.5 py-1 border-round-pill cursor-pointer transition-colors"
+                        (click)="tempLineNote = tempLineNote ? tempLineNote + ', ' + preset : preset"
+                    >
+                        + {{ preset }}
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <ng-template pTemplate="footer">
+            <button
+                pButton
+                pRipple
+                type="button"
+                label="Cancel"
+                class="p-button-text"
+                [disabled]="savingLineNote"
+                (click)="lineNoteDialogVisible = false"
+            ></button>
+            <button
+                pButton
+                pRipple
+                type="button"
+                label="Save & Open Kitchen"
+                icon="pi pi-check"
+                [loading]="savingLineNote"
+                [disabled]="savingLineNote"
+                (click)="saveLineNote()"
+            ></button>
+        </ng-template>
+    </p-dialog>
+
+    <!-- Change Waiter Dialog (optional — waiter is auto-assigned on select) -->
+    <p-dialog
+        [header]="'Change Waiter — ' + (pendingSelectedTable?.tableNo || carServiceLabel || 'Order')"
+        [(visible)]="assignWaiterDialogVisible"
+        (onHide)="onAssignWaiterDialogHide()"
+        [modal]="true"
+        [style]="{ width: '38rem', maxWidth: '95vw' }"
+        [draggable]="false"
+        [resizable]="false"
+    >
+        <div class="flex flex-column gap-3">
+            <div class="surface-50 border-round p-3 flex align-items-center justify-content-between">
+                <div>
+                    <div class="font-bold text-900 text-base">
+                        {{ pendingSelectedTable?.tableNo || selectedCarName || 'Order' }}
+                    </div>
+                    <div class="text-xs text-500" *ngIf="pendingSelectedTable && !isCarBay(pendingSelectedTable)">
+                        {{ pendingSelectedTable.area || 'Main Hall' }} &bull; {{ pendingSelectedTable.capacity || 4 }} Seats
+                    </div>
+                    <div class="text-xs text-500" *ngIf="pendingSelectedTable && isCarBay(pendingSelectedTable)">
+                        {{ pendingSelectedTable.area || 'Car Parking' }}
+                        <span *ngIf="selectedCarNumber"> &bull; {{ selectedCarNumber }}</span>
+                    </div>
+                </div>
+                <div *ngIf="waiterName || pendingSelectedTable?.waiterName" class="text-right">
+                    <span class="text-xs text-500 block">Current Waiter</span>
+                    <span class="font-semibold text-green-700 text-sm">
+                        <i class="pi pi-check-circle mr-1"></i>{{ waiterName || pendingSelectedTable?.waiterName }}
+                    </span>
+                </div>
+            </div>
+
+            <div class="text-sm text-600" *ngIf="isAutoAssignWaiter()">
+                Waiter was assigned automatically. Select another below if you need to change.
+            </div>
+            <div class="text-sm text-600" *ngIf="!isAutoAssignWaiter()">
+                Select a waiter to assign to this {{ isCarBay(pendingSelectedTable) ? 'car service' : 'table' }}.
+            </div>
+
+            <div>
+                <label class="font-bold text-900 block mb-2">Staff (Designation: Waiter)</label>
+                <div *ngIf="loadingWaiters" class="text-center py-4 text-500">
+                    <i class="pi pi-spin pi-spinner text-xl mr-2"></i>Loading waiters...
+                </div>
+
+
+                <div *ngIf="!loadingWaiters && !waiters.length" class="text-center py-4 surface-50 border-round">
+                    <i class="pi pi-user-times text-400 text-3xl mb-2 block"></i>
+                    <div class="font-bold text-700">No Waiters Found</div>
+                    <div class="text-xs text-500 mt-1">
+                        No active staff members with designation <strong>"Waiter"</strong> were found for this branch.
+                    </div>
+                </div>
+
+                <!-- Available Waiters -->
+                <div *ngIf="!loadingWaiters && availableWaiters.length" class="grid">
+                    <div class="col-12 sm:col-6" *ngFor="let waiter of availableWaiters">
+                        <div
+                            class="p-3 border-round-xl border-1 cursor-pointer transition-all transition-duration-150 flex align-items-center gap-3 shadow-1 hover:shadow-3"
+                            [style.background]="pendingSelectedTable?.waiterId === waiter.id ? '#e0f2fe' : '#ffffff'"
+                            [style.borderColor]="pendingSelectedTable?.waiterId === waiter.id ? '#0284c7' : '#e2e8f0'"
+                            (click)="confirmAssignWaiter(waiter)"
+                        >
+                            <div
+                                class="border-circle flex align-items-center justify-content-center text-lg font-bold"
+                                [style.background]="pendingSelectedTable?.waiterId === waiter.id ? '#0284c7' : '#f1f5f9'"
+                                [style.color]="pendingSelectedTable?.waiterId === waiter.id ? '#ffffff' : '#334155'"
+                                style="width: 2.75rem; height: 2.75rem; flex-shrink: 0;"
+                            >
+                                <i class="pi pi-user"></i>
+                            </div>
+                            <div class="flex-grow-1 min-w-0">
+                                <div class="font-bold text-900 text-base text-overflow-ellipsis overflow-hidden white-space-nowrap">
+                                    {{ waiter.name }}
+                                </div>
+                                <div class="text-xs text-500">
+                                    Code: {{ waiter.employeeCode || ('#' + waiter.id) }}
+                                    <span *ngIf="waiter.phone"> &bull; {{ waiter.phone }}</span>
+                                </div>
+                                <span
+                                    *ngIf="pendingSelectedTable?.waiterId === waiter.id"
+                                    class="text-xs px-2 py-0.5 border-round font-semibold bg-green-100 text-green-800 mt-1 inline-block"
+                                >
+                                    Assigned
+                                </span>
+                            </div>
+                            <button
+                                pButton
+                                pRipple
+                                type="button"
+                                [icon]="pendingSelectedTable?.waiterId === waiter.id ? 'pi pi-check' : 'pi pi-plus'"
+                                [class]="pendingSelectedTable?.waiterId === waiter.id ? 'p-button-success p-button-sm' : 'p-button-outlined p-button-primary p-button-sm'"
+                                [loading]="assigningWaiter"
+                                (click)="$event.stopPropagation(); confirmAssignWaiter(waiter)"
+                            ></button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- No available waiters message -->
+                <div *ngIf="!loadingWaiters && waiters.length && !availableWaiters.length" class="text-center py-3 surface-50 border-round mb-2">
+                    <i class="pi pi-clock text-orange-400 text-2xl mb-1 block"></i>
+                    <div class="font-bold text-700 text-sm">All Waiters Busy</div>
+                    <div class="text-xs text-500 mt-1">All waiters are currently serving active tables.</div>
+                </div>
+
+                <!-- Busy Waiters (shown as disabled / informational) -->
+                <ng-container *ngIf="!loadingWaiters && getBusyWaiterIds().size > 0">
+                    <div class="text-xs text-500 font-semibold mt-3 mb-1 px-1">
+                        <i class="pi pi-lock mr-1"></i> Busy (serving another table)
+                    </div>
+                    <div class="grid">
+                        <div class="col-12 sm:col-6" *ngFor="let waiter of waiters">
+                            <div
+                                *ngIf="getBusyWaiterIds().has(waiter.id)"
+                                class="p-3 border-round-xl border-1 flex align-items-center gap-3 opacity-50"
+                                style="background:#f8fafc; border-color:#e2e8f0; cursor:not-allowed;"
+                            >
+                                <div
+                                    class="border-circle flex align-items-center justify-content-center text-lg font-bold"
+                                    style="width:2.75rem;height:2.75rem;flex-shrink:0;background:#f1f5f9;color:#94a3b8;"
+                                >
+                                    <i class="pi pi-user"></i>
+                                </div>
+                                <div class="flex-grow-1 min-w-0">
+                                    <div class="font-bold text-700 text-base text-overflow-ellipsis overflow-hidden white-space-nowrap">
+                                        {{ waiter.name }}
+                                    </div>
+                                    <span class="text-xs px-2 py-0.5 border-round font-semibold bg-orange-100 text-orange-700 mt-1 inline-block">
+                                        <i class="pi pi-circle-fill mr-1" style="font-size:0.5rem;"></i>Busy
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </ng-container>
+            </div>
+        </div>
+
+        <ng-template pTemplate="footer">
+            <div class="flex flex-wrap align-items-center justify-content-between gap-2 w-full">
+                <div>
+                    <button
+                        *ngIf="pendingSelectedTable?.waiterName"
+                        pButton
+                        pRipple
+                        type="button"
+                        label="Unassign Waiter"
+                        icon="pi pi-trash"
+                        class="p-button-outlined p-button-danger p-button-sm"
+                        [disabled]="assigningWaiter"
+                        (click)="unassignWaiter()"
+                    ></button>
+                </div>
+                <div class="flex align-items-center gap-2">
+                    <button
+                        pButton
+                        pRipple
+                        type="button"
+                        label="Continue / Skip"
+                        class="p-button-text p-button-secondary p-button-sm"
+                        [disabled]="assigningWaiter"
+                        (click)="skipAssignWaiter()"
+                    ></button>
+                </div>
+            </div>
+        </ng-template>
+    </p-dialog>
+
+    <!-- 🛍️ Unpaid Takeaway Orders Dialog -->
+    <p-dialog
+        header="🛍️ Unpaid Takeaway Orders"
+        [(visible)]="unpaidTakeawayDialogVisible"
+        [modal]="true"
+        [style]="{ width: '46rem', maxWidth: '95vw' }"
+        [draggable]="false"
+        [resizable]="false"
+    >
+        <div class="flex flex-column gap-3">
+            <div class="flex align-items-center justify-content-between pb-2 border-bottom-1 surface-border">
+                <span class="text-sm text-600">
+                    Orders sent to kitchen (KOT) awaiting payment settlement.
+                </span>
+                <button
+                    pButton
+                    pRipple
+                    type="button"
+                    icon="pi pi-refresh"
+                    label="Refresh"
+                    class="p-button-text p-button-sm"
+                    (click)="loadUnpaidTakeaways()"
+                ></button>
+            </div>
+
+            <div *ngIf="unpaidTakeawayOrders.length === 0" class="text-center p-4">
+                <i class="pi pi-check-circle text-green-500 text-3xl mb-2 block"></i>
+                <div class="font-semibold text-900">No unpaid takeaway orders</div>
+                <div class="text-xs text-500 mt-1">All takeaway orders have been settled.</div>
+            </div>
+
+            <div *ngIf="unpaidTakeawayOrders.length > 0" class="flex flex-column gap-2" style="max-height: 24rem; overflow-y: auto;">
+                <div
+                    *ngFor="let order of unpaidTakeawayOrders"
+                    class="p-3 border-round surface-card border-1 surface-border hover:border-primary flex align-items-center justify-content-between gap-3 transition-colors"
+                >
+                    <div class="flex flex-column gap-1">
+                        <div class="flex align-items-center gap-2">
+                            <span class="font-bold text-base text-900">#{{ order.orderNo }}</span>
+                            <span class="badge bg-red-100 text-red-700 px-2 py-0 border-round text-xs font-semibold">Unpaid (KOT Sent)</span>
+                        </div>
+                        <div class="text-xs text-600">
+                            <span><i class="pi pi-clock mr-1"></i>{{ order.creationTime | date: 'shortTime' }}</span>
+                            <span class="mx-2">&bull;</span>
+                            <span><i class="pi pi-user mr-1"></i>{{ order.waiterName || order.customerName || 'Staff' }}</span>
+                            <span class="mx-2">&bull;</span>
+                            <span>{{ order.itemCount }} item(s)</span>
+                        </div>
+                    </div>
+                    <div class="flex align-items-center gap-2 flex-shrink-0">
+                        <span class="font-bold text-lg text-primary mr-1">{{ order.grandTotal | currency:'PKR ':'symbol':'1.2-2' }}</span>
+                        <button
+                            pButton
+                            pRipple
+                            type="button"
+                            label="Cancel"
+                            icon="pi pi-times"
+                            class="p-button-danger p-button-outlined p-button-sm font-semibold"
+                            (click)="openCancelTakeawayDialog(order)"
+                            title="Cancel this takeaway order"
+                        ></button>
+                        <button
+                            pButton
+                            pRipple
+                            type="button"
+                            label="Load & Settle"
+                            icon="pi pi-arrow-right"
+                            iconPos="right"
+                            class="p-button-warning p-button-sm font-semibold"
+                            (click)="selectUnpaidTakeaway(order)"
+                        ></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <ng-template pTemplate="footer">
+            <button
+                pButton
+                pRipple
+                type="button"
+                label="Close"
+                icon="pi pi-times"
+                class="p-button-text p-button-secondary"
+                (click)="unpaidTakeawayDialogVisible = false"
+            ></button>
+        </ng-template>
+    </p-dialog>
+
+    <!-- Cancel Order Confirmation Dialog (Admin only) -->
+    <p-dialog
+        [(visible)]="cancelOrderDialogVisible"
+        header="Cancel Order (KOT)"
+        [modal]="true"
+        [style]="{ width: '26rem' }"
+        [closable]="!cancellingOrder"
+    >
+        <div class="flex flex-column gap-3">
+            <div class="flex align-items-center gap-3">
+                <i class="pi pi-exclamation-triangle text-red-500 text-3xl"></i>
+                <div class="text-sm">
+                    Are you sure you want to cancel Order <strong>#{{ activeOrderNo || activeOrderId }}</strong>?
+                    <div class="text-xs text-500 mt-1">
+                        All items on this table will be cancelled and the table will be freed.
+                    </div>
+                </div>
+            </div>
+        </div>
+        <ng-template pTemplate="footer">
+            <div class="flex justify-content-end gap-2">
+                <button
+                    pButton
+                    type="button"
+                    label="No, Keep"
+                    class="p-button-text p-button-secondary"
+                    [disabled]="cancellingOrder"
+                    (click)="cancelOrderDialogVisible = false"
+                ></button>
+                <button
+                    pButton
+                    type="button"
+                    label="Yes, Cancel Order"
+                    icon="pi pi-trash"
+                    class="p-button-danger"
+                    [loading]="cancellingOrder"
+                    (click)="confirmCancelOrder()"
+                ></button>
+            </div>
+        </ng-template>
+    </p-dialog>
+
+    <!-- Cancel Takeaway Order Confirmation Dialog (Admin only) -->
+    <p-dialog
+        [(visible)]="cancelTakeawayDialogVisible"
+        header="Cancel Takeaway Order"
+        [modal]="true"
+        [style]="{ width: '28rem', maxWidth: '95vw' }"
+        [closable]="!cancellingTakeawayOrder"
+    >
+        <div class="flex flex-column gap-3">
+            <div class="flex align-items-center gap-3">
+                <i class="pi pi-exclamation-triangle text-red-500 text-3xl"></i>
+                <div class="text-sm">
+                    Are you sure you want to cancel Takeaway Order <strong *ngIf="orderToCancel">#{{ orderToCancel.orderNo }}</strong>?
+                    <div class="text-xs text-500 mt-1">
+                        This unpaid takeaway order sent to kitchen will be marked as cancelled.
+                    </div>
+                </div>
+            </div>
+        </div>
+        <ng-template pTemplate="footer">
+            <div class="flex justify-content-end gap-2">
+                <button
+                    pButton
+                    type="button"
+                    label="No, Keep"
+                    class="p-button-text p-button-secondary"
+                    [disabled]="cancellingTakeawayOrder"
+                    (click)="cancelTakeawayDialogVisible = false"
+                ></button>
+                <button
+                    pButton
+                    type="button"
+                    label="Yes, Cancel Order"
+                    icon="pi pi-trash"
+                    class="p-button-danger"
+                    [loading]="cancellingTakeawayOrder"
+                    (click)="confirmCancelTakeawayOrder()"
+                ></button>
+            </div>
+        </ng-template>
+    </p-dialog>
+
+    <!-- Assign Delivery Rider (same flow as Customer Orders page) -->
+    <p-dialog
+        [header]="selectedOrderForRider?.riderName ? ('🛵 Reassign Delivery Rider - Order #' + (selectedOrderForRider?.orderNo || selectedOrderForRider?.id)) : ('🛵 Assign Delivery Rider - Order #' + (selectedOrderForRider?.orderNo || selectedOrderForRider?.id))"
+        [(visible)]="assignRiderDialogVisible"
+        [modal]="true"
+        appendTo="body"
+        [style]="{ width: '42rem', maxWidth: '95vw' }"
+        [draggable]="false"
+        [resizable]="false"
+        (onHide)="onAssignRiderDialogHide()"
+    >
+        <div class="flex flex-column gap-3" *ngIf="selectedOrderForRider">
+            <div class="surface-50 border-round p-3 grid m-0 border-1 surface-border">
+                <div class="col-12 sm:col-6 p-2">
+                    <span class="text-500 text-xs block mb-1">Customer:</span>
+                    <span class="font-bold text-900 text-base">{{ selectedOrderForRider.customerName || onlineCustomerName || 'Customer' }}</span>
+                    <div class="text-xs text-600 mt-1" *ngIf="selectedOrderForRider.customerPhone || onlineCustomerPhone">
+                        <i class="pi pi-phone mr-1"></i>{{ selectedOrderForRider.customerPhone || onlineCustomerPhone }}
+                    </div>
+                </div>
+                <div class="col-12 sm:col-6 p-2">
+                    <span class="text-500 text-xs block mb-1">Destination:</span>
+                    <span class="font-semibold text-900 text-sm">
+                        <i class="pi pi-map-marker text-red-500 mr-1"></i>{{ selectedOrderForRider.deliveryAreaName || deliveryAddress || 'Area not specified' }}
+                    </span>
+                    <div class="font-bold text-primary mt-1 text-base">
+                        Total: PKR {{ selectedOrderForRider.totalAmount | number: '1.2-2' }}
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <div class="mb-2">
+                    <label class="font-bold text-900 m-0">Select Delivery Rider</label>
+                    <div class="text-xs text-500 mt-1">Staff with designation 'Delivery Rider'</div>
+                </div>
+
+                <div *ngIf="loadingRiders" class="text-center py-4 text-500">
+                    <i class="pi pi-spin pi-spinner text-xl mr-2"></i>Loading delivery riders...
+                </div>
+
+                <div *ngIf="!loadingRiders && !availableRiders.length" class="text-center py-4 surface-50 border-round">
+                    <i class="pi pi-users text-400 text-3xl mb-2 block"></i>
+                    <div class="font-bold text-700">No Delivery Riders Found</div>
+                    <div class="text-xs text-500 mt-1">
+                        Add active staff with designation "Delivery Rider" for this branch.
+                    </div>
+                </div>
+
+                <div *ngIf="!loadingRiders && availableRiders.length" class="flex flex-column gap-2 max-h-24rem overflow-y-auto pr-1">
+                    <div
+                        *ngFor="let rider of availableRiders"
+                        class="p-3 border-round-xl border-1 flex flex-wrap align-items-center justify-content-between gap-2 transition-all transition-duration-150"
+                        [style.background]="rider.isBusy ? '#fef2f2' : selectedRider?.riderId === rider.riderId ? '#e0f2fe' : '#ffffff'"
+                        [style.borderColor]="rider.isBusy ? '#fca5a5' : selectedRider?.riderId === rider.riderId ? '#0284c7' : '#e2e8f0'"
+                        [style.cursor]="rider.isBusy ? 'not-allowed' : 'pointer'"
+                        (click)="!rider.isBusy && (selectedRider = rider)"
+                    >
+                        <div class="flex align-items-center gap-3">
+                            <div
+                                class="border-circle flex align-items-center justify-content-center text-lg font-bold"
+                                [style.background]="rider.isBusy ? '#fee2e2' : selectedRider?.riderId === rider.riderId ? '#0284c7' : '#f1f5f9'"
+                                [style.color]="rider.isBusy ? '#dc2626' : selectedRider?.riderId === rider.riderId ? '#ffffff' : '#475569'"
+                                style="width: 2.75rem; height: 2.75rem; flex-shrink: 0;"
+                            >
+                                <i class="pi pi-compass"></i>
+                            </div>
+                            <div>
+                                <div class="font-bold text-900 text-base flex align-items-center gap-2">
+                                    {{ rider.riderName }}
+                                    <span *ngIf="rider.employeeCode" class="text-xs text-500 font-normal">({{ rider.employeeCode }})</span>
+                                </div>
+                                <div class="text-xs text-600 mt-1">
+                                    <i class="pi pi-phone mr-1" *ngIf="rider.riderPhone"></i>{{ rider.riderPhone || 'No contact phone' }}
+                                </div>
+                                <div class="mt-2 flex flex-wrap align-items-center gap-2">
+                                    <span
+                                        class="inline-flex align-items-center gap-1 px-2 py-0.5 border-round text-xs font-medium"
+                                        [ngClass]="rider.lastOrderTime ? 'bg-indigo-50 text-indigo-700 border-1 border-indigo-200' : 'bg-gray-100 text-gray-600 border-1 border-gray-200'"
+                                    >
+                                        <i class="pi pi-clock text-xs"></i>
+                                        {{ rider.lastOrderTimeText || 'No previous orders' }}
+                                    </span>
+                                    <span
+                                        class="inline-flex align-items-center gap-1 px-2 py-0.5 border-round text-xs font-medium"
+                                        [ngClass]="(rider.todayDeliveredCount || 0) > 0 ? 'bg-green-50 text-green-700 border-1 border-green-200' : 'bg-orange-50 text-orange-700 border-1 border-orange-200'"
+                                    >
+                                        <i [class]="(rider.todayDeliveredCount || 0) > 0 ? 'pi pi-check-circle text-xs' : 'pi pi-info-circle text-xs'"></i>
+                                        {{ rider.todayDeliveredText || 'No order delivered today' }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex align-items-center gap-2">
+                            <span
+                                *ngIf="rider.isBusy"
+                                class="px-2.5 py-1.5 border-round font-bold text-xs bg-red-100 text-red-700 border-1 border-red-300 flex align-items-center gap-1"
+                            >
+                                <i class="pi pi-exclamation-triangle"></i>
+                                Already delivering Order #{{ rider.busyOrderNo }}
+                            </span>
+                            <span
+                                *ngIf="!rider.isBusy"
+                                class="px-2 py-1 border-round font-semibold text-xs bg-green-100 text-green-800"
+                            >
+                                <i class="pi pi-check mr-1"></i>Available
+                            </span>
+                            <p-radioButton
+                                *ngIf="!rider.isBusy"
+                                name="posRiderGroup"
+                                [value]="rider"
+                                [(ngModel)]="selectedRider"
+                                [disabled]="rider.isBusy"
+                            ></p-radioButton>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <ng-template pTemplate="footer">
+            <div class="flex flex-wrap align-items-center justify-content-between gap-2 w-full pt-2">
+                <button
+                    pButton
+                    pRipple
+                    type="button"
+                    label="Cancel"
+                    icon="pi pi-times"
+                    class="p-button-text p-button-secondary border-round-lg px-3"
+                    [disabled]="assigningRider"
+                    (click)="assignRiderDialogVisible = false"
+                ></button>
+                <button
+                    pButton
+                    pRipple
+                    type="button"
+                    [label]="selectedOrderForRider?.riderName ? 'Reassign Rider' : 'Assign Rider'"
+                    icon="pi pi-check"
+                    class="p-button-success border-round-lg px-4 font-semibold shadow-2"
+                    [disabled]="!selectedRider || selectedRider.isBusy || assigningRider"
+                    [loading]="assigningRider"
+                    (click)="confirmAssignOrReassignRider()"
+                ></button>
+            </div>
         </ng-template>
     </p-dialog>
 

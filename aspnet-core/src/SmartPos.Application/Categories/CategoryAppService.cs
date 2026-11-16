@@ -1,3 +1,4 @@
+using SmartPos.Departments;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -14,6 +15,8 @@ using SmartPos.Authorization;
 using SmartPos.Authorization.Users;
 using SmartPos.Branches;
 using SmartPos.Categories.Dto;
+using SmartPos.Products;
+using SmartPos.Validation;
 
 namespace SmartPos.Categories
 {
@@ -23,17 +26,23 @@ namespace SmartPos.Categories
         private const string CacheName = "CategoryLookupCache";
         private readonly IBranchContext _branchContext;
         private readonly IRepository<User, long> _userRepository;
+        private readonly IRepository<Branch> _branchRepository;
+        private readonly IRepository<Department> _departmentRepository;
         private readonly ICacheManager _cacheManager;
 
         public CategoryAppService(
             IRepository<Category> repository,
             IBranchContext branchContext,
             IRepository<User, long> userRepository,
+            IRepository<Branch> branchRepository,
+            IRepository<Department> departmentRepository,
             ICacheManager cacheManager)
             : base(repository)
         {
             _branchContext = branchContext;
             _userRepository = userRepository;
+            _branchRepository = branchRepository;
+            _departmentRepository = departmentRepository;
             _cacheManager = cacheManager;
             CreatePermissionName = PermissionNames.Pages_Categories_Create;
             UpdatePermissionName = PermissionNames.Pages_Categories_Edit;
@@ -46,15 +55,28 @@ namespace SmartPos.Categories
         {
             CheckCreatePermission();
             var branchId = RequireCurrentBranchId();
+            var name = EntityNameValidation.EnsureValid(input.Name, "Category");
+
+            var existing = await Repository.FirstOrDefaultAsync(c =>
+                c.BranchId == branchId &&
+                c.Name.ToLower() == name.ToLower());
+            if (existing != null)
+            {
+                throw new UserFriendlyException($"Category '{name}' already exists in this location.");
+            }
+
             var entity = ObjectMapper.Map<Category>(input);
+            entity.Name = name;
             entity.TenantId = AbpSession.TenantId;
             entity.BranchId = branchId;
             entity.IsActive = input.IsActive;
             entity.DefaultUnitId = input.DefaultUnitId;
+            entity.DepartmentId = input.DepartmentId;
+            entity.ImagePath = CategoryImageStore.SaveBase64Image(input.ImageBase64);
 
             if (string.IsNullOrWhiteSpace(entity.Description))
             {
-                entity.Description = input.Name;
+                entity.Description = name;
             }
             await Repository.InsertAsync(entity);
             await CurrentUnitOfWork.SaveChangesAsync();
@@ -70,12 +92,52 @@ namespace SmartPos.Categories
             {
                 entity.BranchId = RequireCurrentBranchId();
             }
+
+            var name = EntityNameValidation.EnsureValid(input.Name, "Category");
+
+            var existing = await Repository.FirstOrDefaultAsync(c =>
+                c.Id != input.Id &&
+                c.BranchId == entity.BranchId &&
+                c.Name.ToLower() == name.ToLower());
+            if (existing != null)
+            {
+                throw new UserFriendlyException($"Category '{name}' already exists in this location.");
+            }
+
+            if (PermanentGrocery.IsCategoryName(entity.Name)
+                && !PermanentGrocery.IsCategoryName(name))
+            {
+                throw new UserFriendlyException(
+                    $"The '{PermanentGrocery.CategoryName}' category cannot be renamed.");
+            }
+
+            var previousImagePath = entity.ImagePath;
+
             ObjectMapper.Map(input, entity);
+            entity.Name = name;
             if (entity.BranchId <= 0)
             {
                 entity.BranchId = RequireCurrentBranchId();
             }
             entity.DefaultUnitId = input.DefaultUnitId;
+            entity.DepartmentId = input.DepartmentId;
+
+            if (CategoryImageStore.IsNewImagePayload(input.ImageBase64))
+            {
+                CategoryImageStore.DeleteIfExists(previousImagePath);
+                entity.ImagePath = CategoryImageStore.SaveBase64Image(input.ImageBase64);
+            }
+            else if (string.IsNullOrWhiteSpace(input.ImageBase64) && string.IsNullOrWhiteSpace(input.ImagePath))
+            {
+                // Explicit clear from client.
+                CategoryImageStore.DeleteIfExists(previousImagePath);
+                entity.ImagePath = null;
+            }
+            else
+            {
+                entity.ImagePath = previousImagePath;
+            }
+
             await Repository.UpdateAsync(entity);
             await CurrentUnitOfWork.SaveChangesAsync();
             await ClearLookupCacheAsync();
@@ -85,29 +147,53 @@ namespace SmartPos.Categories
         public override async Task DeleteAsync(EntityDto<int> input)
         {
             CheckDeletePermission();
+            var entity = await Repository.GetAsync(input.Id);
+            if (PermanentGrocery.IsCategoryName(entity.Name))
+            {
+                throw new UserFriendlyException(
+                    $"The '{PermanentGrocery.CategoryName}' category cannot be deleted.");
+            }
+            CategoryImageStore.DeleteIfExists(entity.ImagePath);
             await base.DeleteAsync(input);
             await ClearLookupCacheAsync();
         }
 
-        [AbpAuthorize(PermissionNames.Pages_Categories, PermissionNames.Pages_Products)]
+        [AbpAuthorize]
         public async Task<ListResultDto<CategoryDto>> GetLookupAsync()
         {
             var branchId = ResolveBranchId();
+            if (branchId.HasValue)
+            {
+                await EnsurePermanentGroceryCategoryAsync(branchId.Value);
+            }
+
             var tenantId = AbpSession.TenantId ?? 0;
             var cacheKey = $"Tenant_{tenantId}_Branch_{branchId?.ToString() ?? "All"}";
 
             var cache = _cacheManager.GetCache<string, ListResultDto<CategoryDto>>(CacheName);
             return await cache.GetAsync(cacheKey, async (key) =>
             {
-                var query = Repository.GetAllIncluding(x => x.DefaultUnit).Where(x => x.IsActive);
+                var query = Repository.GetAllIncluding(x => x.DefaultUnit, x => x.Department).Where(x => x.IsActive);
                 if (branchId.HasValue)
                 {
                     query = query.Where(x => x.BranchId == branchId.Value);
                 }
 
                 var items = await query.OrderBy(x => x.Name).ToListAsync();
-                return new ListResultDto<CategoryDto>(items.Select(MapToEntityDto).ToList());
+                var distinctItems = items
+                    .GroupBy(x => x.Name.Trim(), System.StringComparer.OrdinalIgnoreCase)
+                    .Select(g => g.First())
+                    .OrderBy(x => x.Name)
+                    .ToList();
+
+                return new ListResultDto<CategoryDto>(distinctItems.Select(MapToEntityDto).ToList());
             });
+        }
+
+        protected override async Task<Category> GetEntityByIdAsync(int id)
+        {
+            return await Repository.GetAllIncluding(x => x.DefaultUnit, x => x.Department)
+                .FirstOrDefaultAsync(x => x.Id == id);
         }
 
         protected override CategoryDto MapToEntityDto(Category entity)
@@ -116,6 +202,18 @@ namespace SmartPos.Categories
             if (entity.DefaultUnit != null)
             {
                 dto.DefaultUnitName = entity.DefaultUnit.Name;
+            }
+            if (entity.Department != null)
+            {
+                dto.DepartmentName = entity.Department.Name;
+            }
+            else if (entity.DepartmentId.HasValue && entity.DepartmentId.Value > 0)
+            {
+                var dept = _departmentRepository.FirstOrDefault(entity.DepartmentId.Value);
+                if (dept != null)
+                {
+                    dto.DepartmentName = dept.Name;
+                }
             }
             return dto;
         }
@@ -128,11 +226,12 @@ namespace SmartPos.Categories
         protected override IQueryable<Category> CreateFilteredQuery(PagedCategoryResultRequestDto input)
         {
             var branchId = ResolveBranchId();
-            return Repository.GetAllIncluding(x => x.DefaultUnit)
-                .WhereIf(branchId.HasValue, x => x.BranchId == branchId.Value || x.BranchId == 0)
+            return Repository.GetAllIncluding(x => x.DefaultUnit, x => x.Department)
+                .WhereIf(branchId.HasValue, x => x.BranchId == branchId.Value)
                 .WhereIf(!input.Keyword.IsNullOrWhiteSpace(),
                     x => x.Name.Contains(input.Keyword)
-                         || (x.Description != null && x.Description.Contains(input.Keyword)));
+                         || (x.Description != null && x.Description.Contains(input.Keyword))
+                         || (x.Department != null && x.Department.Name.Contains(input.Keyword)));
         }
 
         private int? ResolveBranchId()
@@ -153,6 +252,34 @@ namespace SmartPos.Categories
             }
 
             return branchId.Value;
+        }
+
+        private async Task EnsurePermanentGroceryCategoryAsync(int branchId)
+        {
+            var branch = await _branchRepository.FirstOrDefaultAsync(branchId);
+            if (branch == null || branch.BusinessType != BusinessType.Restaurant)
+            {
+                return;
+            }
+
+            var exists = await Repository.CountAsync(c =>
+                c.BranchId == branchId
+                && c.Name.ToLower() == PermanentGrocery.CategoryName.ToLower()) > 0;
+            if (exists)
+            {
+                return;
+            }
+
+            await Repository.InsertAsync(new Category
+            {
+                TenantId = branch.TenantId ?? AbpSession.TenantId,
+                BranchId = branchId,
+                Name = PermanentGrocery.CategoryName,
+                Description = "Restaurant purchase/inventory ingredients",
+                IsActive = true
+            });
+            await CurrentUnitOfWork.SaveChangesAsync();
+            await ClearLookupCacheAsync();
         }
     }
 }

@@ -21,7 +21,10 @@ using SmartPos.HostCatalog;
 using SmartPos.Inventory;
 using SmartPos.Lookups;
 using SmartPos.MultiTenancy;
+using SmartPos.Categories;
+using SmartPos.Orders;
 using SmartPos.Products;
+using SmartPos.Caching;
 
 namespace SmartPos.Branches
 {
@@ -36,11 +39,15 @@ namespace SmartPos.Branches
         private readonly IRepository<Tenant> _tenantRepository;
         private readonly IRepository<LookUp> _lookUpRepository;
         private readonly IRepository<EmailTemplate> _emailTemplateRepository;
+        private readonly IRepository<Category> _categoryRepository;
+        private readonly IRepository<OnlineOrderHeroSlide> _heroSlideRepository;
         private readonly BranchStatusLookup _branchStatusLookup;
         private readonly ISmtpMailSender _smtpMailSender;
         private readonly IConfiguration _configuration;
         private readonly BranchCatalogSeedService _branchCatalogSeedService;
         private readonly ICacheManager _cacheManager;
+        private readonly IBranchContext _branchContext;
+        private readonly IBranchAccessChecker _branchAccessChecker;
 
         public BranchAppService(
             IRepository<Branch> repository,
@@ -49,11 +56,15 @@ namespace SmartPos.Branches
             IRepository<Tenant> tenantRepository,
             IRepository<LookUp> lookUpRepository,
             IRepository<EmailTemplate> emailTemplateRepository,
+            IRepository<Category> categoryRepository,
+            IRepository<OnlineOrderHeroSlide> heroSlideRepository,
             BranchStatusLookup branchStatusLookup,
             ISmtpMailSender smtpMailSender,
             IConfiguration configuration,
             BranchCatalogSeedService branchCatalogSeedService,
-            ICacheManager cacheManager)
+            ICacheManager cacheManager,
+            IBranchContext branchContext,
+            IBranchAccessChecker branchAccessChecker)
             : base(repository)
         {
             _productRepository = productRepository;
@@ -61,11 +72,15 @@ namespace SmartPos.Branches
             _tenantRepository = tenantRepository;
             _lookUpRepository = lookUpRepository;
             _emailTemplateRepository = emailTemplateRepository;
+            _categoryRepository = categoryRepository;
+            _heroSlideRepository = heroSlideRepository;
             _branchStatusLookup = branchStatusLookup;
             _smtpMailSender = smtpMailSender;
             _configuration = configuration;
             _branchCatalogSeedService = branchCatalogSeedService;
             _cacheManager = cacheManager;
+            _branchContext = branchContext;
+            _branchAccessChecker = branchAccessChecker;
             CreatePermissionName = PermissionNames.Pages_Branches_Create;
             UpdatePermissionName = PermissionNames.Pages_Branches_Edit;
             DeletePermissionName = PermissionNames.Pages_Branches_Delete;
@@ -89,10 +104,21 @@ namespace SmartPos.Branches
             var branch = ObjectMapper.Map<Branch>(input);
             branch.DateFormat = string.IsNullOrWhiteSpace(input.DateFormat) ? "dd/MM/yyyy" : input.DateFormat.Trim();
             branch.CurrencyFormat = string.IsNullOrWhiteSpace(input.CurrencyFormat) ? "PKR" : input.CurrencyFormat.Trim();
+            branch.BusinessType = input.BusinessType;
+            branch.ServiceChargePercent = Math.Max(0, input.ServiceChargePercent);
+            branch.AutoAssignWaiterToTables = input.AutoAssignWaiterToTables;
             branch.TenantId = AbpSession.TenantId;
+            // Tenant/branch admins cannot set developer branding on create — keep entity defaults.
+            branch.SoftwareDeveloperName = new Branch().SoftwareDeveloperName;
+            branch.SoftwareDeveloperPhone = new Branch().SoftwareDeveloperPhone;
             // New branches always start as Pending until host admin approves.
             branch.StatusId = await _branchStatusLookup.GetIdAsync(BranchStatuses.Pending);
             branch.ImagePath = BranchImageStore.SaveBase64Image(input.ImageBase64);
+            branch.Latitude = input.Latitude;
+            branch.Longitude = input.Longitude;
+            branch.AttendanceAutoCheckInRadiusFeet = input.AttendanceAutoCheckInRadiusFeet > 0
+                ? input.AttendanceAutoCheckInRadiusFeet
+                : Branch.DefaultAttendanceAutoCheckInRadiusFeet;
 
             await Repository.InsertAsync(branch);
             await CurrentUnitOfWork.SaveChangesAsync();
@@ -102,13 +128,24 @@ namespace SmartPos.Branches
                 throw new UserFriendlyException("User session is required to create a branch seed request.");
             }
 
-            await _branchCatalogSeedService.CreateRequestAsync(
-                branch,
-                input.CompanyTypeId,
-                input.HostCatalogItemIds,
-                AbpSession.UserId.Value);
+            if (input.CompanyTypeId > 0 && input.HostCatalogItemIds != null && input.HostCatalogItemIds.Count > 0)
+            {
+                await _branchCatalogSeedService.CreateRequestAsync(
+                    branch,
+                    input.CompanyTypeId,
+                    input.HostCatalogItemIds,
+                    AbpSession.UserId.Value);
+
+                await _branchCatalogSeedService.ApproveAndCopyAsync(branch, AbpSession.UserId);
+            }
 
             await SeedSharedProductsAsync(branch.Id);
+
+            if (branch.BusinessType == BusinessType.Restaurant)
+            {
+                await EnsurePermanentGroceryCategoryAsync(branch);
+                await EnsureDefaultHeroSlidesAsync(branch);
+            }
 
             // First branch after signup: bind the creating user so session/context have a location.
             var currentUser = await UserManager.GetUserByIdAsync(AbpSession.UserId.Value);
@@ -137,12 +174,42 @@ namespace SmartPos.Branches
             branch.InvoiceContactPhone = input.InvoiceContactPhone;
             branch.TaxNumber = input.TaxNumber;
             branch.Website = input.Website;
+            branch.FacebookUrl = input.FacebookUrl;
+            branch.InstagramUrl = input.InstagramUrl;
+            branch.YoutubeUrl = input.YoutubeUrl;
             branch.InvoiceFooter = input.InvoiceFooter;
+            branch.CustomerFeedbackName = NullIfWhiteSpace(input.CustomerFeedbackName);
+            branch.CustomerFeedbackRole = NullIfWhiteSpace(input.CustomerFeedbackRole);
+            branch.CustomerFeedbackCity = NullIfWhiteSpace(input.CustomerFeedbackCity);
+            branch.CustomerFeedbackComment = NullIfWhiteSpace(input.CustomerFeedbackComment);
+            branch.CustomerFeedbackRating = Math.Max(0, Math.Min(5, input.CustomerFeedbackRating));
+            branch.ShowCustomerFeedback = input.ShowCustomerFeedback;
+            // Software developer branding is host/super-admin only (not branch/tenant admin).
+            if (AbpSession.TenantId == null)
+            {
+                branch.SoftwareDeveloperName = input.SoftwareDeveloperName;
+                branch.SoftwareDeveloperPhone = input.SoftwareDeveloperPhone;
+            }
             branch.TaxPercent = Math.Max(0, input.TaxPercent);
             branch.DiscountPercent = Math.Max(0, input.DiscountPercent);
             branch.DiscountAmount = Math.Max(0, input.DiscountAmount);
+            branch.BusinessType = input.BusinessType;
+            branch.ServiceChargePercent = Math.Max(0, input.ServiceChargePercent);
+            branch.AutoAssignWaiterToTables = input.AutoAssignWaiterToTables;
             branch.DateFormat = string.IsNullOrWhiteSpace(input.DateFormat) ? "dd/MM/yyyy" : input.DateFormat.Trim();
             branch.CurrencyFormat = string.IsNullOrWhiteSpace(input.CurrencyFormat) ? "PKR" : input.CurrencyFormat.Trim();
+            branch.Latitude = input.Latitude;
+            branch.Longitude = input.Longitude;
+            branch.AttendanceAutoCheckInRadiusFeet = input.AttendanceAutoCheckInRadiusFeet > 0
+                ? input.AttendanceAutoCheckInRadiusFeet
+                : Branch.DefaultAttendanceAutoCheckInRadiusFeet;
+
+            // Custom domain storefront mapping is host-admin only.
+            string previousDomain = branch.CustomDomain;
+            if (AbpSession.TenantId == null)
+            {
+                await ApplyCustomDomainAsync(branch, input.CustomDomain, input.StorefrontTitle);
+            }
 
             // Only host admin with approve permission may change StatusId.
             // Selecting Approved sends an activation email and keeps Pending.
@@ -181,6 +248,17 @@ namespace SmartPos.Branches
 
             await CurrentUnitOfWork.SaveChangesAsync();
 
+            if (AbpSession.TenantId == null)
+            {
+                SyncStorefrontDomainRegistry(previousDomain, branch.CustomDomain);
+            }
+
+            if (branch.BusinessType == BusinessType.Restaurant)
+            {
+                await EnsurePermanentGroceryCategoryAsync(branch);
+                await EnsureDefaultHeroSlidesAsync(branch);
+            }
+
             if (sendActivationEmail)
             {
                 await _branchCatalogSeedService.ApproveAndCopyAsync(branch, AbpSession.UserId);
@@ -207,8 +285,13 @@ namespace SmartPos.Branches
             CheckDeletePermission();
 
             var branch = await GetEntityByIdAsync(input.Id);
+            var removedDomain = branch.CustomDomain;
             BranchImageStore.DeleteIfExists(branch.ImagePath);
             await Repository.DeleteAsync(branch);
+            if (!string.IsNullOrWhiteSpace(removedDomain))
+            {
+                StorefrontDomainRegistry.Remove(removedDomain);
+            }
             await ClearLookupCacheAsync();
         }
 
@@ -349,24 +432,40 @@ namespace SmartPos.Branches
         private async Task ClearLookupCacheAsync()
         {
             await _cacheManager.GetCache(CacheName).ClearAsync();
+            await SmartPosAppCaches.ClearAsync(_cacheManager, SmartPosAppCaches.OnlineStoreHeader);
         }
 
-        public async Task<BranchDto> GetInvoiceInfoAsync()
+        public async Task<BranchDto> GetInvoiceInfoAsync(int? branchId = null)
         {
-            Branch branch = null;
+            int? resolvedBranchId = branchId.HasValue && branchId.Value > 0
+                ? branchId.Value
+                : _branchContext?.BranchId;
 
-            if (AbpSession.UserId.HasValue)
+            if ((!resolvedBranchId.HasValue || resolvedBranchId.Value <= 0) && AbpSession.UserId.HasValue)
             {
                 var currentUser = await UserManager.FindByIdAsync(AbpSession.UserId.Value.ToString());
-                if (currentUser?.BranchId != null)
+                if (currentUser?.BranchId != null && currentUser.BranchId.Value > 0)
                 {
-                    branch = await Repository.FirstOrDefaultAsync(currentUser.BranchId.Value);
+                    resolvedBranchId = currentUser.BranchId.Value;
+                }
+            }
+
+            Branch branch = null;
+
+            if (resolvedBranchId.HasValue && resolvedBranchId.Value > 0)
+            {
+                await _branchAccessChecker.EnsureCanAccessBranchAsync(resolvedBranchId.Value);
+
+                using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant, AbpDataFilters.MustHaveTenant))
+                {
+                    branch = await Repository.FirstOrDefaultAsync(resolvedBranchId.Value);
                 }
             }
 
             if (branch == null)
             {
                 branch = await Repository.GetAll()
+                    .Where(x => x.IsActive)
                     .OrderBy(x => x.Id)
                     .FirstOrDefaultAsync();
             }
@@ -478,6 +577,39 @@ namespace SmartPos.Branches
             }
         }
 
+        /// <summary>Public product landing: active branches with showcase feedback enabled.</summary>
+        [AbpAllowAnonymous]
+        public async Task<List<BranchPublicFeedbackDto>> GetPublicFeedbacksAsync()
+        {
+            using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant, AbpDataFilters.MustHaveTenant))
+            {
+                var rows = await Repository.GetAll()
+                    .AsNoTracking()
+                    .Where(b =>
+                        b.IsActive
+                        && b.ShowCustomerFeedback
+                        && b.CustomerFeedbackComment != null
+                        && b.CustomerFeedbackComment != string.Empty
+                        && b.CustomerFeedbackName != null
+                        && b.CustomerFeedbackName != string.Empty)
+                    .OrderBy(b => b.Name)
+                    .Take(20)
+                    .ToListAsync();
+
+                return rows.Select(b => new BranchPublicFeedbackDto
+                {
+                    BranchId = b.Id,
+                    BranchName = b.Name,
+                    Name = b.CustomerFeedbackName,
+                    Role = b.CustomerFeedbackRole,
+                    Business = b.Name,
+                    City = b.CustomerFeedbackCity,
+                    Quote = b.CustomerFeedbackComment,
+                    Rating = b.CustomerFeedbackRating > 0 ? b.CustomerFeedbackRating : 5,
+                }).ToList();
+            }
+        }
+
         [AbpAllowAnonymous]
         public async Task<ActivateBranchResultDto> ActivateBranchAsync(ActivateBranchInput input)
         {
@@ -522,6 +654,7 @@ namespace SmartPos.Branches
                 branch.IsActive = true;
                 ClearActivationToken(branch);
                 await CurrentUnitOfWork.SaveChangesAsync();
+                await ClearLookupCacheAsync();
 
                 var tenant = await _tenantRepository.FirstOrDefaultAsync(branch.TenantId.Value);
                 return new ActivateBranchResultDto
@@ -691,12 +824,19 @@ namespace SmartPos.Branches
                 ["ExpirationHours"] = expirationHours.ToString()
             };
 
-            var (subject, bodyHtml) = await ResolveBranchActivationTemplateAsync(placeholders);
-            await _smtpMailSender.SendAsync(
-                branch.InvoiceContactEmail.Trim(),
-                subject,
-                bodyHtml,
-                isBodyHtml: true);
+            try
+            {
+                var (subject, bodyHtml) = await ResolveBranchActivationTemplateAsync(placeholders);
+                await _smtpMailSender.SendAsync(
+                    branch.InvoiceContactEmail.Trim(),
+                    subject,
+                    bodyHtml,
+                    isBodyHtml: true);
+            }
+            catch (Exception ex)
+            {
+                Logger.Warn($"Could not send branch activation email to '{branch.InvoiceContactEmail}': {ex.Message}");
+            }
         }
 
         private async Task<(string Subject, string BodyHtml)> ResolveBranchActivationTemplateAsync(
@@ -767,13 +907,77 @@ namespace SmartPos.Branches
             input.InvoiceContactPhone = NullIfWhiteSpace(input.InvoiceContactPhone);
             input.TaxNumber = NullIfWhiteSpace(input.TaxNumber);
             input.Website = NullIfWhiteSpace(input.Website);
+            input.FacebookUrl = NullIfWhiteSpace(input.FacebookUrl);
+            input.InstagramUrl = NullIfWhiteSpace(input.InstagramUrl);
+            input.YoutubeUrl = NullIfWhiteSpace(input.YoutubeUrl);
             input.InvoiceFooter = NullIfWhiteSpace(input.InvoiceFooter);
+            input.SoftwareDeveloperName = NullIfWhiteSpace(input.SoftwareDeveloperName);
+            input.SoftwareDeveloperPhone = NullIfWhiteSpace(input.SoftwareDeveloperPhone);
             input.ImageBase64 = NullIfWhiteSpace(input.ImageBase64);
 
             if (!string.IsNullOrWhiteSpace(input.InvoiceContactEmail)
                 && !input.InvoiceContactEmail.Contains('@'))
             {
                 throw new UserFriendlyException("Invoice contact email is not valid.");
+            }
+        }
+
+        /// <summary>
+        /// Normalize and uniquely assign a custom storefront domain on a branch.
+        /// Empty clears the mapping.
+        /// </summary>
+        private async Task ApplyCustomDomainAsync(Branch branch, string customDomain, string storefrontTitle)
+        {
+            var normalized = StorefrontDomainHelper.Normalize(customDomain);
+            branch.StorefrontTitle = NullIfWhiteSpace(storefrontTitle);
+
+            if (string.IsNullOrEmpty(normalized))
+            {
+                branch.CustomDomain = null;
+                return;
+            }
+
+            if (StorefrontDomainHelper.IsPlatformHost(normalized))
+            {
+                throw new UserFriendlyException(
+                    "That hostname belongs to the platform. Use the client's own domain (e.g. almeezanfoods.com).");
+            }
+
+            using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant, AbpDataFilters.MustHaveTenant))
+            {
+                var others = await Repository.GetAll()
+                    .AsNoTracking()
+                    .Where(b => b.Id != branch.Id
+                                && b.CustomDomain != null
+                                && b.CustomDomain != string.Empty)
+                    .Select(b => new { b.Id, b.Name, b.CustomDomain })
+                    .ToListAsync();
+
+                var clash = others.FirstOrDefault(b =>
+                    StorefrontDomainHelper.HostsMatch(b.CustomDomain, normalized));
+                if (clash != null)
+                {
+                    throw new UserFriendlyException(
+                        $"Domain '{normalized}' is already mapped to branch '{clash.Name}'.");
+                }
+            }
+
+            branch.CustomDomain = normalized;
+        }
+
+        private static void SyncStorefrontDomainRegistry(string previousDomain, string newDomain)
+        {
+            var prev = StorefrontDomainHelper.Normalize(previousDomain);
+            var next = StorefrontDomainHelper.Normalize(newDomain);
+            if (!string.IsNullOrEmpty(prev)
+                && !string.Equals(prev, next, StringComparison.OrdinalIgnoreCase))
+            {
+                StorefrontDomainRegistry.Remove(prev);
+            }
+
+            if (!string.IsNullOrEmpty(next))
+            {
+                StorefrontDomainRegistry.Upsert(next);
             }
         }
 
@@ -827,6 +1031,61 @@ namespace SmartPos.Branches
                     product.WholesalePrice,
                     product.CostPrice);
             }
+        }
+
+        private async Task EnsurePermanentGroceryCategoryAsync(Branch branch)
+        {
+            if (branch == null || branch.BusinessType != BusinessType.Restaurant)
+            {
+                return;
+            }
+
+            var existing = await _categoryRepository.FirstOrDefaultAsync(c =>
+                c.BranchId == branch.Id
+                && c.Name.ToLower() == PermanentGrocery.CategoryName.ToLower());
+
+            if (existing != null)
+            {
+                if (!existing.IsActive)
+                {
+                    existing.IsActive = true;
+                    await _categoryRepository.UpdateAsync(existing);
+                }
+                return;
+            }
+
+            await _categoryRepository.InsertAsync(new Category
+            {
+                TenantId = branch.TenantId,
+                BranchId = branch.Id,
+                Name = PermanentGrocery.CategoryName,
+                Description = "Restaurant purchase/inventory ingredients",
+                IsActive = true
+            });
+            await CurrentUnitOfWork.SaveChangesAsync();
+        }
+
+        private async Task EnsureDefaultHeroSlidesAsync(Branch branch)
+        {
+            if (branch == null || branch.BusinessType != BusinessType.Restaurant || branch.Id <= 0)
+            {
+                return;
+            }
+
+            var hasAny = await _heroSlideRepository.GetAll()
+                .AnyAsync(x => x.BranchId == branch.Id);
+            if (hasAny)
+            {
+                return;
+            }
+
+            foreach (var bp in OnlineOrderHeroSlideDefaults.GetBlueprints())
+            {
+                await _heroSlideRepository.InsertAsync(
+                    OnlineOrderHeroSlideDefaults.CreateEntity(branch.Id, branch.TenantId, bp));
+            }
+
+            await CurrentUnitOfWork.SaveChangesAsync();
         }
     }
 }

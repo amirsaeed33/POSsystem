@@ -17,6 +17,8 @@ import { ProductService } from 'src/app/demo/service/product.service';
 import { SupplierService } from 'src/app/demo/service/supplier.service';
 import { BusinessAccountService } from 'src/app/demo/service/business-account.service';
 
+import { BranchContextService } from 'src/app/demo/service/branch-context.service';
+
 @Component({
     selector: 'app-purchase-form-dialog',
     templateUrl: './purchase-form-dialog.component.html',
@@ -27,21 +29,30 @@ export class PurchaseFormDialogComponent implements OnChanges {
     @Output() saved = new EventEmitter<void>();
 
     purchase: CreatePurchaseDto = this.emptyPurchase();
+    /** Products available for the current branch/business type. */
+    private allProducts: ProductDto[] = [];
+    /** Products shown in the line dropdown (filtered by selected supplier). */
     products: ProductDto[] = [];
     suppliers: SupplierDto[] = [];
     paymentAccounts: BusinessAccountDto[] = [];
     saving = false;
     loading = false;
+    loadingSupplierProducts = false;
 
     printDialogVisible = false;
     printingPurchaseId: number | null = null;
     printAutoPrint = false;
+
+    get isRestaurant(): boolean {
+        return this.branchContext.isRestaurant();
+    }
 
     constructor(
         private purchaseService: PurchaseService,
         private productService: ProductService,
         private supplierService: SupplierService,
         private businessAccountService: BusinessAccountService,
+        private branchContext: BranchContextService,
         private messageService: MessageService
     ) {}
 
@@ -90,6 +101,65 @@ export class PurchaseFormDialogComponent implements OnChanges {
 
     addLine(): void {
         this.purchase.lines.push(this.emptyLine());
+    }
+
+    onSupplierChange(): void {
+        this.applySupplierProductFilter();
+    }
+
+    private isPermanentGroceryProduct(product: ProductDto): boolean {
+        return (
+            (product.categoryName || '').trim().toLowerCase() ===
+            'permanent grocery'
+        );
+    }
+
+    private applySupplierProductFilter(): void {
+        const supplierId = this.purchase.supplierId;
+        if (!supplierId) {
+            this.products = [];
+            this.clearUnavailableProductSelections();
+            return;
+        }
+
+        this.loadingSupplierProducts = true;
+        this.supplierService
+            .getAssignedProductIds(supplierId)
+            .then((assignedIds) => {
+                const allowed = new Set((assignedIds || []).filter((id) => id != null));
+                // Retail: if the supplier has no assignments, show all branch products
+                // (matches PurchaseAppService — assignments are only required for restaurants).
+                if (!this.isRestaurant && allowed.size === 0) {
+                    this.products = [...this.allProducts];
+                } else {
+                    this.products = this.allProducts.filter((p) => allowed.has(p.id));
+                }
+                this.clearUnavailableProductSelections();
+            })
+            .catch((error) => {
+                this.products = [];
+                this.clearUnavailableProductSelections();
+                this.messageService.add({
+                    severity: 'error',
+                    summary: 'Error',
+                    detail:
+                        error?.message ||
+                        'Failed to load products for this supplier',
+                });
+            })
+            .finally(() => {
+                this.loadingSupplierProducts = false;
+            });
+    }
+
+    private clearUnavailableProductSelections(): void {
+        const availableIds = new Set(this.products.map((p) => p.id));
+        for (const line of this.purchase.lines || []) {
+            if (line.productId && !availableIds.has(line.productId)) {
+                line.productId = null as any;
+                line.unitCost = 0;
+            }
+        }
     }
 
     removeLine(index: number): void {
@@ -295,8 +365,11 @@ export class PurchaseFormDialogComponent implements OnChanges {
 
     private resetForm(): void {
         this.purchase = this.emptyPurchase();
+        this.allProducts = [];
+        this.products = [];
         this.saving = false;
         this.loading = false;
+        this.loadingSupplierProducts = false;
     }
 
     private toDateInputValue(date: Date = new Date()): string {
@@ -314,22 +387,30 @@ export class PurchaseFormDialogComponent implements OnChanges {
             this.businessAccountService.getAll({ skipCount: 0, maxResultCount: 1000 }),
         ])
             .then(([products, suppliers, accounts]) => {
-                this.products = products.items;
+                const items = products.items || [];
+                // Restaurant purchases: only products in "Permanent Grocery" category.
+                this.allProducts = this.isRestaurant
+                    ? items.filter((p) => this.isPermanentGroceryProduct(p))
+                    : items.filter((p) => !this.isPermanentGroceryProduct(p));
+                this.products = [];
                 this.suppliers = suppliers;
-                const items = accounts.items || [];
+                const accountItems = accounts.items || [];
                 const allowedTypes = ['Cash', 'Bank', 'Mobile Wallet'];
-                let filtered = items.filter((a) => {
+                let filtered = accountItems.filter((a) => {
                     if (a.isActive === false) return false;
                     const type = a.accountTypeName || a.accountType || '';
                     return allowedTypes.some((t) => type.toLowerCase().includes(t.toLowerCase())) ||
                            a.code === 'CASH' || a.code === 'BANK';
                 });
                 if (!filtered.length) {
-                    filtered = items.filter((a) => a.isActive !== false);
+                    filtered = accountItems.filter((a) => a.isActive !== false);
                 }
                 this.paymentAccounts = filtered;
                 if (this.paymentAccounts.length > 0 && !this.purchase.paymentAccountId) {
                     this.purchase.paymentAccountId = this.paymentAccounts[0].id;
+                }
+                if (this.purchase.supplierId) {
+                    this.applySupplierProductFilter();
                 }
             })
             .catch((error) => {

@@ -7,6 +7,8 @@ using Abp.Authorization;
 using Abp.Domain.Repositories;
 using Abp.Extensions;
 using Abp.Linq.Extensions;
+using Abp.Web.Models;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SmartPos.Authorization;
 using SmartPos.Authorization.Users;
@@ -17,10 +19,12 @@ using SmartPos.Inventory;
 using SmartPos.Products;
 using SmartPos.Purchases;
 using SmartPos.Reports.Dto;
+using SmartPos.Reports.Pdf;
 using SmartPos.Accounts;
 using SmartPos.Customers;
 using SmartPos.Sales;
 using SmartPos.Suppliers;
+using SmartPos.Orders;
 
 namespace SmartPos.Reports
 {
@@ -28,6 +32,8 @@ namespace SmartPos.Reports
     public class ReportAppService : ApplicationService, IReportAppService
     {
         private readonly IRepository<Sale> _saleRepository;
+        private readonly IRepository<SaleReturn> _saleReturnRepository;
+        private readonly IRepository<SaleReturnLine> _saleReturnLineRepository;
         private readonly IRepository<Purchase> _purchaseRepository;
         private readonly IRepository<Expense> _expenseRepository;
         private readonly IRepository<Product> _productRepository;
@@ -40,9 +46,15 @@ namespace SmartPos.Reports
         private readonly AccountBalanceManager _accountBalanceManager;
         private readonly IRepository<Customer> _customerRepository;
         private readonly IRepository<Supplier> _supplierRepository;
+        private readonly IReportPdfBuilder _reportPdfBuilder;
+        private readonly IRepository<Branch> _branchRepository;
+        private readonly IRepository<CustomerOrder> _customerOrderRepository;
+        private readonly ISaleAppService _saleAppService;
 
         public ReportAppService(
             IRepository<Sale> saleRepository,
+            IRepository<SaleReturn> saleReturnRepository,
+            IRepository<SaleReturnLine> saleReturnLineRepository,
             IRepository<Purchase> purchaseRepository,
             IRepository<Expense> expenseRepository,
             IRepository<Product> productRepository,
@@ -54,9 +66,15 @@ namespace SmartPos.Reports
             IRepository<BusinessAccount> accountRepository,
             AccountBalanceManager accountBalanceManager,
             IRepository<Customer> customerRepository,
-            IRepository<Supplier> supplierRepository)
+            IRepository<Supplier> supplierRepository,
+            IReportPdfBuilder reportPdfBuilder,
+            IRepository<Branch> branchRepository,
+            IRepository<CustomerOrder> customerOrderRepository,
+            ISaleAppService saleAppService)
         {
             _saleRepository = saleRepository;
+            _saleReturnRepository = saleReturnRepository;
+            _saleReturnLineRepository = saleReturnLineRepository;
             _purchaseRepository = purchaseRepository;
             _expenseRepository = expenseRepository;
             _productRepository = productRepository;
@@ -69,6 +87,10 @@ namespace SmartPos.Reports
             _accountBalanceManager = accountBalanceManager;
             _customerRepository = customerRepository;
             _supplierRepository = supplierRepository;
+            _reportPdfBuilder = reportPdfBuilder;
+            _branchRepository = branchRepository;
+            _customerOrderRepository = customerOrderRepository;
+            _saleAppService = saleAppService;
         }
 
         public async Task<SaleReportDto> GetSaleReportAsync(ReportDateRangeInput input)
@@ -76,6 +98,11 @@ namespace SmartPos.Reports
             input ??= new ReportDateRangeInput();
             var (from, to) = NormalizeRange(input);
             var branchId = BranchQueryHelper.ResolveBranchIdForFilter(_branchContext, _userRepository, AbpSession, PermissionChecker);
+
+            if (_saleAppService != null)
+            {
+                await _saleAppService.SyncDeliveredCustomerOrderSalesAsync(branchId);
+            }
 
             var query = _saleRepository.GetAllIncluding(x => x.Customer)
                 .AsNoTracking()
@@ -86,24 +113,87 @@ namespace SmartPos.Reports
                          || (x.Customer != null && x.Customer.Name.Contains(input.Keyword))
                          || (x.Notes != null && x.Notes.Contains(input.Keyword)));
 
-            var items = await query
+            var rawItems = await query
                 .OrderByDescending(x => x.SaleDate)
                 .ThenByDescending(x => x.Id)
-                .Select(x => new SaleReportRowDto
+                .Select(x => new
                 {
-                    Id = x.Id,
-                    InvoiceNo = x.InvoiceNo,
-                    SaleDate = x.SaleDate,
+                    x.Id,
+                    x.InvoiceNo,
+                    x.SaleDate,
                     CustomerName = x.Customer != null ? x.Customer.Name : null,
-                    TotalAmount = x.TotalAmount,
-                    Notes = x.Notes
+                    x.TotalAmount,
+                    x.CashAmount,
+                    x.CardAmount,
+                    x.CreditAmount,
+                    x.DeliveryCharges,
+                    x.DeliveryAreaName,
+                    x.Notes
                 })
                 .ToListAsync();
+
+            var saleIds = rawItems.Select(x => x.Id).ToList();
+            var returnsBySaleId = new Dictionary<int, decimal>();
+            var onlineSaleIds = new HashSet<int>();
+            if (saleIds.Count > 0)
+            {
+                returnsBySaleId = await _saleReturnRepository.GetAll()
+                    .AsNoTracking()
+                    .Where(x => saleIds.Contains(x.SaleId))
+                    .GroupBy(x => x.SaleId)
+                    .Select(g => new { SaleId = g.Key, TotalReturned = g.Sum(r => r.TotalAmount) })
+                    .ToDictionaryAsync(x => x.SaleId, x => x.TotalReturned);
+
+                if (_customerOrderRepository != null)
+                {
+                    var linked = await _customerOrderRepository.GetAll()
+                        .AsNoTracking()
+                        .Where(x => x.SaleId.HasValue && saleIds.Contains(x.SaleId.Value))
+                        .Select(x => x.SaleId.Value)
+                        .ToListAsync();
+                    onlineSaleIds = new HashSet<int>(linked);
+                }
+            }
+
+            var items = new List<SaleReportRowDto>();
+            foreach (var raw in rawItems)
+            {
+                var returned = returnsBySaleId.GetValueOrDefault(raw.Id, 0m);
+                var netAmount = raw.TotalAmount - returned;
+
+                // If sale is return then sale amount does not add in anyplace even they not have any entry in sale report if the sale is return
+                if (netAmount <= 0)
+                {
+                    continue;
+                }
+
+                var saleType = onlineSaleIds.Contains(raw.Id)
+                    ? SaleTypeResolver.OnlineOrder
+                    : SaleTypeResolver.Resolve(raw.Notes, raw.DeliveryCharges, raw.DeliveryAreaName);
+
+                var paid = Math.Round(raw.CashAmount + raw.CardAmount, 2);
+                var due = Math.Round(Math.Max(0m, netAmount - paid), 2);
+
+                items.Add(new SaleReportRowDto
+                {
+                    Id = raw.Id,
+                    InvoiceNo = raw.InvoiceNo,
+                    SaleDate = raw.SaleDate,
+                    CustomerName = raw.CustomerName,
+                    TotalAmount = Math.Round(netAmount, 2),
+                    PaidAmount = paid,
+                    DueAmount = due,
+                    Notes = raw.Notes,
+                    SaleType = saleType
+                });
+            }
 
             return new SaleReportDto
             {
                 Items = items,
-                TotalAmount = items.Sum(x => x.TotalAmount)
+                TotalAmount = items.Sum(x => x.TotalAmount),
+                TotalPaidAmount = items.Sum(x => x.PaidAmount),
+                TotalDueAmount = items.Sum(x => x.DueAmount)
             };
         }
 
@@ -224,6 +314,14 @@ namespace SmartPos.Reports
                 .ToListAsync();
 
             var effectiveBranchId = branchId ?? (await _branchAccessChecker.RequireEffectiveBranchIdAsync());
+            var reportBranch = await _branchRepository.FirstOrDefaultAsync(effectiveBranchId);
+            if (reportBranch != null && reportBranch.BusinessType == BusinessType.Restaurant)
+            {
+                products = products
+                    .Where(p => PermanentGrocery.IsInventoryProduct(p.Barcode, p.Name, p.Category?.Name))
+                    .ToList();
+            }
+
             var branchInfo = await _branchStockManager.GetBranchProductInfoAsync(effectiveBranchId, products.Select(p => p.Id));
 
             string StatusOf(Product p, decimal qty)
@@ -313,10 +411,55 @@ namespace SmartPos.Reports
                 };
             }
 
-            // Get all sale lines for those sales, grouped and aggregated by product
-            var saleLines = await _saleRepository.GetAll()
+            // Get all sale lines for those sales, deducting returned items
+            var rawSaleLines = await _saleRepository.GetAll()
                 .Where(x => saleIds.Contains(x.Id))
                 .SelectMany(x => x.Lines)
+                .Select(x => new
+                {
+                    x.Id,
+                    x.ProductId,
+                    x.Quantity,
+                    x.UnitPrice,
+                    x.LineTotal
+                })
+                .ToListAsync();
+
+            var returnedLines = await _saleReturnLineRepository.GetAll()
+                .AsNoTracking()
+                .Where(x => saleIds.Contains(x.SaleReturn.SaleId))
+                .Select(x => new
+                {
+                    x.SaleLineId,
+                    x.Quantity,
+                    x.LineTotal
+                })
+                .ToListAsync();
+
+            var returnedQtyByLineId = returnedLines
+                .GroupBy(x => x.SaleLineId)
+                .ToDictionary(g => g.Key, g => g.Sum(x => x.Quantity));
+
+            var returnedAmountByLineId = returnedLines
+                .GroupBy(x => x.SaleLineId)
+                .ToDictionary(g => g.Key, g => g.Sum(x => x.LineTotal));
+
+            var netSaleLines = rawSaleLines.Select(sl =>
+            {
+                var retQty = returnedQtyByLineId.GetValueOrDefault(sl.Id, 0m);
+                var retAmount = returnedAmountByLineId.GetValueOrDefault(sl.Id, 0m);
+                var netQty = Math.Max(0m, sl.Quantity - retQty);
+                var netTotal = Math.Max(0m, sl.LineTotal - retAmount);
+                return new
+                {
+                    sl.ProductId,
+                    Quantity = netQty,
+                    LineTotal = netTotal,
+                    sl.UnitPrice
+                };
+            }).Where(x => x.Quantity > 0).ToList();
+
+            var saleLines = netSaleLines
                 .GroupBy(x => x.ProductId)
                 .Select(g => new
                 {
@@ -325,7 +468,7 @@ namespace SmartPos.Reports
                     TotalRevenue = g.Sum(x => x.LineTotal),
                     AverageUnitPrice = g.Average(x => x.UnitPrice)
                 })
-                .ToListAsync();
+                .ToList();
 
             if (saleLines.Count == 0)
             {
@@ -611,8 +754,12 @@ namespace SmartPos.Reports
         private static (DateTime from, DateTime toExclusive) NormalizeRange(ReportDateRangeInput input)
         {
             var now = Abp.Timing.Clock.Now;
-            var from = input.FromDate?.Date ?? new DateTime(now.Year, now.Month, 1);
-            var toDate = input.ToDate?.Date ?? now.Date;
+            var from = input.FromDate.HasValue
+                ? ToLocalCalendarDate(input.FromDate.Value)
+                : new DateTime(now.Year, now.Month, 1);
+            var toDate = input.ToDate.HasValue
+                ? ToLocalCalendarDate(input.ToDate.Value)
+                : now.Date;
             var toExclusive = toDate.AddDays(1);
             if (toExclusive <= from)
             {
@@ -620,6 +767,112 @@ namespace SmartPos.Reports
             }
 
             return (from, toExclusive);
+        }
+
+        /// <summary>
+        /// Use the business calendar day the user selected. UTC ISO midnight from the
+        /// client (e.g. 2026-11-12T19:00:00Z for PKT Nov 13) must map to local date.
+        /// </summary>
+        private static DateTime ToLocalCalendarDate(DateTime value)
+        {
+            if (value.Kind == DateTimeKind.Utc)
+            {
+                return value.ToLocalTime().Date;
+            }
+
+            return value.Date;
+        }
+
+        private async Task<string> GetEffectiveBranchNameAsync()
+        {
+            var branchId = await _branchAccessChecker.GetEffectiveBranchIdAsync();
+            if (!branchId.HasValue) return null;
+            var branch = await _branchRepository.FirstOrDefaultAsync(branchId.Value);
+            return branch?.Name;
+        }
+
+        [HttpGet]
+        [DontWrapResult]
+        public async Task<FileContentResult> GetSaleReportPdf(ReportDateRangeInput input)
+        {
+            var report = await GetSaleReportAsync(input);
+            var branchName = await GetEffectiveBranchNameAsync();
+            var pdfModel = report.ToPdfModel(input, branchName);
+            var bytes = _reportPdfBuilder.Build(pdfModel);
+            return new FileContentResult(bytes, "application/pdf")
+            {
+                FileDownloadName = "Sale-Report.pdf"
+            };
+        }
+
+        [HttpGet]
+        [DontWrapResult]
+        public async Task<FileContentResult> GetPurchaseReportPdf(ReportDateRangeInput input)
+        {
+            var report = await GetPurchaseReportAsync(input);
+            var branchName = await GetEffectiveBranchNameAsync();
+            var pdfModel = report.ToPdfModel(input, branchName);
+            var bytes = _reportPdfBuilder.Build(pdfModel);
+            return new FileContentResult(bytes, "application/pdf")
+            {
+                FileDownloadName = "Purchase-Report.pdf"
+            };
+        }
+
+        [HttpGet]
+        [DontWrapResult]
+        public async Task<FileContentResult> GetExpenseReportPdf(ReportDateRangeInput input)
+        {
+            var report = await GetExpenseReportAsync(input);
+            var branchName = await GetEffectiveBranchNameAsync();
+            var pdfModel = report.ToPdfModel(input, branchName);
+            var bytes = _reportPdfBuilder.Build(pdfModel);
+            return new FileContentResult(bytes, "application/pdf")
+            {
+                FileDownloadName = "Expense-Report.pdf"
+            };
+        }
+
+        [HttpGet]
+        [DontWrapResult]
+        public async Task<FileContentResult> GetStockReportPdf(ReportDateRangeInput input)
+        {
+            var report = await GetStockReportAsync(input);
+            var branchName = await GetEffectiveBranchNameAsync();
+            var pdfModel = report.ToPdfModel(input, branchName);
+            var bytes = _reportPdfBuilder.Build(pdfModel);
+            return new FileContentResult(bytes, "application/pdf")
+            {
+                FileDownloadName = "Stock-Report.pdf"
+            };
+        }
+
+        [HttpGet]
+        [DontWrapResult]
+        public async Task<FileContentResult> GetProductProfitReportPdf(ReportDateRangeInput input)
+        {
+            var report = await GetProductProfitReportAsync(input);
+            var branchName = await GetEffectiveBranchNameAsync();
+            var pdfModel = report.ToPdfModel(input, branchName);
+            var bytes = _reportPdfBuilder.Build(pdfModel);
+            return new FileContentResult(bytes, "application/pdf")
+            {
+                FileDownloadName = "Product-Profit-Report.pdf"
+            };
+        }
+
+        [HttpGet]
+        [DontWrapResult]
+        public async Task<FileContentResult> GetBalanceSheetReportPdf(ReportDateRangeInput input)
+        {
+            var report = await GetBalanceSheetReportAsync(input);
+            var branchName = await GetEffectiveBranchNameAsync();
+            var pdfModel = report.ToPdfModel(input, branchName);
+            var bytes = _reportPdfBuilder.Build(pdfModel);
+            return new FileContentResult(bytes, "application/pdf")
+            {
+                FileDownloadName = "Balance-Sheet-Report.pdf"
+            };
         }
     }
 }

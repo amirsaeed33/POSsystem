@@ -69,6 +69,11 @@ export class BranchCreateComponent implements OnInit {
     seedCatalog: HostCatalogByCompanyTypeDto | null = null;
     selectedHostItemIds: number[] = [];
 
+    businessTypeOptions = [
+        { label: '🛒 Retail & Supermarket', value: 1 },
+        { label: '🍽️ Restaurant & Cafe', value: 2 },
+    ];
+
     constructor(
         private branchService: BranchService,
         private branchContext: BranchContextService,
@@ -241,12 +246,25 @@ export class BranchCreateComponent implements OnInit {
             invoiceContactPhone: optional(this.branch.invoiceContactPhone),
             taxNumber: optional(this.branch.taxNumber),
             website: optional(this.branch.website),
+            facebookUrl: optional(this.branch.facebookUrl),
+            instagramUrl: optional(this.branch.instagramUrl),
+            youtubeUrl: optional(this.branch.youtubeUrl),
             invoiceFooter: optional(this.branch.invoiceFooter),
             taxPercent: this.branch.taxPercent ?? 0,
             discountPercent: this.branch.discountPercent ?? 0,
             discountAmount: this.branch.discountAmount ?? 0,
+            businessType: this.branch.businessType ?? 1,
+            serviceChargePercent: this.branch.serviceChargePercent ?? 0,
+            autoAssignWaiterToTables: this.branch.autoAssignWaiterToTables !== false,
             companyTypeId: this.selectedCompanyTypeId,
             hostCatalogItemIds: this.selectedHostItemIds,
+            latitude: this.branch.latitude ?? null,
+            longitude: this.branch.longitude ?? null,
+            attendanceAutoCheckInRadiusFeet:
+                this.branch.attendanceAutoCheckInRadiusFeet != null &&
+                this.branch.attendanceAutoCheckInRadiusFeet > 0
+                    ? this.branch.attendanceAutoCheckInRadiusFeet
+                    : 200,
         };
 
         this.saving = true;
@@ -306,6 +324,53 @@ export class BranchCreateComponent implements OnInit {
             });
     }
 
+    locating = false;
+
+    detectCurrentLocation(): void {
+        if (!navigator.geolocation) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'GPS Not Supported',
+                detail: 'Geolocation is not supported by your browser.',
+            });
+            return;
+        }
+        this.locating = true;
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                this.branch.latitude = Number(pos.coords.latitude.toFixed(6));
+                this.branch.longitude = Number(pos.coords.longitude.toFixed(6));
+                this.locating = false;
+                this.messageService.add({
+                    severity: 'success',
+                    summary: 'Location Captured',
+                    detail: `Store coordinates set to: (${this.branch.latitude}, ${this.branch.longitude})`,
+                });
+            },
+            () => {
+                this.locating = false;
+                this.messageService.add({
+                    severity: 'warn',
+                    summary: 'GPS Detection',
+                    detail: 'Unable to detect coordinates automatically. Please enter latitude & longitude manually.',
+                });
+            },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        );
+    }
+
+    clearShopLocation(): void {
+        this.branch.latitude = null;
+        this.branch.longitude = null;
+    }
+
+    get googleMapsShopLink(): string | null {
+        if (this.branch.latitude != null && this.branch.longitude != null) {
+            return `https://maps.google.com/?q=${this.branch.latitude},${this.branch.longitude}`;
+        }
+        return null;
+    }
+
     private emptyBranch(): BranchDto {
         return {
             id: 0,
@@ -319,10 +384,21 @@ export class BranchCreateComponent implements OnInit {
             invoiceContactPhone: '',
             taxNumber: '',
             website: '',
+            facebookUrl: '',
+            instagramUrl: '',
+            youtubeUrl: '',
             invoiceFooter: '',
+            softwareDeveloperName: 'Software develop by AlNawabTech',
+            softwareDeveloperPhone: '03167854606',
             taxPercent: 0,
             discountPercent: 0,
             discountAmount: 0,
+            businessType: 1,
+            serviceChargePercent: 0,
+            autoAssignWaiterToTables: true,
+            latitude: null,
+            longitude: null,
+            attendanceAutoCheckInRadiusFeet: 200,
         };
     }
 }

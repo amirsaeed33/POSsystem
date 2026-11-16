@@ -8,12 +8,14 @@ import {
     PagedResultDto,
 } from '../api/category';
 import { environment } from '../../../environments/environment';
+import { TtlCache, branchCacheKey } from './ttl-cache';
 
 @Injectable({
     providedIn: 'root',
 })
 export class CategoryService {
     private readonly apiUrl = `${environment.apiUrl}/api/services/app/Category`;
+    private readonly lookupCache = new TtlCache<any[]>(5 * 60 * 1000);
 
     constructor(private http: HttpClient) {}
 
@@ -46,21 +48,17 @@ export class CategoryService {
         };
     }
 
-    private lookupCache: { data: CategoryDto[]; timestamp: number } | null = null;
-    private readonly CACHE_DURATION_MS = 5 * 60 * 1000; // 5 minutes
-
     clearCache(): void {
-        this.lookupCache = null;
+        this.lookupCache.clear();
     }
 
     async getLookup(forceRefresh = false): Promise<CategoryDto[]> {
-        const now = Date.now();
-        if (
-            !forceRefresh &&
-            this.lookupCache &&
-            now - this.lookupCache.timestamp < this.CACHE_DURATION_MS
-        ) {
-            return this.lookupCache.data;
+        const key = branchCacheKey(this.readBranchId(), 'lookup');
+        if (!forceRefresh) {
+            const hit = this.lookupCache.get(key);
+            if (hit) {
+                return hit;
+            }
         }
 
         const res: any = await firstValueFrom(
@@ -71,8 +69,13 @@ export class CategoryService {
         const mapped = (Array.isArray(items) ? items : []).map((item: any) =>
             this.mapCategory(item)
         );
-        this.lookupCache = { data: mapped, timestamp: now };
+        this.lookupCache.set(key, mapped);
         return mapped;
+    }
+
+    private readBranchId(): number | null {
+        const n = parseInt(localStorage.getItem('SmartPos.BranchId') || '', 10);
+        return Number.isFinite(n) && n > 0 ? n : null;
     }
 
     async get(id: number): Promise<CategoryDto> {
@@ -87,8 +90,10 @@ export class CategoryService {
         const res: any = await firstValueFrom(
             this.http.post<any>(`${this.apiUrl}/Create`, {
                 name: input.name,
+                departmentId: input.departmentId ?? null,
                 description: input.description,
                 defaultUnitId: input.defaultUnitId,
+                imageBase64: input.imageBase64,
             })
         );
         return this.mapCategory(this.unwrap(res, 'Failed to create category'));
@@ -101,11 +106,28 @@ export class CategoryService {
                 id: input.id,
                 branchId: input.branchId,
                 name: input.name,
+                departmentId: input.departmentId ?? null,
                 description: input.description,
                 defaultUnitId: input.defaultUnitId,
+                imagePath: input.imagePath,
+                imageBase64: input.imageBase64,
             })
         );
         return this.mapCategory(this.unwrap(res, 'Failed to update category'));
+    }
+
+    getImageUrl(imagePath?: string): string {
+        if (!imagePath) {
+            return '';
+        }
+        if (
+            imagePath.startsWith('http://') ||
+            imagePath.startsWith('https://') ||
+            imagePath.startsWith('data:')
+        ) {
+            return imagePath;
+        }
+        return `${environment.apiUrl}${imagePath.startsWith('/') ? '' : '/'}${imagePath}`;
     }
 
     async delete(id: number): Promise<void> {
@@ -137,8 +159,11 @@ export class CategoryService {
         return {
             id: item.id ?? item.Id,
             branchId: item.branchId ?? item.BranchId,
+            departmentId: item.departmentId ?? item.DepartmentId,
+            departmentName: item.departmentName ?? item.DepartmentName,
             name: item.name ?? item.Name,
             description: item.description ?? item.Description,
+            imagePath: item.imagePath ?? item.ImagePath,
             defaultUnitId: item.defaultUnitId ?? item.DefaultUnitId,
             defaultUnitName: item.defaultUnitName ?? item.DefaultUnitName,
         };

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Abp.Application.Services;
@@ -6,10 +7,14 @@ using Abp.Authorization;
 using Abp.Domain.Repositories;
 using Abp.Extensions;
 using Abp.Linq.Extensions;
+using Abp.UI;
+using Microsoft.EntityFrameworkCore;
 using SmartPos.Authorization;
 using SmartPos.Authorization.Users;
 using SmartPos.Accounts;
+using SmartPos.Addresses;
 using SmartPos.Branches;
+using SmartPos.Products;
 using SmartPos.Suppliers.Dto;
 
 namespace SmartPos.Suppliers
@@ -18,25 +23,37 @@ namespace SmartPos.Suppliers
     public class SupplierAppService : AsyncCrudAppService<Supplier, SupplierDto, int, PagedSupplierResultRequestDto, CreateSupplierDto, SupplierDto>, ISupplierAppService
     {
         private readonly IRepository<BusinessAccount> _accountRepository;
+        private readonly IRepository<SupplierProduct> _supplierProductRepository;
+        private readonly IRepository<Product> _productRepository;
+        private readonly IRepository<Branch> _branchRepository;
         private readonly IRepository<User, long> _userRepository;
         private readonly IBranchAccessChecker _branchAccessChecker;
         private readonly IBranchContext _branchContext;
         private readonly AccountBalanceManager _accountBalanceManager;
+        private readonly SavedAddressManager _savedAddresses;
 
         public SupplierAppService(
             IRepository<Supplier> repository,
             IRepository<BusinessAccount> accountRepository,
+            IRepository<SupplierProduct> supplierProductRepository,
+            IRepository<Product> productRepository,
+            IRepository<Branch> branchRepository,
             IRepository<User, long> userRepository,
             IBranchAccessChecker branchAccessChecker,
             IBranchContext branchContext,
-            AccountBalanceManager accountBalanceManager)
+            AccountBalanceManager accountBalanceManager,
+            SavedAddressManager savedAddresses)
             : base(repository)
         {
             _accountRepository = accountRepository;
+            _supplierProductRepository = supplierProductRepository;
+            _productRepository = productRepository;
+            _branchRepository = branchRepository;
             _userRepository = userRepository;
             _branchAccessChecker = branchAccessChecker;
             _branchContext = branchContext;
             _accountBalanceManager = accountBalanceManager;
+            _savedAddresses = savedAddresses;
             CreatePermissionName = PermissionNames.Pages_Suppliers_Create;
             UpdatePermissionName = PermissionNames.Pages_Suppliers_Edit;
             DeletePermissionName = PermissionNames.Pages_Suppliers_Delete;
@@ -70,6 +87,12 @@ namespace SmartPos.Suppliers
             await Repository.InsertAsync(supplier);
             await CurrentUnitOfWork.SaveChangesAsync();
 
+            await _savedAddresses.UpsertDefaultAsync(
+                SavedAddressOwnerTypes.Supplier,
+                supplier.Id,
+                supplier.TenantId,
+                input.Address);
+
             return await GetAsync(new EntityDto<int>(supplier.Id));
         }
 
@@ -91,6 +114,12 @@ namespace SmartPos.Suppliers
                 await CurrentUnitOfWork.SaveChangesAsync();
             }
 
+            await _savedAddresses.UpsertDefaultAsync(
+                SavedAddressOwnerTypes.Supplier,
+                supplier.Id,
+                supplier.TenantId,
+                input.Address);
+
             return await GetAsync(new EntityDto<int>(supplier.Id));
         }
 
@@ -100,6 +129,8 @@ namespace SmartPos.Suppliers
             var dto = await base.GetAsync(input);
             await _branchAccessChecker.EnsureCanAccessBranchAsync(dto.BranchId);
             await FillBalance(dto);
+            dto.Address = await _savedAddresses.GetDefaultAddressTextAsync(
+                SavedAddressOwnerTypes.Supplier, dto.Id);
             return dto;
         }
 
@@ -110,6 +141,8 @@ namespace SmartPos.Suppliers
             foreach (var item in result.Items)
             {
                 await FillBalance(item);
+                item.Address = await _savedAddresses.GetDefaultAddressTextAsync(
+                    SavedAddressOwnerTypes.Supplier, item.Id);
             }
             return result;
         }
@@ -122,6 +155,12 @@ namespace SmartPos.Suppliers
             await _branchAccessChecker.EnsureCanAccessBranchAsync(supplier.BranchId);
             var accountId = supplier.AccountId;
 
+            var links = await _supplierProductRepository.GetAllListAsync(x => x.SupplierId == supplier.Id);
+            foreach (var link in links)
+            {
+                await _supplierProductRepository.DeleteAsync(link);
+            }
+
             await Repository.DeleteAsync(supplier);
 
             if (accountId.HasValue)
@@ -130,18 +169,97 @@ namespace SmartPos.Suppliers
             }
         }
 
+        public async Task<List<int>> GetAssignedProductIdsAsync(EntityDto input)
+        {
+            var supplier = await Repository.GetAsync(input.Id);
+            await _branchAccessChecker.EnsureCanAccessBranchAsync(supplier.BranchId);
+
+            return await _supplierProductRepository.GetAll()
+                .AsNoTracking()
+                .Where(x => x.SupplierId == supplier.Id)
+                .Select(x => x.ProductId)
+                .ToListAsync();
+        }
+
+        [AbpAuthorize(PermissionNames.Pages_Suppliers_Edit)]
+        public async Task SetAssignedProductsAsync(SetSupplierProductsDto input)
+        {
+            if (input == null || input.SupplierId <= 0)
+            {
+                throw new UserFriendlyException("Supplier is required.");
+            }
+
+            var supplier = await Repository.GetAsync(input.SupplierId);
+            await _branchAccessChecker.EnsureCanAccessBranchAsync(supplier.BranchId);
+
+            var productIds = (input.ProductIds ?? new List<int>())
+                .Where(id => id > 0)
+                .Distinct()
+                .ToList();
+
+            if (productIds.Count > 0)
+            {
+                var products = await _productRepository.GetAll()
+                    .AsNoTracking()
+                    .Include(p => p.Category)
+                    .Where(p => productIds.Contains(p.Id))
+                    .ToListAsync();
+
+                if (products.Count != productIds.Count)
+                {
+                    throw new UserFriendlyException("One or more selected products are invalid.");
+                }
+
+                var branch = await _branchRepository.FirstOrDefaultAsync(supplier.BranchId);
+                if (branch != null && branch.BusinessType == BusinessType.Restaurant)
+                {
+                    var invalid = products.FirstOrDefault(p =>
+                        !PermanentGrocery.IsInventoryProduct(p.Barcode, p.Name, p.Category?.Name));
+                    if (invalid != null)
+                    {
+                        throw new UserFriendlyException(
+                            $"Only Permanent Grocery products can be assigned for restaurant suppliers. Invalid: '{invalid.Name}'.");
+                    }
+                }
+            }
+
+            var existing = await _supplierProductRepository.GetAllListAsync(x => x.SupplierId == supplier.Id);
+            var existingIds = existing.Select(x => x.ProductId).ToHashSet();
+            var desiredIds = productIds.ToHashSet();
+
+            foreach (var link in existing.Where(x => !desiredIds.Contains(x.ProductId)))
+            {
+                await _supplierProductRepository.DeleteAsync(link);
+            }
+
+            foreach (var productId in productIds.Where(id => !existingIds.Contains(id)))
+            {
+                await _supplierProductRepository.InsertAsync(new SupplierProduct
+                {
+                    TenantId = AbpSession.TenantId,
+                    SupplierId = supplier.Id,
+                    ProductId = productId
+                });
+            }
+        }
+
         protected override IQueryable<Supplier> CreateFilteredQuery(PagedSupplierResultRequestDto input)
         {
             var branchId = BranchQueryHelper.ResolveBranchIdForFilter(_branchContext, _userRepository, AbpSession, PermissionChecker);
 
             return Repository.GetAllIncluding(x => x.Account)
+                .AsNoTracking()
                 .WhereIf(branchId.HasValue, x => x.BranchId == branchId.Value)
                 .WhereIf(!input.Keyword.IsNullOrWhiteSpace(),
                     x => x.Name.Contains(input.Keyword)
                          || (x.Phone != null && x.Phone.Contains(input.Keyword))
                          || (x.Email != null && x.Email.Contains(input.Keyword))
-                         || (x.Address != null && x.Address.Contains(input.Keyword))
-                         || (x.Description != null && x.Description.Contains(input.Keyword)));
+                         || (x.Description != null && x.Description.Contains(input.Keyword))
+                         || _savedAddresses.QueryAll().Any(a =>
+                             a.OwnerType == SavedAddressOwnerTypes.Supplier &&
+                             a.OwnerId == x.Id &&
+                             a.Address != null &&
+                             a.Address.Contains(input.Keyword)));
         }
 
         protected override async Task<Supplier> GetEntityByIdAsync(int id)

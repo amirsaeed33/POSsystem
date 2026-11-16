@@ -56,7 +56,7 @@
                 <th pSortableColumn="description" class="white-space-nowrap">
                     Description <p-sortIcon field="description"></p-sortIcon>
                 </th>
-                <th class="text-center" style="width: 4.5rem">Actions</th>
+                <th class="text-center white-space-nowrap" style="width: 7rem">Actions</th>
             </tr>
         </ng-template>
 
@@ -64,8 +64,9 @@
             <tr>
                 <td>{{ brand.name }}</td>
                 <td>{{ brand.description || '—' }}</td>
-                <td class="text-center">
+                <td class="text-center white-space-nowrap">
                     <app-row-actions
+                        mode="inline"
                         [items]="getRowActions(brand)"
                     ></app-row-actions>
                 </td>

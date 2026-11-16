@@ -8,6 +8,12 @@ export interface UserLoginInfoDto {
     profilePictureUrl?: string;
     branchId?: number | null;
     branchName?: string;
+    branchBusinessType?: number | null;
+    isDeliveryRider?: boolean;
+    riderStaffId?: number | null;
+    designation?: string;
+    isWaiter?: boolean;
+    roles?: string[];
 }
 
 export interface TenantLoginInfoDto {

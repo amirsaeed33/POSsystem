@@ -1,8 +1,13 @@
 <div class="layout-topbar">
     <div class="topbar-start">
-        <a class="app-logo" routerLink="/" [title]="branchDisplayName">
+        <a class="app-logo" [routerLink]="homeLink" [title]="branchDisplayName">
             <img alt="app logo" [src]="logo" (error)="onLogoError()" style="max-height: 2.75rem; max-width: 3.5rem; width: auto; object-fit: contain; border-radius: 4px;">
-            <span class="app-name" style="font-size: 1.5rem; max-width: 16rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ branchDisplayName }}</span>
+            <!-- Branch name: always visible for rider/waiter; desktop-only for others to save mobile space -->
+            <span
+                class="app-name"
+                [ngClass]="(isDeliveryRider || isWaiter) ? 'inline' : 'hidden sm:inline'"
+                style="font-size: 1.5rem; max-width: 16rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
+            >{{ branchDisplayName }}</span>
         </a>
 
         <button #menubutton class="topbar-menubutton p-link" type="button" (click)="onMenuButtonClick()">
@@ -11,9 +16,9 @@
 
         <a
             class="p-link hidden sm:flex align-items-center px-3 py-2 border-round hover:surface-hover font-medium white-space-nowrap"
-            routerLink="/"
+            [routerLink]="homeLink"
         >
-            Home
+            {{ homeLinkLabel }}
         </a>
 
         <ul class="topbar-menu">
@@ -38,7 +43,22 @@
     </div>
 
     <div class="topbar-center">
-        <div class="topbar-branch relative" *ngIf="branches?.length">
+        <!-- Static branch badge for riders only (waiters: no location control in topbar) -->
+        <a
+            class="flex align-items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-2 border-round surface-100 text-xs sm:text-sm font-semibold text-700 max-w-9rem sm:max-w-none overflow-hidden no-underline text-700 hover:surface-200"
+            *ngIf="isDeliveryRider && !isWaiter && currentBranch"
+            [routerLink]="homeLink"
+            [title]="currentBranch.name"
+        >
+            <i class="pi pi-map-marker text-primary flex-shrink-0"></i>
+            <span class="white-space-nowrap overflow-hidden text-overflow-ellipsis">{{ currentBranch.name }}</span>
+            <span
+                class="text-xs px-1.5 py-0.5 border-round font-medium bg-blue-100 text-blue-900 flex-shrink-0 hidden sm:inline"
+            >Delivery</span>
+        </a>
+
+        <!-- Branch switcher only when user can switch and tenant has 2+ locations -->
+        <div class="topbar-branch relative" *ngIf="showBranchSwitcher">
             <button
                 class="p-link flex align-items-center gap-2 px-3 py-2 border-round hover:surface-hover"
                 type="button"
@@ -48,13 +68,22 @@
                 leaveToClass="hidden"
                 leaveActiveClass="fadeout"
                 [hideOnOutsideClick]="true"
-                [disabled]="changingBranch || !canSwitchLocations || branches.length <= 1"
+                [disabled]="changingBranch"
             >
                 <i class="pi pi-map-marker text-xl"></i>
                 <span class="hidden sm:inline text-sm text-500 white-space-nowrap">Branch</span>
-                <span class="font-medium white-space-nowrap">
+                <!-- Mobile: short shop name; desktop: full name -->
+                <span class="font-medium white-space-nowrap sm:hidden" [title]="locationLabel">
+                    {{ locationLabelShort }}
+                </span>
+                <span class="font-medium white-space-nowrap hidden sm:inline">
                     {{ locationLabel }}
                 </span>
+                <span
+                    *ngIf="currentBranch?.businessType === 2"
+                    class="text-xs px-2 py-1 border-round font-medium bg-yellow-100 text-yellow-900"
+                    title="Active Restaurant & Dining Table Mode"
+                >🍽️ Restaurant</span>
                 <span
                     *ngIf="currentBranch?.status && currentBranch?.status !== BranchStatuses.Approved"
                     class="text-xs px-2 py-1 border-round font-medium"
@@ -63,12 +92,11 @@
                         'bg-red-100 text-red-700': currentBranch?.status === BranchStatuses.Rejected
                     }"
                 >{{ currentBranch?.status }}</span>
-                <i class="pi pi-angle-down" *ngIf="canSwitchLocations && branches.length > 1"></i>
+                <i class="pi pi-angle-down"></i>
             </button>
             <ul
                 class="list-none p-2 m-0 border-round shadow-2 hidden absolute surface-overlay origin-top mt-2 left-0 top-auto z-5"
                 style="min-width: 16rem; max-height: 20rem; overflow: auto"
-                *ngIf="canSwitchLocations && branches.length > 1"
             >
                 <li *ngFor="let branch of branches">
                     <a
@@ -78,7 +106,10 @@
                         (click)="onChangeBranch(branch)"
                     >
                         <span class="flex-1">
-                            <span class="block font-medium">{{ branch.name }}</span>
+                            <span class="block font-medium">
+                                {{ branch.name }}
+                                <span *ngIf="branch.businessType === 2" class="text-xs ml-1 text-yellow-700 font-semibold">🍽️ Restaurant</span>
+                            </span>
                             <span class="text-xs text-500" *ngIf="branch.code">{{ branch.code }}</span>
                             <span
                                 class="text-xs text-500 block"
@@ -97,58 +128,303 @@
     </div>
 
     <div class="topbar-end flex align-items-center gap-2">
-        <!-- Online Orders Bell Notification -->
-        <div class="topbar-notifications relative">
+        <!-- Restaurant Unpaid Takeaway KOT Alarm (Restaurant Only & Admin/Cashier Only) -->
+        <div class="topbar-notifications relative" *ngIf="currentBranch?.businessType === 2 && !isWaiter">
             <button
-                class="p-link flex align-items-center justify-content-center w-2rem h-2rem md:w-3rem md:h-3rem border-circle hover:surface-hover relative transition-colors"
                 type="button"
+                class="topbar-kot-btn p-link"
+                [class.has-alert]="unpaidTakeawayOrders.length > 0"
                 pStyleClass="@next"
                 enterClass="hidden"
                 enterActiveClass="scalein"
                 leaveToClass="hidden"
                 leaveActiveClass="fadeout"
                 [hideOnOutsideClick]="true"
-                title="Today's Online Orders"
-                (click)="loadTodayOrders()"
+                [title]="unpaidTakeawayOrders.length > 0 ? (unpaidTakeawayOrders.length + ' unpaid takeaway order(s) sent to kitchen') : 'No unpaid takeaway orders'"
+                (click)="takeawayAlarmService.checkImmediately()"
             >
-                <i class="pi pi-bell p-overlay-badge text-xl text-700" style="font-size: 1.25rem;">
-                    <p-badge *ngIf="pendingOrdersCount > 0" [value]="pendingOrdersCount.toString()" severity="danger" styleClass="text-xs"></p-badge>
-                </i>
+                <i class="pi pi-shopping-bag"></i>
+                <span class="topbar-kot-label">Takeaway KOT</span>
+                <span class="topbar-kot-count" *ngIf="unpaidTakeawayOrders.length > 0">
+                    {{ unpaidTakeawayOrders.length }}
+                </span>
             </button>
 
-            <!-- Notifications Overlay Dropdown -->
+            <!-- Unpaid Takeaway Alarm Overlay -->
             <div
                 class="list-none p-3 m-0 border-round shadow-4 hidden absolute surface-overlay origin-top-right mt-2 right-0 top-auto z-5"
-                style="width: 22rem; max-height: 28rem; overflow-y: auto;"
+                style="width: 24rem; max-height: 28rem; overflow-y: auto;"
             >
                 <div class="flex align-items-center justify-content-between pb-2 mb-2 border-bottom-1 surface-border">
                     <span class="font-bold text-900 text-base flex align-items-center gap-2">
-                        <i class="pi pi-shopping-bag text-primary"></i>
+                        <i class="pi pi-exclamation-triangle text-red-500"></i>
+                        Unpaid Takeaway Orders
+                    </span>
+                    <div class="flex align-items-center gap-1">
+                        <button
+                            pButton
+                            pRipple
+                            type="button"
+                            [class]="takeawayAlarmService.isMuted ? 'p-button-danger p-button-text p-button-sm p-button-icon-only' : 'p-button-secondary p-button-text p-button-sm p-button-icon-only'"
+                            [title]="takeawayAlarmService.isMuted ? 'Unmute all alarms' : 'Mute all alarms'"
+                            (click)="$event.stopPropagation(); toggleTakeawayMute()"
+                        >
+                            <i [class]="takeawayAlarmService.isMuted ? 'pi pi-volume-off' : 'pi pi-volume-up'"></i>
+                        </button>
+                        <span class="badge bg-red-100 text-red-700 px-2 py-1 border-round text-xs font-bold">
+                            {{ unpaidTakeawayOrders.length }} Unpaid
+                        </span>
+                    </div>
+                </div>
+
+                <div *ngIf="takeawayAudioBlocked" class="p-2 mb-2 border-round bg-yellow-100 border-1 border-yellow-300 text-yellow-900 text-xs flex align-items-center justify-content-between">
+                    <div class="flex align-items-center gap-1">
+                        <i class="pi pi-volume-off text-base text-yellow-800"></i>
+                        <span>Audio blocked by browser.</span>
+                    </div>
+                    <button pButton pRipple type="button" label="Enable Alarm" class="p-button-xs p-button-warning text-xs font-bold" (click)="enableTakeawayAudio()"></button>
+                </div>
+
+                <div *ngIf="unpaidTakeawayOrders.length === 0" class="p-4 text-center">
+                    <i class="pi pi-check-circle text-green-500 text-3xl mb-2 block"></i>
+                    <span class="text-600 font-medium block">All takeaway orders paid!</span>
+                    <span class="text-500 text-xs">Alarm triggers every 1m when takeaway KOT orders remain unpaid.</span>
+                </div>
+
+                <ul *ngIf="unpaidTakeawayOrders.length > 0" class="list-none p-0 m-0">
+                    <li
+                        *ngFor="let order of unpaidTakeawayOrders"
+                        class="p-2 mb-2 border-round surface-hover transition-colors border-1 surface-border hover:border-red-400"
+                    >
+                        <div class="flex align-items-center justify-content-between mb-1">
+                            <div class="flex align-items-center gap-2">
+                                <span class="font-bold text-900 text-sm">#{{ order.orderNo }}</span>
+                                <span class="badge bg-red-100 text-red-700 px-2 py-0 border-round text-xs font-semibold">Unpaid (KOT Sent)</span>
+                            </div>
+                            <span class="text-xs text-500">{{ order.creationTime | date: 'shortTime' }}</span>
+                        </div>
+                        <div class="flex align-items-center justify-content-between text-xs text-700 my-1">
+                            <span class="text-600">
+                                <i class="pi pi-user mr-1 text-500"></i>{{ order.waiterName || order.customerName || 'Walk-in Customer' }}
+                                <span class="ml-1 text-500">({{ order.itemCount }} items)</span>
+                            </span>
+                            <span class="font-bold text-900 text-sm">{{ order.grandTotal | currency:'PKR ':'symbol':'1.2-2' }}</span>
+                        </div>
+                        <div class="flex align-items-center justify-content-end mt-2 pt-1 border-top-1 surface-border">
+                            <button
+                                pButton
+                                pRipple
+                                type="button"
+                                label="Settle in POS"
+                                icon="pi pi-arrow-right"
+                                iconPos="right"
+                                class="p-button-danger p-button-sm p-button-outlined py-1 text-xs font-semibold"
+                                (click)="openTakeawayInPos(order)"
+                            ></button>
+                        </div>
+                    </li>
+                </ul>
+
+                <div class="pt-2 border-top-1 surface-border text-center text-xs text-500">
+                    <i class="pi pi-clock mr-1"></i>Repeating alarm rings every 1 min until paid in POS.
+                </div>
+            </div>
+        </div>
+
+        <!-- Unpaid Bills Option (Alongside Takeaway KOT) -->
+        <div class="topbar-notifications relative" *ngIf="canViewUnpaidBills">
+            <button
+                type="button"
+                class="topbar-unpaid-btn p-link"
+                [class.has-alert]="unpaidBills.length > 0"
+                pStyleClass="@next"
+                enterClass="hidden"
+                enterActiveClass="scalein"
+                leaveToClass="hidden"
+                leaveActiveClass="fadeout"
+                [hideOnOutsideClick]="true"
+                [title]="unpaidBills.length > 0 ? (unpaidBills.length + ' unpaid bill(s) pending payment') : 'No unpaid bills'"
+                (click)="loadUnpaidBills()"
+            >
+                <i class="pi pi-receipt"></i>
+                <span class="topbar-kot-label">Unpaid Bills</span>
+                <span class="topbar-kot-count" *ngIf="unpaidBills.length > 0">
+                    {{ unpaidBills.length }}
+                </span>
+            </button>
+
+            <!-- Unpaid Bills Dropdown Overlay -->
+            <div
+                class="list-none p-3 m-0 border-round shadow-4 hidden absolute surface-overlay origin-top-right mt-2 right-0 top-auto z-5"
+                style="width: 25rem; max-height: 28rem; overflow-y: auto;"
+            >
+                <div class="flex align-items-center justify-content-between pb-2 mb-2 border-bottom-1 surface-border">
+                    <span class="font-bold text-900 text-base flex align-items-center gap-2">
+                        <i class="pi pi-receipt text-orange-500"></i>
+                        Unpaid Bills
+                    </span>
+                    <div class="flex align-items-center gap-2">
+                        <button
+                            pButton
+                            pRipple
+                            type="button"
+                            icon="pi pi-refresh"
+                            class="p-button-secondary p-button-text p-button-sm p-button-icon-only"
+                            [loading]="loadingUnpaidBills"
+                            title="Refresh unpaid bills"
+                            (click)="$event.stopPropagation(); loadUnpaidBills()"
+                        ></button>
+                        <span class="badge bg-orange-100 text-orange-700 px-2 py-1 border-round text-xs font-bold">
+                            {{ unpaidBills.length }} Unpaid
+                        </span>
+                    </div>
+                </div>
+
+                <div *ngIf="loadingUnpaidBills && unpaidBills.length === 0" class="p-4 text-center text-500 text-sm">
+                    <i class="pi pi-spin pi-spinner mr-2 text-xl"></i> Loading unpaid bills...
+                </div>
+
+                <div *ngIf="!loadingUnpaidBills && unpaidBills.length === 0" class="p-4 text-center">
+                    <i class="pi pi-check-circle text-green-500 text-3xl mb-2 block"></i>
+                    <span class="text-600 font-medium block">All bills settled!</span>
+                    <span class="text-500 text-xs">No pending or unpaid sale bills.</span>
+                </div>
+
+                <ul *ngIf="unpaidBills.length > 0" class="list-none p-0 m-0">
+                    <li
+                        *ngFor="let bill of unpaidBills"
+                        class="p-2 mb-2 border-round surface-hover transition-colors border-1 surface-border hover:border-orange-400"
+                    >
+                        <!-- Top Row: Invoice #, Order Type, and Date & Time -->
+                        <div class="flex align-items-center justify-content-between mb-1">
+                            <div class="flex align-items-center gap-2">
+                                <span class="font-bold text-900 text-sm">#{{ bill.invoiceNo }}</span>
+                                <!-- Order Type Badge (Dine-In, Takeaway, or Online Order) -->
+                                <span
+                                    *ngIf="getBillType(bill) === 'Online Order'"
+                                    class="badge bg-blue-100 text-blue-800 px-2 py-0 border-round text-xs font-bold inline-flex align-items-center gap-1"
+                                >
+                                    <i class="pi pi-globe text-xs"></i> Online Order
+                                </span>
+                                <span
+                                    *ngIf="getBillType(bill) === 'Dine-In'"
+                                    class="badge bg-purple-100 text-purple-800 px-2 py-0 border-round text-xs font-bold inline-flex align-items-center gap-1"
+                                >
+                                    <i class="pi pi-table text-xs"></i> Dine-In
+                                </span>
+                                <span
+                                    *ngIf="getBillType(bill) !== 'Online Order' && getBillType(bill) !== 'Dine-In'"
+                                    class="badge bg-orange-100 text-orange-800 px-2 py-0 border-round text-xs font-bold inline-flex align-items-center gap-1"
+                                >
+                                    <i class="pi pi-shopping-bag text-xs"></i> Takeaway
+                                </span>
+                            </div>
+                            <!-- Date and Time -->
+                            <span class="text-xs text-500 font-medium" [title]="bill.saleDate | date: 'full'">
+                                <i class="pi pi-calendar mr-1 text-xs"></i>{{ bill.saleDate | date: 'dd/MM/yyyy h:mm a' }}
+                            </span>
+                        </div>
+
+                        <!-- Middle Row: Customer and Remaining Amount (Due Amount) -->
+                        <div class="flex align-items-center justify-content-between text-xs text-700 my-1">
+                            <span class="text-600 truncate" style="max-width: 13rem;" [title]="bill.customerName || 'Walk-in Customer'">
+                                <i class="pi pi-user mr-1 text-500"></i>{{ bill.customerName || 'Walk-in Customer' }}
+                                <span class="text-500 ml-1">(Total: PKR {{ bill.totalAmount | number:'1.2-2' }})</span>
+                            </span>
+                            <div class="text-right">
+                                <span class="text-xs text-500 block">Remaining Due:</span>
+                                <span class="font-extrabold text-red-600 text-sm">PKR {{ getBillDueAmount(bill) | number:'1.2-2' }}</span>
+                            </div>
+                        </div>
+
+                        <!-- Actions Row: Paid summary & Collect button -->
+                        <div class="flex align-items-center justify-content-between mt-2 pt-1 border-top-1 surface-border">
+                            <span class="text-xs text-500">
+                                <span *ngIf="(bill.paidAmount ?? (bill.cashAmount + bill.cardAmount)) > 0">Paid: PKR {{ (bill.paidAmount ?? (bill.cashAmount + bill.cardAmount)) | number:'1.2-2' }}</span>
+                                <span *ngIf="!((bill.paidAmount ?? (bill.cashAmount + bill.cardAmount)) > 0)" class="text-red-500 font-semibold">Unpaid</span>
+                            </span>
+                            <button
+                                pButton
+                                pRipple
+                                type="button"
+                                label="Collect"
+                                icon="pi pi-wallet"
+                                class="p-button-warning p-button-sm py-1 px-2 text-xs font-semibold"
+                                (click)="$event.stopPropagation(); openCollectBillDialog(bill)"
+                            ></button>
+                        </div>
+                    </li>
+                </ul>
+
+                <div class="pt-2 border-top-1 surface-border flex align-items-center justify-content-between text-xs text-500">
+                    <span><i class="pi pi-info-circle mr-1"></i>Pending credit / due balances</span>
+                    <a class="text-primary font-bold cursor-pointer hover:underline" (click)="navigateToSales()">View in Sales &rarr;</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Combined Notifications: Online Orders + Customer Chat -->
+        <div class="topbar-notifications relative" *ngIf="!isDeliveryRider && !isWaiter">
+            <button
+                type="button"
+                class="topbar-notify-btn p-link"
+                pStyleClass="@next"
+                enterClass="hidden"
+                enterActiveClass="scalein"
+                leaveToClass="hidden"
+                leaveActiveClass="fadeout"
+                [hideOnOutsideClick]="true"
+                title="Orders & Messages"
+                (click)="openNotificationsPanel()"
+            >
+                <i class="pi pi-bell"></i>
+                <span class="topbar-notify-count" *ngIf="totalNotificationCount > 0">
+                    {{ totalNotificationCount > 99 ? '99+' : totalNotificationCount }}
+                </span>
+            </button>
+
+            <div
+                class="list-none p-3 m-0 border-round shadow-4 hidden absolute surface-overlay origin-top-right mt-2 right-0 top-auto z-5"
+                style="width: 23rem; max-height: 32rem; overflow-y: auto;"
+            >
+                <div class="flex align-items-center justify-content-between pb-2 mb-2 border-bottom-1 surface-border">
+                    <span class="font-bold text-900 text-base flex align-items-center gap-2">
+                        <i class="pi pi-bell text-primary"></i>
+                        Notifications
+                    </span>
+                    <span class="badge bg-primary-100 text-primary px-2 py-1 border-round text-xs font-bold" *ngIf="totalNotificationCount > 0">
+                        {{ totalNotificationCount }} new
+                    </span>
+                </div>
+
+                <!-- Orders section -->
+                <div class="flex align-items-center justify-content-between mb-2">
+                    <span class="font-semibold text-800 text-sm flex align-items-center gap-2">
+                        <i class="pi pi-shopping-bag text-primary text-sm"></i>
                         Today's Online Orders
                     </span>
-                    <span class="badge bg-primary-100 text-primary px-2 py-1 border-round text-xs font-bold">
-                        {{ todayPendingOrders.length }} Pending
-                    </span>
+                    <span class="text-xs text-500 font-medium">{{ todayPendingOrders.length }} pending</span>
                 </div>
 
-                <div *ngIf="loadingOrders" class="p-3 text-center text-500">
-                    <i class="pi pi-spin pi-spinner text-xl mr-2"></i> Loading orders...
+                <div *ngIf="loadingOrders" class="p-2 text-center text-500 text-sm mb-2">
+                    <i class="pi pi-spin pi-spinner mr-1"></i> Loading orders...
                 </div>
 
-                <div *ngIf="!loadingOrders && todayPendingOrders.length === 0" class="p-4 text-center">
-                    <i class="pi pi-check-circle text-green-500 text-3xl mb-2 block"></i>
-                    <span class="text-600 font-medium block">All orders completed!</span>
-                    <span class="text-500 text-xs">No pending online orders for today.</span>
+                <div *ngIf="!loadingOrders && todayPendingOrders.length === 0" class="p-3 text-center mb-2 surface-50 border-round">
+                    <span class="text-600 text-sm block">No pending online orders</span>
                 </div>
 
-                <ul *ngIf="!loadingOrders && todayPendingOrders.length > 0" class="list-none p-0 m-0">
+                <ul *ngIf="!loadingOrders && todayPendingOrders.length > 0" class="list-none p-0 m-0 mb-3">
                     <li
                         *ngFor="let order of todayPendingOrders"
                         class="p-2 mb-2 border-round surface-hover transition-colors cursor-pointer border-1 surface-border hover:border-primary"
                         (click)="viewOrder(order)"
                     >
                         <div class="flex align-items-center justify-content-between mb-1">
-                            <span class="font-bold text-900 text-sm">#{{ order.orderNo || order.id }}</span>
+                            <div class="flex align-items-center gap-2">
+                                <span class="font-bold text-900 text-sm">#{{ order.orderNo || order.id }}</span>
+                                <span *ngIf="order.branchName" class="badge bg-blue-50 text-blue-700 px-1 border-round text-xs font-normal">{{ order.branchName }}</span>
+                            </div>
                             <span class="text-xs text-500">{{ formatOrderTime(order.orderDate) }}</span>
                         </div>
                         <div class="flex align-items-center justify-content-between text-xs text-700">
@@ -158,20 +434,89 @@
                             </span>
                             <span class="font-bold text-primary text-sm">{{ order.totalAmount | currency:'PKR ':'symbol':'1.2-2' }}</span>
                         </div>
-                        <div class="flex align-items-center justify-content-between mt-2 pt-1 border-top-1 surface-border text-xs">
+                        <div class="flex align-items-center justify-content-between mt-2 pt-1 border-top-1 surface-border text-xs gap-2">
                             <span class="badge bg-orange-100 text-orange-700 px-2 py-1 border-round font-medium">Pending</span>
-                            <span class="text-primary font-bold hover:underline flex align-items-center gap-1">
-                                View Order <i class="pi pi-arrow-right text-xs"></i>
-                            </span>
+                            <div class="flex align-items-center gap-2" (click)="$event.stopPropagation()">
+                                <button
+                                    type="button"
+                                    class="p-0 border-none bg-transparent text-green-600 font-bold hover:underline flex align-items-center gap-1 cursor-pointer"
+                                    [disabled]="approvingOrderId === order.id"
+                                    (click)="approveOrder(order)"
+                                >
+                                    <i class="pi text-xs" [ngClass]="approvingOrderId === order.id ? 'pi-spin pi-spinner' : 'pi-check'"></i>
+                                    Approve
+                                </button>
+                                <span
+                                    class="text-primary font-bold hover:underline flex align-items-center gap-1 cursor-pointer"
+                                    (click)="viewOrder(order)"
+                                >
+                                    View Order <i class="pi pi-arrow-right text-xs"></i>
+                                </span>
+                            </div>
                         </div>
                     </li>
                 </ul>
 
-                <div class="pt-2 border-top-1 surface-border text-center">
+                <div class="pb-2 mb-2 border-bottom-1 surface-border text-center">
                     <a routerLink="/customer-orders" class="text-primary font-medium text-xs hover:underline flex align-items-center justify-content-center gap-1">
                         View All Customer Orders <i class="pi pi-external-link text-xs"></i>
                     </a>
                 </div>
+
+                <!-- Chat / messages section -->
+                <div class="flex align-items-center justify-content-between mb-2">
+                    <span class="font-semibold text-800 text-sm flex align-items-center gap-2">
+                        <i class="pi pi-comments text-primary text-sm"></i>
+                        Customer Messages
+                    </span>
+                    <span class="badge bg-teal-50 text-teal-700 px-2 py-0 border-round text-xs font-bold" *ngIf="unreadChatCount > 0">
+                        {{ unreadChatCount }} unread
+                    </span>
+                </div>
+
+                <div *ngIf="loadingChats" class="p-2 text-center text-500 text-sm">
+                    <i class="pi pi-spin pi-spinner mr-1"></i> Loading messages...
+                </div>
+
+                <div *ngIf="!loadingChats && chatConversations.length === 0" class="p-3 text-center surface-50 border-round">
+                    <span class="text-600 text-sm block">No customer inquiries</span>
+                    <span class="text-500 text-xs">Order chats and storefront messages appear here.</span>
+                </div>
+
+                <ul *ngIf="!loadingChats && chatConversations.length > 0" class="list-none p-0 m-0">
+                    <li
+                        *ngFor="let conv of chatConversations"
+                        class="p-2 mb-2 border-round surface-hover transition-colors cursor-pointer border-1 surface-border hover:border-primary"
+                        (click)="openChatFromConversation(conv)"
+                    >
+                        <div class="flex align-items-center justify-content-between mb-1">
+                            <div class="flex align-items-center gap-2">
+                                <span class="font-bold text-900 text-sm">
+                                    {{ conv.customerName || 'Online Customer' }}
+                                </span>
+                                <span
+                                    class="badge px-1 border-round text-xs font-medium"
+                                    [ngClass]="conv.orderNo ? 'bg-blue-50 text-blue-700' : 'bg-purple-50 text-purple-700'"
+                                >
+                                    {{ conv.orderNo ? ('#' + conv.orderNo) : 'Storefront Inquiry' }}
+                                </span>
+                            </div>
+                            <span class="text-xs text-500">{{ formatOrderTime(conv.lastMessageTime) }}</span>
+                        </div>
+                        <div class="text-xs text-600 text-overflow-ellipsis white-space-nowrap overflow-hidden mb-1">
+                            {{ conv.lastMessage }}
+                        </div>
+                        <div class="flex align-items-center justify-content-between pt-1 border-top-1 surface-border text-xs">
+                            <span *ngIf="conv.unreadCount > 0" class="badge bg-red-100 text-red-700 px-2 py-0 border-round font-bold text-xs">
+                                {{ conv.unreadCount }} new
+                            </span>
+                            <span *ngIf="!conv.unreadCount" class="text-400 text-xs">Read</span>
+                            <span class="text-primary font-bold hover:underline flex align-items-center gap-1">
+                                Reply <i class="pi pi-arrow-right text-xs"></i>
+                            </span>
+                        </div>
+                    </li>
+                </ul>
             </div>
         </div>
 
@@ -207,9 +552,17 @@
                 <i class="pi pi-angle-down"></i>
             </button>
             <ul
-                class="list-none p-3 m-0 border-round shadow-2 hidden absolute surface-overlay origin-top w-full sm:w-12rem mt-2 right-0 top-auto"
+                class="list-none p-3 m-0 border-round shadow-2 hidden absolute surface-overlay origin-top w-full sm:w-12rem mt-2 right-0 top-auto z-5"
             >
                 <li>
+                    <a
+                        pRipple
+                        class="flex p-2 border-round align-items-center hover:surface-hover transition-colors transition-duration-150 cursor-pointer"
+                        (click)="openDisplaySettings()"
+                    >
+                        <i class="pi pi-palette mr-3"></i>
+                        <span>Display &amp; Printer</span>
+                    </a>
                     <a
                         pRipple
                         class="flex p-2 border-round align-items-center hover:surface-hover transition-colors transition-duration-150 cursor-pointer"
@@ -217,6 +570,17 @@
                     >
                         <i class="pi pi-key mr-3"></i>
                         <span>Change Password</span>
+                    </a>
+                    <a
+                        pRipple
+                        class="flex p-2 border-round align-items-center hover:surface-hover transition-colors transition-duration-150 cursor-pointer"
+                        (click)="toggleFullscreen()"
+                    >
+                        <i
+                            class="pi mr-3"
+                            [ngClass]="isFullscreen ? 'pi-window-minimize' : 'pi-window-maximize'"
+                        ></i>
+                        <span>{{ isFullscreen ? 'Exit Full Screen' : 'Full Screen' }}</span>
                     </a>
                     <a
                         pRipple
@@ -235,4 +599,136 @@
         </div>
     </div>
 </div>
+
+<!-- Real-Time Customer Chat Dialog -->
+<p-dialog
+    header="Customer Conversation"
+    [(visible)]="chatDialogVisible"
+    [modal]="true"
+    appendTo="body"
+    [style]="{ width: '38rem' }"
+    [breakpoints]="{ '960px': '92vw' }"
+    [draggable]="false"
+    [resizable]="false"
+>
+    <app-order-chat
+        *ngIf="chatDialogVisible && selectedConversationForChat"
+        [orderNo]="selectedConversationForChat.orderNo"
+        [sessionId]="selectedConversationForChat.sessionId"
+        [branchId]="selectedConversationForChat.branchId"
+        [customerName]="selectedConversationForChat.customerName"
+        [customerMobile]="selectedConversationForChat.customerMobile"
+        mode="store"
+        height="340px"
+        [title]="selectedConversationForChat.orderNo ? ('Chat - #' + selectedConversationForChat.orderNo) : ('Inquiry - ' + (selectedConversationForChat.customerName || 'Customer'))"
+        [subtitle]="selectedConversationForChat.orderNo ? selectedConversationForChat.customerName : 'Generic Storefront Inquiry'"
+        (unreadCountChange)="loadChatConversations(false)"
+    ></app-order-chat>
+</p-dialog>
+
+<!-- Collect Payment Dialog for Unpaid Bills -->
+<p-dialog
+    header="Collect Payment"
+    [(visible)]="collectBillDialogVisible"
+    [modal]="true"
+    appendTo="body"
+    [style]="{ width: '28rem' }"
+    [breakpoints]="{ '960px': '92vw' }"
+    [draggable]="false"
+    [resizable]="false"
+>
+    <div *ngIf="selectedBillForPayment" class="p-fluid">
+        <div class="p-3 mb-3 border-round surface-50 border-1 surface-border">
+            <div class="flex justify-content-between align-items-center mb-1">
+                <span class="text-xs text-600 font-semibold">Invoice:</span>
+                <span class="text-sm font-bold text-900">#{{ selectedBillForPayment.invoiceNo }}</span>
+            </div>
+            <div class="flex justify-content-between align-items-center mb-1">
+                <span class="text-xs text-600 font-semibold">Order Type:</span>
+                <span class="text-xs font-bold">{{ getBillType(selectedBillForPayment) }}</span>
+            </div>
+            <div class="flex justify-content-between align-items-center mb-1">
+                <span class="text-xs text-600 font-semibold">Customer:</span>
+                <span class="text-xs font-semibold text-700">{{ selectedBillForPayment.customerName || 'Walk-in Customer' }}</span>
+            </div>
+            <div class="flex justify-content-between align-items-center mb-1">
+                <span class="text-xs text-600 font-semibold">Total Amount:</span>
+                <span class="text-sm font-bold text-900">PKR {{ selectedBillForPayment.totalAmount | number: '1.2-2' }}</span>
+            </div>
+            <div class="flex justify-content-between align-items-center mb-1">
+                <span class="text-xs text-600 font-semibold">Already Paid:</span>
+                <span class="text-sm font-semibold text-green-700">PKR {{ (selectedBillForPayment.paidAmount ?? (selectedBillForPayment.cashAmount + selectedBillForPayment.cardAmount)) | number: '1.2-2' }}</span>
+            </div>
+            <div class="flex justify-content-between align-items-center">
+                <span class="text-xs text-red-600 font-bold uppercase">Remaining Due:</span>
+                <span class="text-base font-extrabold text-red-600">PKR {{ getBillDueAmount(selectedBillForPayment) | number: '1.2-2' }}</span>
+            </div>
+        </div>
+
+        <div class="field mb-3">
+            <label for="collectBillAmountInput" class="text-xs font-bold text-700 mb-1 block">
+                Payment Amount (PKR) <span class="text-red-500">*</span>
+            </label>
+            <p-inputNumber
+                id="collectBillAmountInput"
+                [(ngModel)]="collectBillAmount"
+                mode="decimal"
+                [minFractionDigits]="2"
+                [maxFractionDigits]="2"
+                [min]="0.01"
+                [max]="getBillDueAmount(selectedBillForPayment)"
+                class="w-full"
+                inputStyleClass="w-full font-bold text-lg text-green-700"
+            ></p-inputNumber>
+        </div>
+
+        <div class="field mb-3">
+            <label class="text-xs font-bold text-700 mb-1 block">Payment Method</label>
+            <p-dropdown
+                [options]="paymentMethodOptions"
+                [(ngModel)]="collectBillPaymentMethod"
+                optionLabel="label"
+                optionValue="value"
+                styleClass="w-full"
+            ></p-dropdown>
+        </div>
+
+        <div class="field mb-0">
+            <label for="collectBillNotesInput" class="text-xs font-bold text-700 mb-1 block">
+                Notes / Reference <span class="text-500 font-medium">(optional)</span>
+            </label>
+            <input
+                pInputText
+                id="collectBillNotesInput"
+                type="text"
+                [(ngModel)]="collectBillNotes"
+                placeholder="e.g. collected at counter, bank receipt #..."
+                class="w-full text-sm"
+            />
+        </div>
+    </div>
+
+    <ng-template pTemplate="footer">
+        <div class="flex justify-content-end gap-2">
+            <button
+                pButton
+                label="Cancel"
+                icon="pi pi-times"
+                class="p-button-text p-button-sm"
+                (click)="cancelCollectBillDialog()"
+                [disabled]="collectingBillPayment"
+            ></button>
+            <button
+                pButton
+                label="Collect Payment"
+                icon="pi pi-check"
+                class="p-button-success p-button-sm"
+                (click)="submitCollectBillPayment()"
+                [loading]="collectingBillPayment"
+            ></button>
+        </div>
+    </ng-template>
+</p-dialog>
+
 <p-toast></p-toast>
+<app-printer-config-dialog [(visible)]="layoutService.printerConfigVisible"></app-printer-config-dialog>

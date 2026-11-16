@@ -1,67 +1,162 @@
 <div class="card">
-    <p-table
-        #dt
-        [value]="sales"
-        [paginator]="true"
-        [rows]="10"
-        [showCurrentPageReport]="true"
-        responsiveLayout="scroll"
-        [loading]="loading"
-        currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries"
-        [rowsPerPageOptions]="[10, 25, 50]"
-        [globalFilterFields]="['invoiceNo', 'customerName', 'notes']"
+    <p-tabView
+        [activeIndex]="activeListTab"
+        (activeIndexChange)="onListTabChange($event)"
+        styleClass="sale-list-tabs mb-2"
     >
-        <ng-template pTemplate="caption">
-            <div class="flex flex-wrap gap-2 align-items-center justify-content-between">
-                <div class="flex flex-wrap gap-2 align-items-center flex-order-1 sm:flex-order-0">
-                    <span class="p-input-icon-left w-full sm:w-20rem">
-                        <i class="pi pi-search"></i>
-                        <input
-                            pInputText
-                            type="text"
-                            class="w-full"
-                            placeholder="Search sales"
-                            [(ngModel)]="keyword"
-                            (keyup.enter)="onSearch()"
-                            (input)="onGlobalFilter(dt, $event)"
-                        />
-                    </span>
-                    <button
-                        pButton
-                        pRipple
-                        type="button"
-                        icon="pi pi-search"
-                        class="p-button-outlined"
-                        label="Search"
-                        (click)="onSearch()"
-                    ></button>
+        <p-tabPanel>
+            <ng-template pTemplate="header">
+                <span class="flex align-items-center gap-2">
+                    <i class="pi pi-shopping-cart"></i>
+                    <span>Sales</span>
+                    <span class="sale-tab-count">{{ totalRecords }}</span>
+                </span>
+            </ng-template>
+        </p-tabPanel>
+        <p-tabPanel>
+            <ng-template pTemplate="header">
+                <span class="flex align-items-center gap-2">
+                    <i class="pi pi-building"></i>
+                    <span>Department Sales</span>
+                    <span class="sale-tab-count" *ngIf="deptReport?.departments?.length">{{ deptReport?.departments?.length }}</span>
+                </span>
+            </ng-template>
+        </p-tabPanel>
+        <p-tabPanel>
+            <ng-template pTemplate="header">
+                <span class="flex align-items-center gap-2">
+                    <i class="pi pi-replay"></i>
+                    <span>Return History</span>
+                    <span class="sale-tab-count">{{ totalReturnRecords }}</span>
+                </span>
+            </ng-template>
+        </p-tabPanel>
+    </p-tabView>
+
+    <!-- Sales Table -->
+    <div *ngIf="activeListTab === 0">
+        <p-table
+            #dt
+            [value]="filteredSales"
+            [paginator]="true"
+            [rows]="10"
+            [showCurrentPageReport]="true"
+            responsiveLayout="scroll"
+            [loading]="loading"
+            currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries"
+            [rowsPerPageOptions]="[10, 25, 50]"
+            [globalFilterFields]="['invoiceNo', 'customerName', 'notes']"
+        >
+            <ng-template pTemplate="caption">
+                <div class="flex flex-wrap gap-2 align-items-center justify-content-between">
+                    <div class="flex flex-wrap gap-2 align-items-center flex-order-1 sm:flex-order-0">
+                        <span class="p-input-icon-left w-full sm:w-16rem">
+                            <i class="pi pi-search"></i>
+                            <input
+                                pInputText
+                                type="text"
+                                class="w-full"
+                                placeholder="Search sales"
+                                [(ngModel)]="keyword"
+                                (keyup.enter)="onSearch()"
+                                (input)="onGlobalFilter(dt, $event)"
+                            />
+                        </span>
+
+                        <div class="flex align-items-center gap-1">
+                            <span class="text-600 text-sm font-medium">From:</span>
+                            <input
+                                pInputText
+                                type="date"
+                                [(ngModel)]="fromDate"
+                                (change)="onDateChange()"
+                                class="w-full sm:w-10rem"
+                            />
+                        </div>
+
+                        <div class="flex align-items-center gap-1">
+                            <span class="text-600 text-sm font-medium">To:</span>
+                            <input
+                                pInputText
+                                type="date"
+                                [(ngModel)]="toDate"
+                                (change)="onDateChange()"
+                                class="w-full sm:w-10rem"
+                            />
+                        </div>
+
+                        <button
+                            *ngIf="fromDate || toDate"
+                            pButton
+                            pRipple
+                            type="button"
+                            icon="pi pi-times"
+                            class="p-button-text p-button-secondary"
+                            pTooltip="Clear dates"
+                            tooltipPosition="top"
+                            (click)="clearDateFilter()"
+                        ></button>
+
+                        <button
+                            pButton
+                            pRipple
+                            type="button"
+                            icon="pi pi-search"
+                            class="p-button-outlined"
+                            label="Search"
+                            (click)="onSearch()"
+                        ></button>
+
+                        <p-dropdown
+                            [options]="saleTypeOptions"
+                            [(ngModel)]="selectedSaleType"
+                            optionLabel="label"
+                            optionValue="value"
+                            placeholder="Filter by Type"
+                            styleClass="w-full sm:w-11rem"
+                        ></p-dropdown>
+
+                        <p-dropdown
+                            [options]="paymentStatusOptions"
+                            [(ngModel)]="selectedPaymentStatus"
+                            optionLabel="label"
+                            optionValue="value"
+                            placeholder="Payment Status"
+                            styleClass="w-full sm:w-12rem"
+                        ></p-dropdown>
+                    </div>
+                    <div class="flex flex-wrap gap-2 align-items-center">
+                        <button
+                            pButton
+                            pRipple
+                            type="button"
+                            icon="pi pi-plus"
+                            label="Create"
+                            class="p-button-primary w-full sm:w-auto font-semibold"
+                            (click)="openCreateDialog()"
+                            [disabled]="!canCreate"
+                            [pTooltip]="!canCreate ? 'You do not have permission to Create' : ''"
+                            tooltipPosition="top"
+                        ></button>
+                    </div>
                 </div>
-                <button
-                    pButton
-                    pRipple
-                    type="button"
-                    icon="pi pi-plus"
-                    label="Create"
-                    class="p-button-primary w-full sm:w-auto flex-order-0 sm:flex-order-1 font-semibold"
-                    (click)="openCreateDialog()"
-                    [disabled]="!canCreate"
-                    [pTooltip]="!canCreate ? 'You do not have permission to Create' : ''"
-                    tooltipPosition="top"
-                ></button>
-            </div>
-        </ng-template>
+            </ng-template>
 
         <ng-template pTemplate="header">
             <tr>
                 <th pSortableColumn="invoiceNo">Invoice No <p-sortIcon field="invoiceNo"></p-sortIcon></th>
                 <th pSortableColumn="saleDate">Sale Date <p-sortIcon field="saleDate"></p-sortIcon></th>
+                <th pSortableColumn="saleType">Sale Type <p-sortIcon field="saleType"></p-sortIcon></th>
                 <th pSortableColumn="customerName">Customer <p-sortIcon field="customerName"></p-sortIcon></th>
                 <th>Return</th>
                 <th pSortableColumn="paymentType">Payment <p-sortIcon field="paymentType"></p-sortIcon></th>
                 <th pSortableColumn="subTotal">Sub Total <p-sortIcon field="subTotal"></p-sortIcon></th>
                 <th pSortableColumn="discountAmount">Discount <p-sortIcon field="discountAmount"></p-sortIcon></th>
                 <th pSortableColumn="taxAmount">Tax <p-sortIcon field="taxAmount"></p-sortIcon></th>
-                <th pSortableColumn="totalAmount">Total <p-sortIcon field="totalAmount"></p-sortIcon></th>
+                <th pSortableColumn="deliveryCharges">Delivery <p-sortIcon field="deliveryCharges"></p-sortIcon></th>
+                <th pSortableColumn="totalAmount" class="text-right">Total <p-sortIcon field="totalAmount"></p-sortIcon></th>
+                <th pSortableColumn="paidAmount" class="text-right">Paid <p-sortIcon field="paidAmount"></p-sortIcon></th>
+                <th pSortableColumn="dueAmount" class="text-right">Due Amount <p-sortIcon field="dueAmount"></p-sortIcon></th>
                 <th class="text-center" style="width: 4.5rem">Actions</th>
             </tr>
         </ng-template>
@@ -69,13 +164,40 @@
         <ng-template pTemplate="body" let-sale>
             <tr>
                 <td>{{ sale.invoiceNo || ('#' + sale.id) }}</td>
-                <td>{{ sale.saleDate | date: formatService.dateFormat }}</td>
+                <td>
+                    <div class="font-medium text-800">{{ sale.saleDate | date: formatService.dateFormat }}</div>
+                    <div class="text-xs text-500 font-normal">{{ sale.saleDate | date: 'shortTime' }}</div>
+                </td>
+                <td>
+                    <span
+                        *ngIf="getSaleType(sale) === 'Online Order'"
+                        class="inline-flex align-items-center gap-1 px-2 py-1 border-round-lg text-xs font-semibold bg-blue-50 text-blue-700 border-1 border-blue-200"
+                    >
+                        <i class="pi pi-globe text-xs"></i> Online Order
+                    </span>
+                    <span
+                        *ngIf="getSaleType(sale) === 'Dine-In'"
+                        class="inline-flex align-items-center gap-1 px-2 py-1 border-round-lg text-xs font-semibold bg-purple-50 text-purple-700 border-1 border-purple-200"
+                    >
+                        <i class="pi pi-table text-xs"></i> Dine-In
+                    </span>
+                    <span
+                        *ngIf="getSaleType(sale) === 'Takeaway'"
+                        class="inline-flex align-items-center gap-1 px-2 py-1 border-round-lg text-xs font-semibold bg-bluegray-50 text-bluegray-700 border-1 border-bluegray-200"
+                    >
+                        <i class="pi pi-shopping-bag text-xs"></i> Takeaway
+                    </span>
+                </td>
                 <td>{{ sale.customerName || '—' }}</td>
                 <td>
                     <p-tag
                         *ngIf="sale.hasReturns; else noReturn"
                         [value]="(sale.returnCount || 1) + ' return(s)'"
                         severity="warn"
+                        class="cursor-pointer"
+                        (click)="filterReturnsForSale(sale)"
+                        pTooltip="Click to view in Return History"
+                        tooltipPosition="top"
                     ></p-tag>
                     <ng-template #noReturn>
                         <span class="text-500">—</span>
@@ -85,7 +207,43 @@
                 <td>{{ sale.subTotal | number: '1.2-2' }}</td>
                 <td>{{ sale.discountAmount | number: '1.2-2' }}</td>
                 <td>{{ sale.taxAmount | number: '1.2-2' }}</td>
-                <td>{{ sale.totalAmount | number: '1.2-2' }}</td>
+                <td>
+                    <span *ngIf="sale.deliveryCharges && sale.deliveryCharges > 0" class="font-bold text-primary">
+                        {{ sale.deliveryCharges | number: '1.2-2' }}
+                        <span *ngIf="sale.deliveryAreaName" class="text-xs text-500 block">({{ sale.deliveryAreaName }})</span>
+                    </span>
+                    <span *ngIf="!sale.deliveryCharges || sale.deliveryCharges === 0" class="text-500">—</span>
+                </td>
+                <td class="text-right font-bold">{{ sale.totalAmount | number: '1.2-2' }}</td>
+                <td class="text-right font-semibold text-green-700">{{ getPaidAmount(sale) | number: '1.2-2' }}</td>
+                <td class="text-right">
+                    <div class="flex align-items-center justify-content-end gap-1">
+                        <span
+                            *ngIf="getDueAmount(sale) > 0"
+                            class="inline-flex align-items-center px-2 py-1 border-round text-xs font-bold bg-red-50 text-red-700 border-1 border-red-200"
+                        >
+                            {{ getDueAmount(sale) | number: '1.2-2' }}
+                        </span>
+                        <span
+                            *ngIf="getDueAmount(sale) <= 0"
+                            class="text-xs text-500 font-medium"
+                        >
+                            0.00
+                        </span>
+                        <button
+                            *ngIf="getDueAmount(sale) > 0"
+                            pButton
+                            pRipple
+                            type="button"
+                            icon="pi pi-dollar"
+                            class="p-button-rounded p-button-text p-button-sm p-button-success p-0"
+                            style="width: 1.75rem; height: 1.75rem"
+                            (click)="openCollectPaymentDialog(sale)"
+                            pTooltip="Collect Pending Amount"
+                            tooltipPosition="top"
+                        ></button>
+                    </div>
+                </td>
                 <td class="text-center">
                     <app-row-actions [items]="getRowActions(sale)"></app-row-actions>
                 </td>
@@ -94,40 +252,479 @@
 
         <ng-template pTemplate="emptymessage">
             <tr>
-                <td colspan="10" class="text-center p-4">
+                <td colspan="12" class="text-center p-4">
                     <div class="text-500">No sales found</div>
                 </td>
             </tr>
         </ng-template>
-    </p-table>
+        </p-table>
+    </div>
 
-    <app-sale-form-dialog
-        *ngFor="let instanceId of createDialogInstances; trackBy: trackByFn"
-        [visible]="true"
-        (visibleChange)="onDialogVisibleChange(instanceId, $event)"
-        (saved)="onDialogSaved()"
-    ></app-sale-form-dialog>
+    <!-- Department Sales View (activeListTab === 1) -->
+    <div *ngIf="activeListTab === 1" class="mt-2">
+        <!-- Filter Toolbar -->
+        <div class="p-3 border-1 surface-border border-round surface-card mb-3">
+            <div class="flex flex-wrap gap-2 align-items-center justify-content-between">
+                <div class="flex flex-wrap gap-2 align-items-center flex-order-1 sm:flex-order-0">
+                    <!-- Search Product Name -->
+                    <span class="p-input-icon-left w-full sm:w-16rem">
+                        <i class="pi pi-search"></i>
+                        <input
+                            pInputText
+                            type="text"
+                            class="w-full"
+                            placeholder="Search products..."
+                            [(ngModel)]="deptKeyword"
+                            (keyup.enter)="loadDepartmentSales()"
+                        />
+                    </span>
 
-    <app-sale-view-dialog
-        [(visible)]="viewDialogVisible"
-        [saleId]="viewingSaleId"
-        (printRequested)="openPrintDialog($event)"
-        (returnRequested)="openReturnDialogForSaleId($event)"
-        (changed)="onDialogSaved()"
-    ></app-sale-view-dialog>
+                    <!-- Department Dropdown -->
+                    <p-dropdown
+                        [options]="deptOptions"
+                        [(ngModel)]="selectedDeptId"
+                        (onChange)="loadDepartmentSales()"
+                        optionLabel="label"
+                        optionValue="value"
+                        placeholder="All Departments"
+                        styleClass="w-full sm:w-13rem"
+                    ></p-dropdown>
 
-    <app-print-sale-invoice-dialog
-        [(visible)]="printDialogVisible"
-        [saleId]="printingSaleId"
-        [autoPrint]="printAutoPrint"
-    ></app-print-sale-invoice-dialog>
+                    <!-- From Date -->
+                    <div class="flex align-items-center gap-1">
+                        <span class="text-600 text-sm font-medium">From:</span>
+                        <input
+                            pInputText
+                            type="date"
+                            [(ngModel)]="deptFromDate"
+                            (change)="loadDepartmentSales()"
+                            class="w-full sm:w-10rem"
+                        />
+                    </div>
 
-    <app-sale-return-form-dialog
-        [(visible)]="returnDialogVisible"
-        [saleId]="returningSaleId"
-        (saved)="onDialogSaved()"
-    ></app-sale-return-form-dialog>
+                    <!-- To Date -->
+                    <div class="flex align-items-center gap-1">
+                        <span class="text-600 text-sm font-medium">To:</span>
+                        <input
+                            pInputText
+                            type="date"
+                            [(ngModel)]="deptToDate"
+                            (change)="loadDepartmentSales()"
+                            class="w-full sm:w-10rem"
+                        />
+                    </div>
 
-    <p-toast></p-toast>
-    <p-confirmDialog></p-confirmDialog>
+                    <!-- Reset Filters Button -->
+                    <button
+                        *ngIf="deptKeyword || selectedDeptId !== null || deptFromDate || deptToDate"
+                        pButton
+                        pRipple
+                        type="button"
+                        icon="pi pi-times"
+                        class="p-button-text p-button-secondary"
+                        pTooltip="Reset filters"
+                        tooltipPosition="top"
+                        (click)="clearDeptFilters()"
+                    ></button>
+
+                    <!-- Search / Refresh Button -->
+                    <button
+                        pButton
+                        pRipple
+                        type="button"
+                        icon="pi pi-search"
+                        class="p-button-outlined"
+                        label="Search"
+                        (click)="loadDepartmentSales()"
+                        [loading]="loadingDeptSales"
+                    ></button>
+
+                    <!-- Print Button -->
+                    <button
+                        pButton
+                        pRipple
+                        type="button"
+                        icon="pi pi-print"
+                        class="p-button-outlined"
+                        label="Print"
+                        (click)="printDepartmentSales()"
+                    ></button>
+                </div>
+
+                <!-- Grand Total badge -->
+                <div *ngIf="deptReport as report" class="flex align-items-center gap-3">
+                    <div class="text-right">
+                        <div class="text-xs text-500 font-semibold uppercase">Total Sales</div>
+                        <div class="text-xl font-bold text-primary">
+                            {{ report.grandTotalAmount | currency : 'PKR ' : 'symbol' : '1.2-2' }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading State -->
+        <div *ngIf="loadingDeptSales" class="p-5 text-center">
+            <i class="pi pi-spin pi-spinner text-3xl text-primary mb-2"></i>
+            <div class="text-600 font-medium">Loading department sales...</div>
+        </div>
+
+        <!-- Empty State -->
+        <div *ngIf="!loadingDeptSales && (!deptReport || !deptReport.departments || deptReport.departments.length === 0)" class="text-center p-5 surface-50 border-round border-1 surface-border my-3">
+            <i class="pi pi-inbox text-500 text-4xl mb-2"></i>
+            <div class="text-900 font-semibold text-lg">No department sales found</div>
+            <div class="text-500 text-sm mt-1">There are no product sales matching the selected department or date filters.</div>
+            <button
+                pButton
+                pRipple
+                type="button"
+                icon="pi pi-refresh"
+                label="Reset Filters"
+                class="p-button-outlined mt-3"
+                (click)="clearDeptFilters()"
+            ></button>
+        </div>
+
+        <!-- Department Groups -->
+        <ng-container *ngIf="!loadingDeptSales && deptReport as report">
+            <div *ngIf="report.departments.length > 0">
+                <div
+                    class="mb-4 border-1 surface-border border-round overflow-hidden shadow-1"
+                    *ngFor="let dept of report.departments"
+                >
+                    <!-- Department Heading Banner -->
+                    <div class="bg-primary-50 p-3 px-4 flex flex-wrap align-items-center justify-content-between border-bottom-1 surface-border">
+                        <div class="flex align-items-center gap-2">
+                            <i class="pi pi-building text-primary text-xl"></i>
+                            <h5 class="m-0 text-900 font-bold">{{ dept.departmentName }}</h5>
+                            <span class="p-tag p-tag-info p-tag-rounded text-xs">{{ dept.products.length }} {{ dept.products.length === 1 ? 'Product' : 'Products' }}</span>
+                        </div>
+                        <div class="flex align-items-center gap-3">
+                            <span class="text-600 text-sm">Qty Sold: <strong class="text-900">{{ dept.totalQuantitySold | number:'1.0-2' }}</strong></span>
+                            <span class="text-600 text-sm">Department Total: <strong class="text-primary text-base">{{ dept.totalSalesAmount | currency : 'PKR ' : 'symbol' : '1.2-2' }}</strong></span>
+                        </div>
+                    </div>
+
+                    <!-- Products Table -->
+                    <p-table
+                        [value]="dept.products"
+                        responsiveLayout="scroll"
+                        styleClass="p-datatable-striped p-datatable-sm"
+                    >
+                        <ng-template pTemplate="header">
+                            <tr>
+                                <th style="width: 50px;">#</th>
+                                <th>Product Name</th>
+                                <th style="text-align: right; width: 180px;">Product Price</th>
+                                <th style="text-align: right; width: 200px;">Total Quantity Sold</th>
+                                <th style="text-align: right; width: 220px;">Total Sales Amount</th>
+                            </tr>
+                        </ng-template>
+                        <ng-template pTemplate="body" let-prod let-i="rowIndex">
+                            <tr>
+                                <td class="text-500">{{ i + 1 }}</td>
+                                <td class="font-medium text-900">{{ prod.productName }}</td>
+                                <td style="text-align: right;">{{ prod.price | currency : 'PKR ' : 'symbol' : '1.2-2' }}</td>
+                                <td style="text-align: right;">
+                                    <span class="font-semibold">{{ prod.quantitySold | number:'1.0-2' }}</span>
+                                </td>
+                                <td style="text-align: right;" class="font-bold text-900">
+                                    {{ prod.totalAmount | currency : 'PKR ' : 'symbol' : '1.2-2' }}
+                                </td>
+                            </tr>
+                        </ng-template>
+                        <ng-template pTemplate="footer">
+                            <tr>
+                                <td colspan="3" class="text-right font-bold text-700 bg-gray-50 uppercase text-sm">
+                                    {{ dept.departmentName }} Total Sales Amount:
+                                </td>
+                                <td style="text-align: right;" class="font-bold bg-gray-50 text-900">
+                                    {{ dept.totalQuantitySold | number:'1.0-2' }}
+                                </td>
+                                <td style="text-align: right;" class="font-bold text-primary bg-gray-50 text-base">
+                                    {{ dept.totalSalesAmount | currency : 'PKR ' : 'symbol' : '1.2-2' }}
+                                </td>
+                            </tr>
+                        </ng-template>
+                    </p-table>
+                </div>
+
+                <!-- Grand Total Summary Card -->
+                <div *ngIf="report.departments.length > 1" class="surface-card p-3 px-4 border-round border-1 surface-border shadow-1 flex flex-wrap justify-content-between align-items-center mt-3 bg-primary-100">
+                    <span class="font-bold text-900 text-lg uppercase">All Departments Grand Total</span>
+                    <div class="flex align-items-center gap-4">
+                        <span class="text-base text-700 font-medium">Total Qty Sold: <strong class="text-900">{{ report.grandTotalQuantity | number:'1.0-2' }}</strong></span>
+                        <span class="text-base text-700 font-medium">Grand Total Sales: <strong class="text-primary text-xl">{{ report.grandTotalAmount | currency : 'PKR ' : 'symbol' : '1.2-2' }}</strong></span>
+                    </div>
+                </div>
+            </div>
+        </ng-container>
+    </div>
+
+    <!-- Return History Table -->
+    <div *ngIf="activeListTab === 2">
+        <p-table
+        #dtReturns
+        [value]="returns"
+        [paginator]="true"
+        [rows]="10"
+        [showCurrentPageReport]="true"
+        responsiveLayout="scroll"
+        [loading]="loadingReturns"
+        currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries"
+        [rowsPerPageOptions]="[10, 25, 50]"
+        [globalFilterFields]="['id', 'saleInvoiceNo', 'customerName', 'notes']"
+    >
+        <ng-template pTemplate="caption">
+            <div class="flex flex-wrap gap-2 align-items-center justify-content-between">
+                <div class="flex flex-wrap gap-2 align-items-center flex-order-1 sm:flex-order-0">
+                    <span class="p-input-icon-left w-full sm:w-22rem">
+                        <i class="pi pi-search"></i>
+                        <input
+                            pInputText
+                            type="text"
+                            class="w-full"
+                            placeholder="Search invoice, customer, return reason..."
+                            [(ngModel)]="returnKeyword"
+                            (keyup.enter)="onSearchReturns()"
+                            (input)="onGlobalFilter(dtReturns, $event)"
+                        />
+                    </span>
+                    <button
+                        pButton
+                        pRipple
+                        type="button"
+                        icon="pi pi-search"
+                        class="p-button-outlined"
+                        label="Search"
+                        (click)="onSearchReturns()"
+                    ></button>
+                    <button
+                        *ngIf="returnKeyword"
+                        pButton
+                        pRipple
+                        type="button"
+                        icon="pi pi-times"
+                        class="p-button-outlined p-button-secondary"
+                        label="Clear Filter"
+                        (click)="returnKeyword = ''; onSearchReturns()"
+                    ></button>
+                </div>
+                <div class="flex flex-wrap gap-2 align-items-center">
+                    <button
+                        pButton
+                        pRipple
+                        type="button"
+                        icon="pi pi-refresh"
+                        class="p-button-outlined"
+                        label="Refresh"
+                        (click)="loadReturns()"
+                    ></button>
+                    <button
+                        pButton
+                        pRipple
+                        type="button"
+                        icon="pi pi-plus"
+                        label="New Return"
+                        class="p-button-warning font-semibold"
+                        (click)="openCreateReturnDialog()"
+                    ></button>
+                </div>
+            </div>
+        </ng-template>
+
+        <ng-template pTemplate="header">
+            <tr>
+                <th pSortableColumn="id" style="width: 7rem">Return # <p-sortIcon field="id"></p-sortIcon></th>
+                <th pSortableColumn="returnDate" style="width: 10rem">Return Date <p-sortIcon field="returnDate"></p-sortIcon></th>
+                <th pSortableColumn="saleInvoiceNo" style="width: 11rem">Sale Invoice <p-sortIcon field="saleInvoiceNo"></p-sortIcon></th>
+                <th pSortableColumn="customerName">Customer <p-sortIcon field="customerName"></p-sortIcon></th>
+                <th>Returned Products</th>
+                <th>Return Reason / Note</th>
+                <th pSortableColumn="totalAmount" style="width: 9rem">Refund Total <p-sortIcon field="totalAmount"></p-sortIcon></th>
+                <th class="text-center" style="width: 4.5rem">Actions</th>
+            </tr>
+        </ng-template>
+
+        <ng-template pTemplate="body" let-item>
+            <tr>
+                <td>
+                    <span class="font-bold text-primary">#{{ item.id }}</span>
+                </td>
+                <td>{{ item.returnDate | date: formatService.dateFormat }}</td>
+                <td>
+                    <span class="font-semibold">{{ item.saleInvoiceNo || ('Sale #' + item.saleId) }}</span>
+                </td>
+                <td>{{ item.customerName || '—' }}</td>
+                <td>
+                    <span class="text-sm font-medium">{{ formatReturnLines(item) }}</span>
+                </td>
+                <td>
+                    <span
+                        *ngIf="item.notes"
+                        class="inline-flex align-items-center gap-1 bg-yellow-50 text-yellow-900 border-1 border-yellow-200 border-round px-2 py-1 text-xs font-semibold"
+                        [title]="item.notes"
+                    >
+                        <i class="pi pi-comment text-xs"></i>
+                        {{ item.notes }}
+                    </span>
+                    <span *ngIf="!item.notes" class="text-500">—</span>
+                </td>
+                <td class="font-bold text-orange-600">{{ item.totalAmount | number: '1.2-2' }}</td>
+                <td class="text-center">
+                    <app-row-actions [items]="getReturnRowActions(item)"></app-row-actions>
+                </td>
+            </tr>
+        </ng-template>
+
+        <ng-template pTemplate="emptymessage">
+            <tr>
+                <td colspan="8" class="text-center p-4">
+                    <div class="text-500">No sale returns found in history</div>
+                </td>
+            </tr>
+        </ng-template>
+        </p-table>
+    </div>
 </div>
+
+<app-sale-form-dialog
+    *ngFor="let instanceId of createDialogInstances; trackBy: trackByFn"
+    [visible]="true"
+    (visibleChange)="onDialogVisibleChange(instanceId, $event)"
+    (saved)="onDialogSaved()"
+></app-sale-form-dialog>
+
+<app-sale-view-dialog
+    [(visible)]="viewDialogVisible"
+    [saleId]="viewingSaleId"
+    (printRequested)="openPrintDialog($event)"
+    (returnRequested)="openReturnDialogForSaleId($event)"
+    (changed)="onDialogSaved()"
+></app-sale-view-dialog>
+
+<app-print-sale-invoice-dialog
+    [(visible)]="printDialogVisible"
+    [saleId]="printingSaleId"
+    [autoPrint]="printAutoPrint"
+></app-print-sale-invoice-dialog>
+
+<app-sale-return-form-dialog
+    [(visible)]="returnDialogVisible"
+    [saleId]="returningSaleId"
+    (saved)="onDialogSaved()"
+></app-sale-return-form-dialog>
+
+<app-sale-return-view-dialog
+    [(visible)]="viewReturnDialogVisible"
+    [saleReturnId]="viewingReturnId"
+    (deleted)="onDialogSaved()"
+></app-sale-return-view-dialog>
+
+<p-toast></p-toast>
+<p-confirmDialog></p-confirmDialog>
+
+    <!-- Collect Payment Dialog -->
+    <p-dialog
+        header="Collect Pending Due Payment"
+        [(visible)]="collectDialogVisible"
+        [modal]="true"
+        [style]="{ width: '420px', maxWidth: '92vw' }"
+        [draggable]="false"
+        [resizable]="false"
+        [closable]="!collectingPayment"
+        (onHide)="cancelCollectPayment()"
+    >
+        <div class="p-fluid" *ngIf="selectedSaleForPayment">
+            <div class="p-3 border-round-lg bg-surface-100 border-1 surface-border mb-3">
+                <div class="flex justify-content-between align-items-center mb-1">
+                    <span class="text-xs text-600 font-semibold uppercase">Invoice</span>
+                    <span class="text-sm font-bold text-900">{{ selectedSaleForPayment.invoiceNo || ('#' + selectedSaleForPayment.id) }}</span>
+                </div>
+                <div class="flex justify-content-between align-items-center mb-1">
+                    <span class="text-xs text-600 font-semibold uppercase">Customer</span>
+                    <span class="text-sm font-medium text-800">{{ selectedSaleForPayment.customerName || 'Walk-in' }}</span>
+                </div>
+                <div class="flex justify-content-between align-items-center mb-1">
+                    <span class="text-xs text-600 font-semibold uppercase">Sale Type</span>
+                    <span class="text-xs font-bold text-primary">{{ getSaleType(selectedSaleForPayment) }}</span>
+                </div>
+                <div class="border-top-1 surface-border my-2"></div>
+                <div class="flex justify-content-between align-items-center mb-1">
+                    <span class="text-xs text-600 font-semibold">Total Amount:</span>
+                    <span class="text-sm font-bold text-900">PKR {{ selectedSaleForPayment.totalAmount | number: '1.2-2' }}</span>
+                </div>
+                <div class="flex justify-content-between align-items-center mb-1">
+                    <span class="text-xs text-600 font-semibold">Already Paid:</span>
+                    <span class="text-sm font-semibold text-green-700">PKR {{ getPaidAmount(selectedSaleForPayment) | number: '1.2-2' }}</span>
+                </div>
+                <div class="flex justify-content-between align-items-center">
+                    <span class="text-xs text-red-600 font-bold uppercase">Remaining Due:</span>
+                    <span class="text-base font-extrabold text-red-600">PKR {{ getDueAmount(selectedSaleForPayment) | number: '1.2-2' }}</span>
+                </div>
+            </div>
+
+            <div class="field mb-3">
+                <label for="collectAmountInput" class="text-xs font-bold text-700 mb-1 block">
+                    Payment Amount (PKR) <span class="text-red-500">*</span>
+                </label>
+                <p-inputNumber
+                    id="collectAmountInput"
+                    [(ngModel)]="collectAmount"
+                    mode="decimal"
+                    [minFractionDigits]="2"
+                    [maxFractionDigits]="2"
+                    [min]="0.01"
+                    [max]="getDueAmount(selectedSaleForPayment)"
+                    class="w-full"
+                    inputStyleClass="w-full font-bold text-lg text-green-700"
+                ></p-inputNumber>
+            </div>
+
+            <div class="field mb-3">
+                <label class="text-xs font-bold text-700 mb-1 block">Payment Method</label>
+                <p-dropdown
+                    [options]="paymentMethodOptions"
+                    [(ngModel)]="collectPaymentMethod"
+                    optionLabel="label"
+                    optionValue="value"
+                    styleClass="w-full"
+                ></p-dropdown>
+            </div>
+
+            <div class="field mb-0">
+                <label for="collectNotesInput" class="text-xs font-bold text-700 mb-1 block">
+                    Notes / Reference <span class="text-500 font-medium">(optional)</span>
+                </label>
+                <input
+                    pInputText
+                    id="collectNotesInput"
+                    type="text"
+                    [(ngModel)]="collectNotes"
+                    placeholder="e.g. collected at counter, bank receipt #..."
+                    class="w-full text-sm"
+                />
+            </div>
+        </div>
+
+        <ng-template pTemplate="footer">
+            <div class="flex justify-content-end gap-2">
+                <button
+                    pButton
+                    label="Cancel"
+                    icon="pi pi-times"
+                    class="p-button-text p-button-sm"
+                    (click)="cancelCollectPayment()"
+                    [disabled]="collectingPayment"
+                ></button>
+                <button
+                    pButton
+                    label="Collect Payment"
+                    icon="pi pi-check"
+                    class="p-button-success p-button-sm"
+                    (click)="submitCollectPayment()"
+                    [loading]="collectingPayment"
+                ></button>
+            </div>
+        </ng-template>
+    </p-dialog>

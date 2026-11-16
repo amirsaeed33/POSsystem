@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using Abp.Application.Services;
@@ -60,6 +62,190 @@ namespace SmartPos.StaffAttendances
         protected override void CheckDeletePermission()
         {
             EnsureGranted(PermissionNames.Pages_StaffAttendance_Delete, PermissionNames.Pages_StaffAttendance);
+        }
+
+        /// <summary>
+        /// Active staff for the current branch with that day's attendance (if any).
+        /// </summary>
+        public async Task<ListResultDto<DailyAttendanceSheetItemDto>> GetDailySheetAsync(
+            GetDailyAttendanceSheetInput input)
+        {
+            CheckGetAllPermission();
+
+            var day = ParseDateOnly(input?.Date);
+            var branchId = BranchQueryHelper.ResolveBranchIdForFilter(
+                _branchContext, _userRepository, AbpSession, PermissionChecker);
+
+            var staffQuery = _staffRepository.GetAll()
+                .AsNoTracking()
+                .Include(x => x.Branch)
+                .Where(x => x.IsActive)
+                .WhereIf(branchId.HasValue, x => x.BranchId == branchId.Value)
+                .WhereIf(input.StaffId.HasValue, x => x.Id == input.StaffId.Value)
+                .WhereIf(!input.Keyword.IsNullOrWhiteSpace(),
+                    x => x.Name.Contains(input.Keyword)
+                         || (x.Designation != null && x.Designation.Contains(input.Keyword))
+                         || (x.EmployeeCode != null && x.EmployeeCode.Contains(input.Keyword)));
+
+            var staffList = await staffQuery
+                .OrderBy(x => x.Name)
+                .ToListAsync();
+
+            var staffIds = staffList.Select(x => x.Id).ToList();
+            var dayEnd = day.AddDays(1);
+
+            var attendanceList = staffIds.Count == 0
+                ? new List<StaffAttendance>()
+                : await Repository.GetAll()
+                    .AsNoTracking()
+                    .Where(x => staffIds.Contains(x.StaffId)
+                                && x.AttendanceDate >= day
+                                && x.AttendanceDate < dayEnd)
+                    .ToListAsync();
+
+            var attendanceByStaff = attendanceList
+                .GroupBy(x => x.StaffId)
+                .ToDictionary(g => g.Key, g => g.OrderByDescending(a => a.Id).First());
+
+            var items = staffList.Select(staff =>
+            {
+                attendanceByStaff.TryGetValue(staff.Id, out var att);
+                return new DailyAttendanceSheetItemDto
+                {
+                    Id = att?.Id ?? 0,
+                    StaffId = staff.Id,
+                    StaffName = staff.Name,
+                    Designation = staff.Designation,
+                    BranchName = staff.Branch?.Name,
+                    BranchId = att?.BranchId ?? staff.BranchId,
+                    AttendanceDate = day,
+                    HasAttendance = att != null,
+                    AttendanceId = att?.Id,
+                    CheckInTime = att?.CheckInTime,
+                    CheckOutTime = att?.CheckOutTime,
+                    Status = att?.Status,
+                    WorkingHours = att?.WorkingHours,
+                    Remarks = att?.Remarks
+                };
+            }).ToList();
+
+            return new ListResultDto<DailyAttendanceSheetItemDto>(items);
+        }
+
+        /// <summary>
+        /// Full-month attendance for one staff member, including unmarked days + status totals.
+        /// </summary>
+        public async Task<MonthlyAttendanceSheetDto> GetMonthlySheetAsync(
+            GetMonthlyAttendanceSheetInput input)
+        {
+            CheckGetAllPermission();
+
+            if (input == null || input.StaffId <= 0)
+            {
+                throw new UserFriendlyException("Please select a staff member.");
+            }
+
+            var monthStart = ParseMonthStart(input.Month);
+            var monthEndExclusive = monthStart.AddMonths(1);
+            var daysInMonth = DateTime.DaysInMonth(monthStart.Year, monthStart.Month);
+
+            var branchId = BranchQueryHelper.ResolveBranchIdForFilter(
+                _branchContext, _userRepository, AbpSession, PermissionChecker);
+
+            var staff = await _staffRepository.GetAll()
+                .AsNoTracking()
+                .Include(x => x.Branch)
+                .FirstOrDefaultAsync(x => x.Id == input.StaffId);
+
+            if (staff == null)
+            {
+                throw new UserFriendlyException("Staff member not found.");
+            }
+
+            if (branchId.HasValue && staff.BranchId != branchId.Value)
+            {
+                throw new UserFriendlyException("You do not have access to this staff member.");
+            }
+
+            var attendanceList = await Repository.GetAll()
+                .AsNoTracking()
+                .Where(x => x.StaffId == staff.Id
+                            && x.AttendanceDate >= monthStart
+                            && x.AttendanceDate < monthEndExclusive)
+                .ToListAsync();
+
+            var attendanceByDay = attendanceList
+                .GroupBy(x => x.AttendanceDate.Date)
+                .ToDictionary(g => g.Key, g => g.OrderByDescending(a => a.Id).First());
+
+            var days = new List<DailyAttendanceSheetItemDto>();
+            var present = 0;
+            var absent = 0;
+            var leave = 0;
+            var half = 0;
+            var notMarked = 0;
+
+            for (var day = 1; day <= daysInMonth; day++)
+            {
+                var date = new DateTime(monthStart.Year, monthStart.Month, day);
+                attendanceByDay.TryGetValue(date, out var att);
+
+                if (att == null)
+                {
+                    notMarked++;
+                }
+                else
+                {
+                    switch (att.Status)
+                    {
+                        case AttendanceStatus.Present:
+                            present++;
+                            break;
+                        case AttendanceStatus.Absent:
+                            absent++;
+                            break;
+                        case AttendanceStatus.Leave:
+                            leave++;
+                            break;
+                        case AttendanceStatus.HalfDay:
+                            half++;
+                            break;
+                    }
+                }
+
+                days.Add(new DailyAttendanceSheetItemDto
+                {
+                    Id = att?.Id ?? 0,
+                    StaffId = staff.Id,
+                    StaffName = staff.Name,
+                    Designation = staff.Designation,
+                    BranchName = staff.Branch?.Name,
+                    BranchId = att?.BranchId ?? staff.BranchId,
+                    AttendanceDate = date,
+                    HasAttendance = att != null,
+                    AttendanceId = att?.Id,
+                    CheckInTime = att?.CheckInTime,
+                    CheckOutTime = att?.CheckOutTime,
+                    Status = att?.Status,
+                    WorkingHours = att?.WorkingHours,
+                    Remarks = att?.Remarks
+                });
+            }
+
+            return new MonthlyAttendanceSheetDto
+            {
+                StaffId = staff.Id,
+                StaffName = staff.Name,
+                Designation = staff.Designation,
+                BranchName = staff.Branch?.Name,
+                Month = monthStart.ToString("yyyy-MM", CultureInfo.InvariantCulture),
+                PresentDays = present,
+                AbsentDays = absent,
+                LeaveDays = leave,
+                HalfDays = half,
+                NotMarkedDays = notMarked,
+                Days = days
+            };
         }
 
         public override async Task<StaffAttendanceDto> CreateAsync(CreateStaffAttendanceDto input)
@@ -124,17 +310,105 @@ namespace SmartPos.StaffAttendances
             var branchId = BranchQueryHelper.ResolveBranchIdForFilter(
                 _branchContext, _userRepository, AbpSession, PermissionChecker);
 
+            DateTime? fromDate = input.FromDate.HasValue
+                ? ToLocalDate(input.FromDate.Value)
+                : (DateTime?)null;
+            DateTime? toDateExclusive = input.ToDate.HasValue
+                ? ToLocalDate(input.ToDate.Value).AddDays(1)
+                : (DateTime?)null;
+
             return Repository.GetAll()
                 .Include(x => x.Staff)
                 .Include(x => x.Branch)
-                .WhereIf(branchId.HasValue, x => x.BranchId == branchId.Value)
+                .WhereIf(
+                    branchId.HasValue,
+                    x => x.BranchId == branchId.Value
+                         || (x.Staff != null && x.Staff.BranchId == branchId.Value))
                 .WhereIf(input.StaffId.HasValue, x => x.StaffId == input.StaffId.Value)
                 .WhereIf(input.Status.HasValue, x => x.Status == input.Status.Value)
-                .WhereIf(input.FromDate.HasValue, x => x.AttendanceDate >= input.FromDate.Value.Date)
-                .WhereIf(input.ToDate.HasValue, x => x.AttendanceDate <= input.ToDate.Value.Date)
+                .WhereIf(fromDate.HasValue, x => x.AttendanceDate >= fromDate.Value)
+                .WhereIf(toDateExclusive.HasValue, x => x.AttendanceDate < toDateExclusive.Value)
                 .WhereIf(!input.Keyword.IsNullOrWhiteSpace(),
                     x => (x.Staff != null && x.Staff.Name.Contains(input.Keyword))
                          || (x.Remarks != null && x.Remarks.Contains(input.Keyword)));
+        }
+
+        private static DateTime ToLocalDate(DateTime value)
+        {
+            if (value.Kind == DateTimeKind.Utc)
+            {
+                return value.ToLocalTime().Date;
+            }
+
+            return value.Date;
+        }
+
+        private static DateTime ParseMonthStart(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                var today = DateTime.Today;
+                return new DateTime(today.Year, today.Month, 1);
+            }
+
+            var raw = value.Trim();
+            if (raw.Length >= 7
+                && DateTime.TryParseExact(
+                    raw.Substring(0, 7),
+                    "yyyy-MM",
+                    CultureInfo.InvariantCulture,
+                    DateTimeStyles.None,
+                    out var monthOnly))
+            {
+                return new DateTime(monthOnly.Year, monthOnly.Month, 1);
+            }
+
+            if (raw.Length >= 10
+                && DateTime.TryParseExact(
+                    raw.Substring(0, 10),
+                    "yyyy-MM-dd",
+                    CultureInfo.InvariantCulture,
+                    DateTimeStyles.None,
+                    out var dateOnly))
+            {
+                return new DateTime(dateOnly.Year, dateOnly.Month, 1);
+            }
+
+            if (DateTime.TryParse(raw, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var parsed))
+            {
+                var local = parsed.Kind == DateTimeKind.Utc ? parsed.ToLocalTime() : parsed;
+                return new DateTime(local.Year, local.Month, 1);
+            }
+
+            var fallback = DateTime.Today;
+            return new DateTime(fallback.Year, fallback.Month, 1);
+        }
+
+        private static DateTime ParseDateOnly(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return DateTime.Today;
+            }
+
+            var raw = value.Trim();
+            if (raw.Length >= 10
+                && DateTime.TryParseExact(
+                    raw.Substring(0, 10),
+                    "yyyy-MM-dd",
+                    CultureInfo.InvariantCulture,
+                    DateTimeStyles.None,
+                    out var dateOnly))
+            {
+                return dateOnly.Date;
+            }
+
+            if (DateTime.TryParse(raw, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var parsed))
+            {
+                return ToLocalDate(parsed);
+            }
+
+            throw new UserFriendlyException("Invalid attendance date.");
         }
 
         protected override async Task<StaffAttendance> GetEntityByIdAsync(int id)

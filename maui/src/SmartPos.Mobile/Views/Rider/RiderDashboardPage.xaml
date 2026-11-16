@@ -1,0 +1,271 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:SmartPos.Mobile.ViewModels"
+             xmlns:models="clr-namespace:SmartPos.Mobile.Models"
+             xmlns:controls="clr-namespace:SmartPos.Mobile.Controls"
+             x:Class="SmartPos.Mobile.Views.Rider.RiderDashboardPage"
+             x:DataType="vm:RiderDashboardViewModel"
+             Title="Rider"
+             Shell.NavBarIsVisible="False"
+             Shell.TabBarIsVisible="False"
+             BackgroundColor="{StaticResource StaffPageBackground}">
+    <Grid RowDefinitions="Auto,Auto,*,Auto,*,Auto" BackgroundColor="{StaticResource StaffPageBackground}">
+        <!-- Stats header -->
+        <Border Grid.Row="0"
+                StrokeThickness="0"
+                BackgroundColor="{StaticResource StaffHero}"
+                Padding="20,22,20,22">
+            <Border.StrokeShape>
+                <RoundRectangle CornerRadius="0,0,28,28" />
+            </Border.StrokeShape>
+            <VerticalStackLayout Spacing="14">
+                <Grid ColumnDefinitions="*,Auto">
+                    <VerticalStackLayout Spacing="2">
+                        <Label Text="RIDER"
+                               FontSize="10"
+                               FontAttributes="Bold"
+                               TextColor="{StaticResource StaffHeroLabel}"
+                               CharacterSpacing="1.2" />
+                        <Label Text="{Binding Stats.RiderName, TargetNullValue=Rider}"
+                               FontSize="24"
+                               FontAttributes="Bold"
+                               TextColor="{StaticResource White}" />
+                        <Label Text="{Binding Stats.BranchName, TargetNullValue=Delivery desk}"
+                               FontSize="13"
+                               TextColor="{StaticResource StaffHeroMuted}" />
+                    </VerticalStackLayout>
+                    <Border Grid.Column="1"
+                            StrokeThickness="0"
+                            BackgroundColor="{StaticResource StaffHeroAccent}"
+                            WidthRequest="44"
+                            HeightRequest="44"
+                            VerticalOptions="Start">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="22" />
+                        </Border.StrokeShape>
+                        <Label Text="↻"
+                               FontSize="20"
+                               TextColor="{StaticResource White}"
+                               HorizontalTextAlignment="Center"
+                               VerticalTextAlignment="Center">
+                            <Label.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding RefreshCommand}" />
+                            </Label.GestureRecognizers>
+                        </Label>
+                    </Border>
+                </Grid>
+
+                <Grid ColumnDefinitions="*,*" ColumnSpacing="8" RowDefinitions="Auto,Auto" RowSpacing="8">
+                    <Border StrokeThickness="0" BackgroundColor="{StaticResource StaffHeroAccent}" Padding="12,10">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="14" />
+                        </Border.StrokeShape>
+                        <VerticalStackLayout Spacing="2">
+                            <Label Text="ACTIVE" FontSize="10" TextColor="{StaticResource StaffHeroLabel}" />
+                            <Label Text="{Binding ActiveCountText}" FontSize="20" FontAttributes="Bold" TextColor="{StaticResource White}" />
+                        </VerticalStackLayout>
+                    </Border>
+                    <Border Grid.Column="1" StrokeThickness="0" BackgroundColor="{StaticResource StaffHeroAccent}" Padding="12,10">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="14" />
+                        </Border.StrokeShape>
+                        <VerticalStackLayout Spacing="2">
+                            <Label Text="DELIVERED" FontSize="10" TextColor="{StaticResource StaffHeroLabel}" />
+                            <Label Text="{Binding DeliveredCountText}" FontSize="20" FontAttributes="Bold" TextColor="{StaticResource White}" />
+                        </VerticalStackLayout>
+                    </Border>
+                    <Border Grid.Row="1" StrokeThickness="0" BackgroundColor="{StaticResource StaffHeroAccent}" Padding="12,10">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="14" />
+                        </Border.StrokeShape>
+                        <VerticalStackLayout Spacing="2">
+                            <Label Text="TO COLLECT" FontSize="10" TextColor="{StaticResource StaffHeroLabel}" />
+                            <Label Text="{Binding PendingAmountText}" FontSize="16" FontAttributes="Bold" TextColor="{StaticResource White}" />
+                        </VerticalStackLayout>
+                    </Border>
+                    <Border Grid.Row="1" Grid.Column="1" StrokeThickness="0" BackgroundColor="{StaticResource StaffHeroAccent}" Padding="12,10">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="14" />
+                        </Border.StrokeShape>
+                        <VerticalStackLayout Spacing="2">
+                            <Label Text="TODAY" FontSize="10" TextColor="{StaticResource StaffHeroLabel}" />
+                            <Label Text="{Binding TodayAmountText}" FontSize="16" FontAttributes="Bold" TextColor="{StaticResource White}" />
+                        </VerticalStackLayout>
+                    </Border>
+                </Grid>
+            </VerticalStackLayout>
+        </Border>
+
+        <!-- New orders title + empty/busy -->
+        <VerticalStackLayout Grid.Row="1" Padding="16,16,16,8" Spacing="12">
+            <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" Color="{StaticResource StaffPrimary}" />
+
+            <Border StrokeThickness="0"
+                    BackgroundColor="{StaticResource CardBackground}"
+                    Padding="18"
+                    IsVisible="{Binding IsEmpty}">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="18" />
+                </Border.StrokeShape>
+                <VerticalStackLayout Spacing="6">
+                    <Label Text="No new orders"
+                           FontAttributes="Bold"
+                           FontSize="16"
+                           TextColor="{StaticResource StaffInk}" />
+                    <Label Text="Assigned deliveries will show up here. Pull refresh or tap the refresh icon."
+                           FontSize="13"
+                           TextColor="{StaticResource AuthMutedText}" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Label Text="{Binding NewOrdersTitle}"
+                   FontAttributes="Bold"
+                   FontSize="17"
+                   TextColor="{StaticResource StaffInk}"
+                   IsVisible="{Binding HasNewOrders}" />
+        </VerticalStackLayout>
+
+        <CollectionView Grid.Row="2"
+                        ItemsSource="{Binding NewOrders}"
+                        SelectionMode="None"
+                        BackgroundColor="Transparent"
+                        Margin="16,0,16,8"
+                        IsVisible="{Binding HasNewOrders}">
+            <CollectionView.ItemsLayout>
+                <LinearItemsLayout Orientation="Vertical" ItemSpacing="10" />
+            </CollectionView.ItemsLayout>
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="models:RiderOrderDto">
+                    <Border StrokeThickness="0" BackgroundColor="{StaticResource CardBackground}" Padding="14">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="18" />
+                        </Border.StrokeShape>
+                        <Border.Shadow>
+                            <Shadow Brush="{StaticResource StaffHero}" Opacity="0.08" Radius="14" Offset="0,6" />
+                        </Border.Shadow>
+                        <VerticalStackLayout Spacing="8">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <Label Text="{Binding OrderNo}" FontAttributes="Bold" FontSize="18" TextColor="{StaticResource StaffInk}" />
+                                <Border Grid.Column="1" StrokeThickness="0" BackgroundColor="{StaticResource WarningBackground}" Padding="8,3">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="10" />
+                                    </Border.StrokeShape>
+                                    <Label Text="{Binding BadgeText}" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource WarningText}" />
+                                </Border>
+                            </Grid>
+                            <Label Text="{Binding CustomerName}" FontSize="15" FontAttributes="Bold" TextColor="{StaticResource CartText}" />
+                            <Label Text="{Binding AreaLine}" FontSize="12" TextColor="{StaticResource StaffPrimary}" />
+                            <Label Text="{Binding CustomerAddress}" FontSize="13" TextColor="{StaticResource AuthMutedText}" LineBreakMode="WordWrap" />
+                            <Label Text="{Binding ItemsSummary}" FontSize="12" TextColor="{StaticResource Slate600}" />
+                            <Label Text="{Binding PhoneDisplay}" FontSize="13" TextColor="{StaticResource Slate700}" />
+                            <Label Text="{Binding TotalText}" FontSize="16" FontAttributes="Bold" TextColor="{StaticResource StaffPrimary}" />
+                            <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                                <Button Text="Call"
+                                        Command="{Binding Source={RelativeSource AncestorType={x:Type vm:RiderDashboardViewModel}}, Path=CallCustomerCommand}"
+                                        CommandParameter="{Binding .}"
+                                        Style="{StaticResource StaffPrimaryButton}" HeightRequest="42" />
+                                <Button Grid.Column="1"
+                                        Text="WhatsApp"
+                                        Command="{Binding Source={RelativeSource AncestorType={x:Type vm:RiderDashboardViewModel}}, Path=WhatsAppCustomerCommand}"
+                                        CommandParameter="{Binding .}"
+                                        Style="{StaticResource StaffPrimaryButton}" BackgroundColor="{StaticResource StaffSuccess}" HeightRequest="42" />
+                            </Grid>
+                            <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
+                                <Button Text="Accept"
+                                        Command="{Binding Source={RelativeSource AncestorType={x:Type vm:RiderDashboardViewModel}}, Path=AcceptCommand}"
+                                        CommandParameter="{Binding .}"
+                                        Style="{StaticResource StaffPrimaryButton}" BackgroundColor="{StaticResource StaffInk}" HeightRequest="40" />
+                                <Button Grid.Column="1"
+                                        Text="Map"
+                                        Command="{Binding Source={RelativeSource AncestorType={x:Type vm:RiderDashboardViewModel}}, Path=OpenMapsCommand}"
+                                        CommandParameter="{Binding .}"
+                                        Style="{StaticResource OutlineButton}" BackgroundColor="{StaticResource AuthInputBorder}" TextColor="{StaticResource Slate800}" HeightRequest="40" />
+                                <Button Grid.Column="2"
+                                        Text="Reject"
+                                        Command="{Binding Source={RelativeSource AncestorType={x:Type vm:RiderDashboardViewModel}}, Path=RejectCommand}"
+                                        CommandParameter="{Binding .}"
+                                        Style="{StaticResource DangerButton}" HeightRequest="40" CornerRadius="12" />
+                            </Grid>
+                        </VerticalStackLayout>
+                    </Border>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+        <Label Grid.Row="3"
+               Text="{Binding ActiveOrdersTitle}"
+               FontAttributes="Bold"
+               FontSize="17"
+               TextColor="{StaticResource StaffInk}"
+               Margin="16,8,16,8"
+               IsVisible="{Binding HasActiveOrders}" />
+
+        <CollectionView Grid.Row="4"
+                        ItemsSource="{Binding ActiveOrders}"
+                        SelectionMode="None"
+                        BackgroundColor="Transparent"
+                        Margin="16,0,16,8"
+                        IsVisible="{Binding HasActiveOrders}">
+            <CollectionView.ItemsLayout>
+                <LinearItemsLayout Orientation="Vertical" ItemSpacing="10" />
+            </CollectionView.ItemsLayout>
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="models:RiderOrderDto">
+                    <Border StrokeThickness="0" BackgroundColor="{StaticResource CardBackground}" Padding="14">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="18" />
+                        </Border.StrokeShape>
+                        <VerticalStackLayout Spacing="8">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <Label Text="{Binding OrderNo}" FontAttributes="Bold" FontSize="18" TextColor="{StaticResource StaffInk}" />
+                                <Border Grid.Column="1" StrokeThickness="0" BackgroundColor="{StaticResource AuthSubtitleOnHero}" Padding="8,3">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="10" />
+                                    </Border.StrokeShape>
+                                    <Label Text="{Binding BadgeText}" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource InfoText}" />
+                                </Border>
+                            </Grid>
+                            <Label Text="{Binding CustomerName}" FontSize="15" FontAttributes="Bold" TextColor="{StaticResource CartText}" />
+                            <Label Text="{Binding AreaLine}" FontSize="12" TextColor="{StaticResource StaffPrimary}" />
+                            <Label Text="{Binding CustomerAddress}" FontSize="13" TextColor="{StaticResource AuthMutedText}" />
+                            <Label Text="{Binding PhoneDisplay}" FontSize="13" TextColor="{StaticResource Slate700}" />
+                            <Label Text="{Binding TotalText}" FontSize="16" FontAttributes="Bold" TextColor="{StaticResource StaffPrimary}" />
+                            <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                                <Button Text="Call"
+                                        Command="{Binding Source={RelativeSource AncestorType={x:Type vm:RiderDashboardViewModel}}, Path=CallCustomerCommand}"
+                                        CommandParameter="{Binding .}"
+                                        Style="{StaticResource StaffPrimaryButton}" HeightRequest="42" />
+                                <Button Grid.Column="1"
+                                        Text="WhatsApp"
+                                        Command="{Binding Source={RelativeSource AncestorType={x:Type vm:RiderDashboardViewModel}}, Path=WhatsAppCustomerCommand}"
+                                        CommandParameter="{Binding .}"
+                                        Style="{StaticResource StaffPrimaryButton}" BackgroundColor="{StaticResource StaffSuccess}" HeightRequest="42" />
+                            </Grid>
+                            <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                                <Button Text="Map"
+                                        Command="{Binding Source={RelativeSource AncestorType={x:Type vm:RiderDashboardViewModel}}, Path=OpenMapsCommand}"
+                                        CommandParameter="{Binding .}"
+                                        Style="{StaticResource OutlineButton}" BackgroundColor="{StaticResource AuthInputBorder}" TextColor="{StaticResource Slate800}" HeightRequest="40" />
+                                <Button Grid.Column="1"
+                                        Text="Delivered"
+                                        Command="{Binding Source={RelativeSource AncestorType={x:Type vm:RiderDashboardViewModel}}, Path=CompleteCommand}"
+                                        CommandParameter="{Binding .}"
+                                        Style="{StaticResource StaffPrimaryButton}" BackgroundColor="{StaticResource StaffInk}" HeightRequest="40"
+                                        FontAttributes="Bold" />
+                            </Grid>
+                        </VerticalStackLayout>
+                    </Border>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+        <controls:TabLoadingOverlay Grid.Row="0" Grid.RowSpan="5" />
+
+        <controls:BubbleTabBar Grid.Row="5"
+                               Mode="Rider"
+                               SelectedIndex="0"
+                               VerticalOptions="Fill"
+                               HorizontalOptions="Fill" />
+    </Grid>
+</ContentPage>

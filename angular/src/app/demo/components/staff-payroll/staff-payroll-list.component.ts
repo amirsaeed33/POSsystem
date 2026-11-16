@@ -39,9 +39,13 @@ export class StaffPayrollListComponent implements OnInit, OnDestroy {
 
     getRowActions(row: StaffPayrollDto): RowActionItem[] {
         const actions: RowActionItem[] = [];
-        if (row.paymentStatus === 0 && this.canEdit) {
+        // Pending, or Paid without ledger (legacy form mark-paid) — post to Cash/Bank + Expense.
+        const needsPaymentPosting =
+            row.paymentStatus === PayrollPaymentStatus.Pending ||
+            (row.paymentStatus === PayrollPaymentStatus.Paid && !row.isAccountingPosted);
+        if (needsPaymentPosting && this.canEdit) {
             actions.push({
-                label: 'Pay salary',
+                label: row.paymentStatus === PayrollPaymentStatus.Paid ? 'Post to accounts' : 'Pay salary',
                 icon: 'pi pi-dollar',
                 color: 'green',
                 action: () => this.openPayDialog(row),

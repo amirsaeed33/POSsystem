@@ -3,7 +3,9 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { PermissionNames } from 'src/app/demo/api/permission-names';
 import { PermissionService } from 'src/app/demo/service/permission.service';
 
-type SettingsTab = 'brands' | 'units' | 'categories';
+import { BranchContextService } from 'src/app/demo/service/branch-context.service';
+
+type SettingsTab = 'brands' | 'departments' | 'categories' | 'units';
 
 @Component({
     selector: 'app-product-settings',
@@ -12,8 +14,9 @@ type SettingsTab = 'brands' | 'units' | 'categories';
 export class ProductSettingsComponent implements OnInit {
     activeIndex = 0;
     canBrands = false;
-    canUnits = false;
+    canDepartments = false;
     canCategories = false;
+    canUnits = false;
 
     private readonly tabOrder: SettingsTab[] = [];
 
@@ -23,6 +26,7 @@ export class ProductSettingsComponent implements OnInit {
 
     constructor(
         private permissionService: PermissionService,
+        private branchContext: BranchContextService,
         private route: ActivatedRoute,
         private router: Router
     ) {}
@@ -34,25 +38,35 @@ export class ProductSettingsComponent implements OnInit {
             // Use cached grants if available.
         }
 
-        this.canBrands = this.permissionService.isGranted(PermissionNames.Brands);
-        this.canUnits = this.permissionService.isGranted(PermissionNames.Units);
+        const isRestaurant = this.branchContext.isRestaurant();
+        this.canBrands = !isRestaurant && this.permissionService.isGranted(PermissionNames.Brands);
+        this.canDepartments =
+            this.permissionService.isGranted(PermissionNames.Departments) ||
+            this.permissionService.isGranted(PermissionNames.Categories);
         this.canCategories = this.permissionService.isGranted(
             PermissionNames.Categories
         );
+        this.canUnits = this.permissionService.isGranted(PermissionNames.Units);
 
         if (this.canBrands) {
             this.tabOrder.push('brands');
         }
-        if (this.canUnits) {
-            this.tabOrder.push('units');
+        if (this.canDepartments) {
+            this.tabOrder.push('departments');
         }
         if (this.canCategories) {
             this.tabOrder.push('categories');
         }
+        if (this.canUnits) {
+            this.tabOrder.push('units');
+        }
 
-        const requested =
+        let requested =
             (this.route.snapshot.queryParamMap.get('tab') as SettingsTab) ||
             'brands';
+        if (requested === 'brands' && !this.canBrands) {
+            requested = this.tabOrder[0] || 'departments';
+        }
         this.activeIndex = Math.max(0, this.tabOrder.indexOf(requested));
     }
 

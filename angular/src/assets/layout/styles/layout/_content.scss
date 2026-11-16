@@ -63,3 +63,10 @@
         }
     }
 }
+
+.layout-container.subscription-locked {
+    .layout-sidebar {
+        pointer-events: none;
+        opacity: 0.45;
+    }
+}

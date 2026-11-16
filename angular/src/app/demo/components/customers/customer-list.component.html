@@ -59,13 +59,40 @@
                 <th pSortableColumn="email">Email <p-sortIcon field="email"></p-sortIcon></th>
                 <th pSortableColumn="address">Address <p-sortIcon field="address"></p-sortIcon></th>
                 <th pSortableColumn="balance">Balance <p-sortIcon field="balance"></p-sortIcon></th>
+                <th pSortableColumn="onlineOrderCount">Online Order Count <p-sortIcon field="onlineOrderCount"></p-sortIcon></th>
                 <th class="text-center" style="width: 4.5rem">Actions</th>
             </tr>
         </ng-template>
 
         <ng-template pTemplate="body" let-customer>
             <tr>
-                <td>{{ customer.name }}</td>
+                <td>
+                    <div class="customer-name-cell">
+                        <div class="customer-avatar" aria-hidden="true">
+                            <img
+                                *ngIf="customerPhotoUrl(customer) as photoUrl"
+                                [src]="photoUrl"
+                                [alt]="customer.name"
+                                (error)="onCustomerPhotoError(customer)"
+                            />
+                            <span *ngIf="!customerPhotoUrl(customer)">{{ customerInitials(customer) }}</span>
+                        </div>
+                        <a
+                            *ngIf="canEdit"
+                            href="javascript:void(0)"
+                            class="text-primary hover:underline font-semibold cursor-pointer"
+                            style="text-decoration: none;"
+                            (click)="openEditDialog(customer)"
+                            [pTooltip]="'Click to edit ' + customer.name"
+                            tooltipPosition="top"
+                        >
+                            {{ customer.name }}
+                        </a>
+                        <span *ngIf="!canEdit" class="font-semibold text-900">
+                            {{ customer.name }}
+                        </span>
+                    </div>
+                </td>
                 <td>
                     <span
                         class="p-tag"
@@ -78,6 +105,7 @@
                 <td>{{ customer.email || '—' }}</td>
                 <td>{{ customer.address || '—' }}</td>
                 <td>{{ customer.balance }}</td>
+                <td>{{ customer.onlineOrderCount ?? 0 }}</td>
                 <td class="text-center">
                     <app-row-actions
                         [items]="getRowActions(customer)"
@@ -88,7 +116,7 @@
 
         <ng-template pTemplate="emptymessage">
             <tr>
-                <td colspan="7" class="text-center p-4">
+                <td colspan="8" class="text-center p-4">
                     <div class="text-500">No customers found</div>
                 </td>
             </tr>

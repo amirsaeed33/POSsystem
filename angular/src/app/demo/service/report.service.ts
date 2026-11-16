@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { firstValueFrom } from 'rxjs';
+import { Observable, firstValueFrom } from 'rxjs';
 import {
     ExpenseReportDto,
     ExpenseReportRowDto,
@@ -104,6 +104,50 @@ export class ReportService {
         );
     }
 
+    getSaleReportPdf(input?: ReportDateRangeInput): Observable<Blob> {
+        return this.http.get(`${this.apiUrl}/GetSaleReportPdf`, {
+            params: this.toParams(input),
+            responseType: 'blob',
+        });
+    }
+
+    getPurchaseReportPdf(input?: ReportDateRangeInput): Observable<Blob> {
+        return this.http.get(`${this.apiUrl}/GetPurchaseReportPdf`, {
+            params: this.toParams(input),
+            responseType: 'blob',
+        });
+    }
+
+    getExpenseReportPdf(input?: ReportDateRangeInput): Observable<Blob> {
+        return this.http.get(`${this.apiUrl}/GetExpenseReportPdf`, {
+            params: this.toParams(input),
+            responseType: 'blob',
+        });
+    }
+
+    getStockReportPdf(input?: ReportDateRangeInput | string): Observable<Blob> {
+        const normalizedInput: ReportDateRangeInput =
+            typeof input === 'string' ? { keyword: input } : (input ?? {});
+        return this.http.get(`${this.apiUrl}/GetStockReportPdf`, {
+            params: this.toParams(normalizedInput),
+            responseType: 'blob',
+        });
+    }
+
+    getProductProfitReportPdf(input?: ReportDateRangeInput): Observable<Blob> {
+        return this.http.get(`${this.apiUrl}/GetProductProfitReportPdf`, {
+            params: this.toParams(input),
+            responseType: 'blob',
+        });
+    }
+
+    getBalanceSheetReportPdf(input?: ReportDateRangeInput): Observable<Blob> {
+        return this.http.get(`${this.apiUrl}/GetBalanceSheetReportPdf`, {
+            params: this.toParams(input),
+            responseType: 'blob',
+        });
+    }
+
     private toParams(input?: ReportDateRangeInput): any {
         const params: any = {};
         const fromDate = this.toApiDate(input?.fromDate);
@@ -120,20 +164,37 @@ export class ReportService {
         return params;
     }
 
+    /**
+     * Send calendar dates (yyyy-MM-dd) only — never toISOString().
+     * Local midnight → UTC shifts the day back (e.g. PKT+5), so reports
+     * required selecting the next day to see the intended day.
+     */
     private toApiDate(value?: string | Date): string | undefined {
         if (!value) {
             return undefined;
         }
         if (value instanceof Date) {
-            return value.toISOString();
+            if (isNaN(value.getTime())) {
+                return undefined;
+            }
+            const y = value.getFullYear();
+            const m = `${value.getMonth() + 1}`.padStart(2, '0');
+            const d = `${value.getDate()}`.padStart(2, '0');
+            return `${y}-${m}-${d}`;
         }
-        const parsed = new Date(
-            value.includes('T') ? value : `${value}T00:00:00`
-        );
+        const raw = String(value).trim();
+        const dateOnly = raw.match(/^(\d{4}-\d{2}-\d{2})/);
+        if (dateOnly) {
+            return dateOnly[1];
+        }
+        const parsed = new Date(raw);
         if (!isNaN(parsed.getTime())) {
-            return parsed.toISOString();
+            const y = parsed.getFullYear();
+            const m = `${parsed.getMonth() + 1}`.padStart(2, '0');
+            const d = `${parsed.getDate()}`.padStart(2, '0');
+            return `${y}-${m}-${d}`;
         }
-        return value;
+        return raw || undefined;
     }
 
     private unwrap(res: any, fallbackMessage: string): any {
@@ -152,13 +213,18 @@ export class ReportService {
         const items = data.items || data.Items || [];
         return {
             totalAmount: data.totalAmount ?? data.TotalAmount ?? 0,
+            totalPaidAmount: data.totalPaidAmount ?? data.TotalPaidAmount ?? 0,
+            totalDueAmount: data.totalDueAmount ?? data.TotalDueAmount ?? 0,
             items: (Array.isArray(items) ? items : []).map(
                 (item: any): SaleReportRowDto => ({
                     id: item.id ?? item.Id,
                     invoiceNo: item.invoiceNo ?? item.InvoiceNo,
                     saleDate: item.saleDate ?? item.SaleDate,
+                    saleType: item.saleType ?? item.SaleType,
                     customerName: item.customerName ?? item.CustomerName,
                     totalAmount: item.totalAmount ?? item.TotalAmount ?? 0,
+                    paidAmount: item.paidAmount ?? item.PaidAmount ?? 0,
+                    dueAmount: item.dueAmount ?? item.DueAmount ?? 0,
                     notes: item.notes ?? item.Notes,
                 })
             ),

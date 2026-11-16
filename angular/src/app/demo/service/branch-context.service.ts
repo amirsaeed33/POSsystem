@@ -1,7 +1,8 @@
-import { Injectable } from '@angular/core';
+import { Injectable, Injector } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { BranchDto, BranchStatuses } from '../api/branch';
 import { BranchService } from './branch.service';
+import { AppReadCacheService } from './app-read-cache.service';
 
 const BRANCH_STORAGE_KEY = 'SmartPos.BranchId';
 export const HOST_ADMIN_STORAGE_KEY = 'SmartPos.IsHostAdmin';
@@ -17,10 +18,14 @@ export class BranchContextService {
     readonly currentBranch$: Observable<BranchDto | null> =
         this.currentBranchSubject.asObservable();
 
-    constructor(private branchService: BranchService) {}
+    constructor(
+        private branchService: BranchService,
+        private injector: Injector
+    ) {}
 
     getBranchId(): number | null {
-        return this.currentBranchSubject.value?.id ?? null;
+        return this.toBranchId(this.currentBranchSubject.value?.id)
+            ?? this.readStoredBranchId();
     }
 
     getCurrentBranch(): BranchDto | null {
@@ -29,6 +34,14 @@ export class BranchContextService {
 
     getAllowedBranches(): BranchDto[] {
         return this.allowedBranches;
+    }
+
+    isRestaurant(): boolean {
+        const branch = this.currentBranchSubject.value;
+        if (!branch) {
+            return false;
+        }
+        return Number(branch.businessType) === 2;
     }
 
     /** True when the selected branch is Approved (or none selected). */
@@ -55,14 +68,29 @@ export class BranchContextService {
             return;
         }
 
+        const previousId = this.toBranchId(this.currentBranchSubject.value?.id);
+        const nextId = this.toBranchId(branch.id);
         localStorage.setItem(BRANCH_STORAGE_KEY, String(branch.id));
         this.currentBranchSubject.next(branch);
+
+        if (previousId !== nextId) {
+            this.clearBranchScopedCaches();
+        }
     }
 
     clear(): void {
         localStorage.removeItem(BRANCH_STORAGE_KEY);
         this.currentBranchSubject.next(null);
         this.allowedBranches = [];
+        this.clearBranchScopedCaches();
+    }
+
+    private clearBranchScopedCaches(): void {
+        try {
+            this.injector.get(AppReadCacheService).clearBranchScoped();
+        } catch {
+            // AppReadCacheService may not be available during early bootstrap.
+        }
     }
 
     static setHostAdminSession(isHostAdmin: boolean): void {
@@ -99,25 +127,41 @@ export class BranchContextService {
             return branches;
         }
 
-        const storedRaw = localStorage.getItem(BRANCH_STORAGE_KEY);
-        const storedId = storedRaw ? parseInt(storedRaw, 10) : NaN;
-        const preferred =
-            preferredBranchId != null && Number.isFinite(preferredBranchId)
-                ? preferredBranchId
-                : null;
-        const currentId = this.currentBranchSubject.value?.id ?? null;
+        const storedId = this.readStoredBranchId();
+        const preferred = this.toBranchId(preferredBranchId);
+        const currentId = this.toBranchId(this.currentBranchSubject.value?.id);
 
-        // Keep an already-selected / stored branch when still allowed so a
-        // session reload (or HMR) does not silently reset the user's choice.
+        // Priority: in-memory selection → persisted user choice → login preferred → first
+        // Never let preferred/user.branchId override a valid stored selection after refresh.
         const selected =
-            branches.find((b) => b.id === currentId) ||
-            branches.find((b) => b.id === storedId) ||
-            branches.find((b) => b.id === preferred) ||
+            this.findBranch(branches, currentId) ||
+            this.findBranch(branches, storedId) ||
+            this.findBranch(branches, preferred) ||
             branches[0];
 
-        if (this.currentBranchSubject.value?.id !== selected.id) {
-            this.setCurrentBranch(selected);
-        }
+        this.setCurrentBranch(selected);
         return branches;
+    }
+
+    private findBranch(
+        branches: BranchDto[],
+        id: number | null
+    ): BranchDto | undefined {
+        if (id == null) {
+            return undefined;
+        }
+        return branches.find((b) => this.toBranchId(b.id) === id);
+    }
+
+    private readStoredBranchId(): number | null {
+        return this.toBranchId(localStorage.getItem(BRANCH_STORAGE_KEY));
+    }
+
+    private toBranchId(value: unknown): number | null {
+        if (value == null || value === '') {
+            return null;
+        }
+        const n = typeof value === 'number' ? value : parseInt(String(value), 10);
+        return Number.isFinite(n) && n > 0 ? n : null;
     }
 }

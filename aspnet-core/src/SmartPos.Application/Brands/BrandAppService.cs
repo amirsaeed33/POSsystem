@@ -46,13 +46,28 @@ namespace SmartPos.Brands
         {
             CheckCreatePermission();
             var branchId = RequireCurrentBranchId();
+            var name = input.Name?.Trim();
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                throw new UserFriendlyException("Brand name is required.");
+            }
+
+            var existing = await Repository.FirstOrDefaultAsync(b =>
+                b.BranchId == branchId &&
+                b.Name.ToLower() == name.ToLower());
+            if (existing != null)
+            {
+                throw new UserFriendlyException($"Brand '{name}' already exists in this location.");
+            }
+
             var entity = ObjectMapper.Map<Brand>(input);
+            entity.Name = name;
             entity.TenantId = AbpSession.TenantId;
             entity.BranchId = branchId;
             entity.IsActive = input.IsActive;
             if (string.IsNullOrWhiteSpace(entity.Description))
             {
-                entity.Description = input.Name;
+                entity.Description = name;
             }
             await Repository.InsertAsync(entity);
             await CurrentUnitOfWork.SaveChangesAsync();
@@ -68,7 +83,24 @@ namespace SmartPos.Brands
             {
                 entity.BranchId = RequireCurrentBranchId();
             }
+
+            var name = input.Name?.Trim();
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                throw new UserFriendlyException("Brand name is required.");
+            }
+
+            var existing = await Repository.FirstOrDefaultAsync(b =>
+                b.Id != input.Id &&
+                b.BranchId == entity.BranchId &&
+                b.Name.ToLower() == name.ToLower());
+            if (existing != null)
+            {
+                throw new UserFriendlyException($"Brand '{name}' already exists in this location.");
+            }
+
             ObjectMapper.Map(input, entity);
+            entity.Name = name;
             if (entity.BranchId <= 0)
             {
                 entity.BranchId = RequireCurrentBranchId();
@@ -103,7 +135,13 @@ namespace SmartPos.Brands
                 }
 
                 var items = await query.OrderBy(x => x.Name).ToListAsync();
-                return new ListResultDto<BrandDto>(ObjectMapper.Map<List<BrandDto>>(items));
+                var distinctItems = items
+                    .GroupBy(x => x.Name.Trim(), System.StringComparer.OrdinalIgnoreCase)
+                    .Select(g => g.First())
+                    .OrderBy(x => x.Name)
+                    .ToList();
+
+                return new ListResultDto<BrandDto>(ObjectMapper.Map<List<BrandDto>>(distinctItems));
             });
         }
 
@@ -116,7 +154,7 @@ namespace SmartPos.Brands
         {
             var branchId = ResolveBranchId();
             return Repository.GetAll()
-                .WhereIf(branchId.HasValue, x => x.BranchId == branchId.Value || x.BranchId == 0)
+                .WhereIf(branchId.HasValue, x => x.BranchId == branchId.Value)
                 .WhereIf(!input.Keyword.IsNullOrWhiteSpace(),
                     x => x.Name.Contains(input.Keyword)
                          || (x.Description != null && x.Description.Contains(input.Keyword)));

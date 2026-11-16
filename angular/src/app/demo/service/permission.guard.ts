@@ -8,7 +8,10 @@ import {
     UrlTree,
 } from '@angular/router';
 import { AuthService } from './auth.service';
+import { BranchContextService } from './branch-context.service';
 import { PermissionService } from './permission.service';
+import { SessionService } from './session.service';
+import { SubscriptionService } from './subscription.service';
 
 @Injectable({
     providedIn: 'root',
@@ -16,28 +19,87 @@ import { PermissionService } from './permission.service';
 export class PermissionGuard implements CanActivate, CanActivateChild {
     constructor(
         private authService: AuthService,
+        private sessionService: SessionService,
         private permissionService: PermissionService,
+        private subscriptions: SubscriptionService,
         private router: Router
     ) {}
 
     canActivate(
         route: ActivatedRouteSnapshot,
-        _state: RouterStateSnapshot
+        state: RouterStateSnapshot
     ): Promise<boolean | UrlTree> {
-        return this.check(route);
+        return this.check(route, state);
     }
 
     canActivateChild(
         childRoute: ActivatedRouteSnapshot,
-        _state: RouterStateSnapshot
+        state: RouterStateSnapshot
     ): Promise<boolean | UrlTree> {
-        return this.check(childRoute);
+        return this.check(childRoute, state);
     }
 
     private async check(
-        route: ActivatedRouteSnapshot
+        route: ActivatedRouteSnapshot,
+        state?: RouterStateSnapshot
     ): Promise<boolean | UrlTree> {
         if (!this.authService.isAuthenticated()) {
+            return true;
+        }
+
+        const url = state?.url || '';
+
+        // If user info is not cached yet, load it from session
+        if (!this.authService.getUserInfo()) {
+            try {
+                const sessionInfo = await this.sessionService.getCurrentLoginInformations();
+                if (sessionInfo?.user) {
+                    this.authService.setUserInfo(sessionInfo.user);
+                }
+            } catch {
+                // Ignore session load error
+            }
+        }
+
+        if (!BranchContextService.isHostAdminSession()) {
+            try {
+                const access = await this.subscriptions.getAccessStatus();
+                const path = url.split('?')[0];
+                const onBilling = path === '/billing' || path.startsWith('/billing/');
+                if (access.expired && !onBilling) {
+                    return this.router.createUrlTree(['/billing']);
+                }
+            } catch {
+                // A failed status check must not unlock a plan the server already marked expired.
+            }
+        }
+
+        // Delivery Rider Portal URL restriction:
+        // Riders must see only My Dashboard and Order History.
+        // They must not be able to access admin pages or other modules by changing URLs.
+        if (this.authService.isDeliveryRider()) {
+            const isRiderRoute = url.startsWith('/rider') ||
+                url.startsWith('/auth/changepassword') ||
+                url.startsWith('/notfound');
+
+            if (!isRiderRoute) {
+                return this.router.createUrlTree(['/rider/dashboard']);
+            }
+            return true;
+        }
+
+        // Restaurant Waiter URL restriction:
+        // Waiters may use their dashboard and POS only — not kitchen or back-office.
+        if (this.authService.isWaiter()) {
+            const isWaiterRoute =
+                url.startsWith('/waiter') ||
+                url.startsWith('/pos') ||
+                url.startsWith('/auth/changepassword') ||
+                url.startsWith('/notfound');
+
+            if (!isWaiterRoute) {
+                return this.router.createUrlTree(['/waiter/dashboard']);
+            }
             return true;
         }
 
@@ -59,13 +121,22 @@ export class PermissionGuard implements CanActivate, CanActivateChild {
             if (!anyPermission?.length) {
                 return true;
             }
-            if (anyPermission.some((p) => this.permissionService.isGranted(p))) {
+            if (
+                anyPermission.some(
+                    (p) =>
+                        this.permissionService.isGranted(p) ||
+                        this.hostAdminCanSee(p)
+                )
+            ) {
                 return true;
             }
             return this.router.createUrlTree(['/auth/access']);
         }
 
-        if (this.permissionService.isGranted(permission)) {
+        if (
+            this.permissionService.isGranted(permission) ||
+            this.hostAdminCanSee(permission)
+        ) {
             return true;
         }
 
@@ -75,6 +146,22 @@ export class PermissionGuard implements CanActivate, CanActivateChild {
     private resolvePermission(route: ActivatedRouteSnapshot): string | null {
         const permission = route.data?.['permission'];
         return typeof permission === 'string' && permission ? permission : null;
+    }
+
+    /** Host admin can open host-only screens before the role grant is cached. */
+    private hostAdminCanSee(permission?: string | null): boolean {
+        if (!permission || !BranchContextService.isHostAdminSession()) {
+            return false;
+        }
+        return (
+            permission.startsWith('Pages.Users') ||
+            permission.startsWith('Pages.Packages') ||
+            permission.startsWith('Pages.Developers') ||
+            permission.startsWith('Pages.Sellers') ||
+            permission.startsWith('Pages.HostCatalog') ||
+            permission.startsWith('Pages.Tenants') ||
+            permission.startsWith('Pages.Subscriptions')
+        );
     }
 
     private resolveAnyPermission(route: ActivatedRouteSnapshot): string[] | null {

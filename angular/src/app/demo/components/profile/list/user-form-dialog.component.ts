@@ -466,6 +466,8 @@ export class UserFormDialogComponent implements OnChanges {
     formatGroupName(rawName: string): string {
         if (!rawName) return 'Other';
         let name = rawName.replace(/^Pages\./, '');
+        if (name.toLowerCase() === 'pos') return 'POS';
+        if (name.toLowerCase() === 'diningtables') return 'Dining Tables';
         name = name.replace(/([a-z])([A-Z])/g, '$1 $2');
         return name.trim();
     }

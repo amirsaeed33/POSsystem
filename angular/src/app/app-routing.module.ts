@@ -7,14 +7,55 @@ import { PermissionNames } from './demo/api/permission-names';
 import { StaffTabRedirectComponent } from './demo/components/staff-hub/staff-tab-redirect.component';
 
 const routes: Routes = [
+    // Public product landing. No login required.
+    {
+        path: 'product',
+        loadChildren: () =>
+            import('./demo/components/landing/landing.module').then(
+                (m) => m.LandingModule
+            ),
+    },
+    { path: '', pathMatch: 'full', redirectTo: 'online-order' },
+    { path: 'home', redirectTo: 'online-order', pathMatch: 'full' },
     {
         path: '',
         component: AppLayoutComponent,
         canActivate: [AuthGuard],
         canActivateChild: [PermissionGuard],
         children: [
-            { path: '', loadChildren: () => import('./demo/components/dashboards/dashboards.module').then(m => m.DashboardsModule) },
-            { path: 'pos', data: { breadcrumb: 'POS', permission: PermissionNames.Sales }, loadChildren: () => import('./demo/components/pos/pos.module').then(m => m.PosModule) },
+            { path: 'dashboard', loadChildren: () => import('./demo/components/dashboards/dashboards.module').then(m => m.DashboardsModule) },
+            {
+                path: 'pos',
+                data: {
+                    breadcrumb: 'POS',
+                    hideBreadcrumb: true,
+                    anyPermission: [
+                        PermissionNames.Pos,
+                        PermissionNames.DiningTables,
+                        PermissionNames.Sales,
+                    ],
+                },
+                loadChildren: () =>
+                    import('./demo/components/pos/pos.module').then(
+                        (m) => m.PosModule
+                    ),
+            },
+            {
+                path: 'kitchen',
+                data: {
+                    breadcrumb: 'Running Orders',
+                    anyPermission: [
+                        PermissionNames.Pos,
+                        PermissionNames.DiningTables,
+                        PermissionNames.Sales,
+                    ],
+                },
+                loadChildren: () =>
+                    import('./demo/components/kitchen/kitchen.module').then(
+                        (m) => m.KitchenModule
+                    ),
+            },
+            { path: 'departments', redirectTo: '/product-settings', pathMatch: 'full' },
             { path: 'categories', redirectTo: '/product-settings', pathMatch: 'full' },
             { path: 'brands', redirectTo: '/product-settings', pathMatch: 'full' },
             { path: 'units', redirectTo: '/product-settings', pathMatch: 'full' },
@@ -63,6 +104,7 @@ const routes: Routes = [
             { path: 'suppliers', data: { breadcrumb: 'Suppliers', permission: PermissionNames.Suppliers }, loadChildren: () => import('./demo/components/suppliers/suppliers.module').then(m => m.SuppliersModule) },
             { path: 'products', data: { breadcrumb: 'Products', permission: PermissionNames.Products }, loadChildren: () => import('./demo/components/products/products.module').then(m => m.ProductsModule) },
             { path: 'customer-orders', data: { breadcrumb: 'Customer Orders', permission: PermissionNames.CustomerOrders }, loadChildren: () => import('./demo/components/customer-orders/customer-orders.module').then(m => m.CustomerOrdersModule) },
+            { path: 'delivery-areas', data: { breadcrumb: 'Delivery Areas', permission: PermissionNames.DeliveryAreas }, loadChildren: () => import('./demo/components/delivery-areas/delivery-areas.module').then(m => m.DeliveryAreasModule) },
             { path: 'purchases', data: { breadcrumb: 'Purchases', permission: PermissionNames.Purchases }, loadChildren: () => import('./demo/components/purchases/purchases.module').then(m => m.PurchasesModule) },
             { path: 'sales', data: { breadcrumb: 'Sales', permission: PermissionNames.Sales }, loadChildren: () => import('./demo/components/sales/sales.module').then(m => m.SalesModule) },
             { path: 'sale-returns', data: { breadcrumb: 'Sale Returns', permission: PermissionNames.Sales }, loadChildren: () => import('./demo/components/sale-returns/sale-returns.module').then(m => m.SaleReturnsModule) },
@@ -73,12 +115,68 @@ const routes: Routes = [
             { path: 'ledger-entries', data: { breadcrumb: 'Ledger', permission: PermissionNames.LedgerEntries }, loadChildren: () => import('./demo/components/ledger-entries/ledger-entries.module').then(m => m.LedgerEntriesModule) },
             { path: 'branches', data: { breadcrumb: 'Branches', permission: PermissionNames.Branches }, loadChildren: () => import('./demo/components/branches/branches.module').then(m => m.BranchesModule) },
             { path: 'lookups', data: { breadcrumb: 'Lookups', permission: PermissionNames.LookUps }, loadChildren: () => import('./demo/components/lookups/lookups.module').then(m => m.LookUpsModule) },
+            { path: 'admin-log', data: { breadcrumb: 'Logged in', permission: PermissionNames.Users }, loadChildren: () => import('./demo/components/admin-log/admin-log.module').then(m => m.AdminLogModule) },
             { path: 'host-catalog', data: { breadcrumb: 'Company types', permission: PermissionNames.HostCatalog }, loadChildren: () => import('./demo/components/host-catalog/host-catalog.module').then(m => m.HostCatalogModule) },
+            {
+                path: 'developers',
+                data: { breadcrumb: 'Developers', permission: PermissionNames.Developers },
+                loadChildren: () =>
+                    import('./demo/components/developers/developers.module').then(
+                        (m) => m.DevelopersModule
+                    ),
+            },
+            {
+                path: 'sellers',
+                data: { breadcrumb: 'Sellers', permission: PermissionNames.Sellers },
+                loadChildren: () =>
+                    import('./demo/components/sellers/sellers.module').then(
+                        (m) => m.SellersModule
+                    ),
+            },
+            {
+                path: 'packages',
+                data: { breadcrumb: 'Packages', permission: PermissionNames.Packages },
+                loadChildren: () =>
+                    import('./demo/components/packages/packages.module').then(
+                        (m) => m.PackagesModule
+                    ),
+            },
             { path: 'email-templates', data: { breadcrumb: 'Email Templates', permission: PermissionNames.EmailTemplates }, loadChildren: () => import('./demo/components/email-templates/email-templates.module').then(m => m.EmailTemplatesModule) },
             { path: 'notification-settings', data: { breadcrumb: 'Notification Settings', permission: PermissionNames.NotificationSettings }, loadChildren: () => import('./demo/components/notification-settings/notification-settings.module').then(m => m.NotificationSettingsModule) },
             { path: 'tenants', data: { breadcrumb: 'Tenants', permission: PermissionNames.Tenants }, loadChildren: () => import('./demo/components/tenants/tenants.module').then(m => m.TenantsModule) },
+            { path: 'subscriptions', data: { breadcrumb: 'Subscriptions', permission: PermissionNames.Subscriptions }, loadChildren: () => import('./demo/components/subscriptions/subscriptions.module').then(m => m.SubscriptionsModule) },
+            { path: 'billing', data: { breadcrumb: 'Billing', permission: PermissionNames.Billing }, loadChildren: () => import('./demo/components/billing/billing.module').then(m => m.BillingModule) },
             { path: 'reports', data: { breadcrumb: 'Reports', permission: PermissionNames.Reports }, loadChildren: () => import('./demo/components/reports/reports.module').then(m => m.ReportsModule) },
             { path: 'profile', data: { breadcrumb: 'User Management' }, loadChildren: () => import('./demo/components/profile/profile.module').then(m => m.ProfileModule) },
+            {
+                path: 'rider',
+                data: {
+                    breadcrumb: 'Rider Portal',
+                    anyPermission: [
+                        PermissionNames.Rider,
+                        PermissionNames.RiderDashboard,
+                    ],
+                },
+                loadChildren: () =>
+                    import('./demo/components/rider/rider.module').then(
+                        (m) => m.RiderModule
+                    ),
+            },
+            {
+                path: 'waiter',
+                data: {
+                    breadcrumb: 'Waiter Portal',
+                    anyPermission: [
+                        PermissionNames.Pos,
+                        PermissionNames.DiningTables,
+                        PermissionNames.Sales,
+                    ],
+                },
+                loadChildren: () =>
+                    import('./demo/components/waiter/waiter.module').then(
+                        (m) => m.WaiterModule
+                    ),
+            },
         ]
     },
     { path: 'auth', data: { breadcrumb: 'Auth' }, loadChildren: () => import('./demo/components/auth/auth.module').then(m => m.AuthModule) },

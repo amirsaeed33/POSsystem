@@ -12,6 +12,33 @@
     styleClass="purchase-invoice-dialog"
     (onHide)="onHide()"
 >
+        <!-- Format Selector Bar -->
+    <div
+        class="no-print format-toolbar mb-3 pb-2 border-bottom-1 surface-border flex align-items-center justify-content-between flex-wrap gap-2"
+        style="background: var(--surface-50, #f8fafc); padding: 8px 12px; border-radius: 8px;">
+        <div class="flex align-items-center gap-2">
+            <i class="pi pi-sliders-h text-primary"></i>
+            <span class="text-sm font-bold text-700">Receipt Format:</span>
+        </div>
+        <div class="flex gap-2">
+            <button type="button" pButton pRipple class="p-button-sm"
+                [class.p-button-outlined]="printFormat !== 'thermal-80'"
+                (click)="setPrintFormat('thermal-80')" title="80mm Thermal Receipt">
+                <i class="pi pi-ticket mr-1"></i> Thermal (80mm)
+            </button>
+            <button type="button" pButton pRipple class="p-button-sm"
+                [class.p-button-outlined]="printFormat !== 'thermal-58'"
+                (click)="setPrintFormat('thermal-58')" title="58mm Compact Thermal">
+                <i class="pi pi-receipt mr-1"></i> Thermal (58mm)
+            </button>
+            <button type="button" pButton pRipple class="p-button-sm"
+                [class.p-button-outlined]="printFormat !== 'a4'"
+                (click)="setPrintFormat('a4')" title="Standard A4 Sheet">
+                <i class="pi pi-file mr-1"></i> Standard (A4)
+            </button>
+        </div>
+    </div>
+
     <div *ngIf="loading" class="text-center p-4 text-500 no-print">Loading...</div>
 
     <div *ngIf="!loading && purchase" class="print-area invoice-sheet">
@@ -25,6 +52,7 @@
                 />
                 <div>
                     <h2>{{ company?.name || 'Purchase Invoice' }}</h2>
+                    <div *ngIf="company?.code" class="company-code">Branch: {{ company?.code }}</div>
                     <div *ngIf="company?.invoiceAddress">{{ company?.invoiceAddress }}</div>
                     <div *ngIf="company?.invoiceContactPhone">
                         Phone: {{ company?.invoiceContactPhone }}
@@ -34,6 +62,9 @@
                     </div>
                     <div *ngIf="company?.taxNumber">
                         Tax Number: {{ company?.taxNumber }}
+                    </div>
+                    <div *ngIf="company?.website">
+                        Website: {{ company?.website }}
                     </div>
                 </div>
             </div>
@@ -46,6 +77,10 @@
                 <div>
                     <strong>Purchase Date:</strong>
                     {{ purchase.purchaseDate | date: formatService.dateFormat }}
+                </div>
+                <div *ngIf="purchase.paymentStatus">
+                    <strong>Payment Status:</strong>
+                    {{ purchase.paymentStatus }}
                 </div>
             </div>
         </div>
@@ -93,11 +128,63 @@
                         <strong>Total Amount</strong>
                     </td>
                     <td class="text-right">
-                        <strong>{{ purchase.totalAmount }}</strong>
+                        <strong>{{ purchase.totalAmount | number: '1.2-2' }}</strong>
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="4" class="text-right">Total Paid</td>
+                    <td class="text-right">{{ paymentHistoryTotal | number: '1.2-2' }}</td>
+                </tr>
+                <tr>
+                    <td colspan="4" class="text-right">
+                        <strong>Balance Due</strong>
+                    </td>
+                    <td class="text-right">
+                        <strong>{{ dueAmount | number: '1.2-2' }}</strong>
                     </td>
                 </tr>
             </tfoot>
         </table>
+
+        <div class="payment-history-block">
+            <div class="section-title">
+                Payment History
+                <span *ngIf="purchase.paymentStatus" class="payment-status">
+                    ({{ purchase.paymentStatus }})
+                </span>
+            </div>
+            <table class="invoice-table payment-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Paid From</th>
+                        <th>Description</th>
+                        <th class="text-right">Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr *ngFor="let payment of paymentHistory">
+                        <td>{{ payment.transactionDate | date: formatService.dateFormat }}</td>
+                        <td>{{ payment.paymentAccountName || '—' }}</td>
+                        <td>{{ payment.description || '—' }}</td>
+                        <td class="text-right">{{ payment.amount | number: '1.2-2' }}</td>
+                    </tr>
+                    <tr *ngIf="!paymentHistory.length">
+                        <td colspan="4" class="text-center">No payments recorded</td>
+                    </tr>
+                </tbody>
+                <tfoot *ngIf="paymentHistory.length">
+                    <tr>
+                        <td colspan="3" class="text-right">
+                            <strong>Total Paid</strong>
+                        </td>
+                        <td class="text-right">
+                            <strong>{{ paymentHistoryTotal | number: '1.2-2' }}</strong>
+                        </td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
 
         <div class="invoice-footer">
             <div *ngIf="company?.invoiceFooter" class="mb-1">

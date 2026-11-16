@@ -46,7 +46,7 @@ export class LoginComponent implements OnInit, OnDestroy {
 	currentSpokenWord = '';
 	private googleClientId = '';
 	private googleScriptLoaded = false;
-	private returnUrl = '/';
+	private returnUrl = '/dashboard';
 	private resendTimer: ReturnType<typeof setInterval> | null = null;
 	private inactivityTimer: any;
 	private readonly INACTIVITY_LIMIT = 3 * 60 * 1000; // 3 minutes in ms
@@ -79,7 +79,10 @@ export class LoginComponent implements OnInit, OnDestroy {
 	async ngOnInit(): Promise<void> {
 		this.speakGreeting();
 		this.resetInactivityTimer();
-		this.returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/';
+		const rawReturnUrl = this.route.snapshot.queryParams['returnUrl'] || '/dashboard';
+		// Root now opens the public online-order storefront; staff land on dashboard.
+		this.returnUrl =
+			!rawReturnUrl || rawReturnUrl === '/' ? '/dashboard' : rawReturnUrl;
 
 		// Tenant is resolved from the user on the backend after login — clear any stale picker cookie and branch context.
 		if (!this.authService.isAuthenticated()) {
@@ -94,7 +97,13 @@ export class LoginComponent implements OnInit, OnDestroy {
 		}
 
 		if (this.authService.isAuthenticated()) {
-			this.router.navigateByUrl(this.returnUrl);
+			if (this.authService.isDeliveryRider()) {
+				this.router.navigateByUrl('/rider/dashboard');
+			} else if (this.authService.isWaiter()) {
+				this.router.navigateByUrl('/pos');
+			} else {
+				this.router.navigateByUrl(this.returnUrl);
+			}
 		}
 	}
 
@@ -245,8 +254,15 @@ export class LoginComponent implements OnInit, OnDestroy {
 		this.loading = true;
 		const model = this.loginForm.value;
 
-		this.authService.authenticate(model)
-			.then(() => this.completeLogin())
+		this.resolveLoginCoordinates()
+			.then((coords) =>
+				this.authService.authenticate({
+					...model,
+					latitude: coords?.latitude ?? null,
+					longitude: coords?.longitude ?? null,
+				})
+			)
+			.then((result) => this.completeLogin(result?.attendanceAutoCheckedIn))
 			.catch((error) => this.showLoginError(error))
 			.finally(() => {
 				this.loading = false;
@@ -428,7 +444,26 @@ export class LoginComponent implements OnInit, OnDestroy {
 		}
 	}
 
-	private async completeLogin(): Promise<void> {
+	private resolveLoginCoordinates(): Promise<{ latitude: number; longitude: number } | null> {
+		if (!navigator?.geolocation) {
+			return Promise.resolve(null);
+		}
+
+		return new Promise((resolve) => {
+			navigator.geolocation.getCurrentPosition(
+				(pos) => {
+					resolve({
+						latitude: Number(pos.coords.latitude.toFixed(6)),
+						longitude: Number(pos.coords.longitude.toFixed(6)),
+					});
+				},
+				() => resolve(null),
+				{ enableHighAccuracy: true, timeout: 8000, maximumAge: 30000 }
+			);
+		});
+	}
+
+	private async completeLogin(attendanceAutoCheckedIn?: boolean): Promise<void> {
 		const sessionInfo = await this.sessionService.getCurrentLoginInformations();
 		if (sessionInfo?.user) {
 			this.authService.setUserInfo(sessionInfo.user);
@@ -464,10 +499,36 @@ export class LoginComponent implements OnInit, OnDestroy {
 			}
 		}
 
+		if (sessionInfo?.user?.isDeliveryRider || this.authService.isDeliveryRider()) {
+			this.messageService.add({
+				severity: 'success',
+				summary: 'Welcome',
+				detail: attendanceAutoCheckedIn
+					? 'Welcome to Delivery Rider Portal. Attendance checked in near branch.'
+					: 'Welcome to Delivery Rider Portal',
+			});
+			this.router.navigateByUrl('/rider/dashboard');
+			return;
+		}
+
+		if (sessionInfo?.user?.isWaiter || this.authService.isWaiter()) {
+			this.messageService.add({
+				severity: 'success',
+				summary: 'Welcome',
+				detail: attendanceAutoCheckedIn
+					? 'Welcome to Restaurant POS. Attendance checked in near branch.'
+					: 'Welcome to Restaurant POS',
+			});
+			this.router.navigateByUrl('/pos');
+			return;
+		}
+
 		this.messageService.add({
 			severity: 'success',
 			summary: 'Success',
-			detail: 'Login successful',
+			detail: attendanceAutoCheckedIn
+				? 'Login successful. Attendance checked in near branch.'
+				: 'Login successful',
 		});
 		this.router.navigateByUrl(this.returnUrl);
 	}

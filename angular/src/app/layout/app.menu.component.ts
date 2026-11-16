@@ -1,21 +1,27 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Subscription } from 'rxjs';
 import { PermissionNames } from '../demo/api/permission-names';
 import { PermissionService } from '../demo/service/permission.service';
 import { LayoutService } from './service/app.layout.service';
 import { BranchContextService } from '../demo/service/branch-context.service';
 
+import { AuthService } from '../demo/service/auth.service';
+
 @Component({
     selector: 'app-menu',
     templateUrl: './app.menu.component.html'
 })
-export class AppMenuComponent implements OnInit {
+export class AppMenuComponent implements OnInit, OnDestroy {
 
     model: any[] = [];
+    private branchSub?: Subscription;
+    private userSub?: Subscription;
 
     constructor(
         public layoutService: LayoutService,
         private permissionService: PermissionService,
-        private branchContext: BranchContextService
+        private branchContext: BranchContextService,
+        private authService: AuthService
     ) { }
 
     async ngOnInit() {
@@ -25,18 +31,135 @@ export class AppMenuComponent implements OnInit {
             // Menu falls back to cached grants (if any).
         }
 
-        const currentBranchId = this.branchContext.getBranchId();
+        this.buildMenu();
+        this.branchSub = this.branchContext.currentBranch$.subscribe(() => {
+            this.buildMenu();
+        });
+        this.userSub = this.authService.currentUser$.subscribe(() => {
+            this.buildMenu();
+        });
+    }
+
+    ngOnDestroy(): void {
+        this.branchSub?.unsubscribe();
+        this.userSub?.unsubscribe();
+    }
+
+    private buildMenu(): void {
+        if (this.authService.isDeliveryRider()) {
+            this.model = [
+                {
+                    label: 'Delivery Portal',
+                    icon: 'pi pi-compass',
+                    items: [
+                        {
+                            label: 'My Dashboard',
+                            icon: 'pi pi-home',
+                            routerLink: ['/rider/dashboard'],
+                        },
+                        {
+                            label: 'Order History',
+                            icon: 'pi pi-history',
+                            routerLink: ['/rider/history'],
+                        },
+                    ]
+                }
+            ];
+            return;
+        }
+
+        if (this.authService.isWaiter()) {
+            this.model = [
+                {
+                    label: 'My Dashboard',
+                    icon: 'pi pi-home',
+                    routerLink: ['/waiter/dashboard'],
+                },
+                {
+                    label: 'POS',
+                    icon: 'pi pi-desktop',
+                    routerLink: ['/pos'],
+                },
+            ];
+            return;
+        }
+
+        const currentBranch = this.branchContext.getCurrentBranch();
+        const currentBranchId = currentBranch?.id ?? this.branchContext.getBranchId();
+        const isRestaurant = currentBranch?.businessType === 2;
 
         // Every root entry is a collapsible group (static/overlay) or hover panel (slim).
-        const menu = [
+        const menu: any[] = [
             {
                 label: 'Main',
                 icon: 'pi pi-home',
                 items: [
-                    { label: 'Dashboard', icon: 'pi pi-home', routerLink: ['/'] },
-                    { label: 'POS Screen', icon: 'pi pi-desktop', routerLink: ['/pos'], permission: PermissionNames.Sales },
+                    { label: 'Dashboard', icon: 'pi pi-home', routerLink: ['/dashboard'] },
+                    {
+                        label: isRestaurant ? 'Dine Hub' : 'POS',
+                        icon: 'pi pi-desktop',
+                        routerLink: ['/pos'],
+                        anyPermission: [
+                            PermissionNames.Pos,
+                            PermissionNames.DiningTables,
+                            PermissionNames.Sales,
+                        ],
+                    },
+                    {
+                        label: isRestaurant ? 'Online' : 'Online Storefront',
+                        icon: 'pi pi-globe',
+                        routerLink: ['/online-order'],
+                        queryParams: currentBranchId
+                            ? { branchId: currentBranchId }
+                            : undefined,
+                        target: '_blank',
+                    },
                 ]
             },
+            ...(isRestaurant
+                ? [
+                      {
+                          label: 'Restaurant',
+                          icon: 'pi pi-compass',
+                          items: [
+                              {
+                                  label: 'Running Orders',
+                                  icon: 'pi pi-list',
+                                  routerLink: ['/kitchen'],
+                                  anyPermission: [
+                                      PermissionNames.DiningTables,
+                                      PermissionNames.Pos,
+                                      PermissionNames.Sales,
+                                  ],
+                              },
+                              {
+                                  label: 'Sales',
+                                  icon: 'pi pi-shopping-cart',
+                                  routerLink: ['/sales'],
+                                  permission: PermissionNames.Sales,
+                              },
+                              {
+                                  label: 'Orders',
+                                  icon: 'pi pi-file',
+                                  routerLink: ['/customer-orders'],
+                                  permission: PermissionNames.CustomerOrders,
+                              },
+                              {
+                                  label: 'Areas',
+                                  icon: 'pi pi-map-marker',
+                                  routerLink: ['/delivery-areas'],
+                                  permission: PermissionNames.DeliveryAreas,
+                              },
+                              {
+                                  label: 'Customers',
+                                  icon: 'pi pi-users',
+                                  routerLink: ['/customers'],
+                                  permission: PermissionNames.Customers,
+                              },
+                          ],
+                      },
+                  ]
+                : []),
             {
                 label: 'Products',
                 icon: 'pi pi-box',
@@ -45,11 +168,18 @@ export class AppMenuComponent implements OnInit {
                         label: 'Settings',
                         icon: 'pi pi-cog',
                         routerLink: ['/product-settings'],
-                        anyPermission: [
-                            PermissionNames.Brands,
-                            PermissionNames.Units,
-                            PermissionNames.Categories,
-                        ],
+                        anyPermission: isRestaurant
+                            ? [
+                                  PermissionNames.Departments,
+                                  PermissionNames.Units,
+                                  PermissionNames.Categories,
+                              ]
+                            : [
+                                  PermissionNames.Brands,
+                                  PermissionNames.Departments,
+                                  PermissionNames.Units,
+                                  PermissionNames.Categories,
+                              ],
                     },
                     { label: 'Products', icon: 'pi pi-box', routerLink: ['/products'], permission: PermissionNames.Products },
                     { label: 'Suppliers', icon: 'pi pi-truck', routerLink: ['/suppliers'], permission: PermissionNames.Suppliers },
@@ -58,17 +188,55 @@ export class AppMenuComponent implements OnInit {
                     { label: 'Stock Adjustments', icon: 'pi pi-sync', routerLink: ['/stock-adjustments'], permission: PermissionNames.StockAdjustments },
                 ]
             },
-            {
-                label: 'Sales',
-                icon: 'pi pi-shopping-cart',
-                items: [
-                    { label: 'Sales', icon: 'pi pi-shopping-cart', routerLink: ['/sales'], permission: PermissionNames.Sales },
-                    { label: 'Sale Returns', icon: 'pi pi-replay', routerLink: ['/sale-returns'], permission: PermissionNames.Sales },
-                    { label: 'Customer Orders', icon: 'pi pi-file', routerLink: ['/customer-orders'], permission: PermissionNames.CustomerOrders },
-                    { label: 'Online Storefront', icon: 'pi pi-globe', routerLink: ['/online-order'], queryParams: currentBranchId ? { branchId: currentBranchId } : undefined, target: '_blank' },
-                    { label: 'Customers', icon: 'pi pi-users', routerLink: ['/customers'], permission: PermissionNames.Customers },
-                ]
-            },
+            ...(!isRestaurant
+                ? [
+                      {
+                          label: 'Sales',
+                          icon: 'pi pi-shopping-cart',
+                          items: [
+                              {
+                                  label: 'Sales',
+                                  icon: 'pi pi-shopping-cart',
+                                  routerLink: ['/sales'],
+                                  permission: PermissionNames.Sales,
+                              },
+                              {
+                                  label: 'Sale Returns',
+                                  icon: 'pi pi-replay',
+                                  routerLink: ['/sale-returns'],
+                                  permission: PermissionNames.Sales,
+                              },
+                              {
+                                  label: 'Customer Orders',
+                                  icon: 'pi pi-file',
+                                  routerLink: ['/customer-orders'],
+                                  permission: PermissionNames.CustomerOrders,
+                              },
+                              {
+                                  label: 'Delivery Areas',
+                                  icon: 'pi pi-map-marker',
+                                  routerLink: ['/delivery-areas'],
+                                  permission: PermissionNames.DeliveryAreas,
+                              },
+                              {
+                                  label: 'Online Storefront',
+                                  icon: 'pi pi-globe',
+                                  routerLink: ['/online-order'],
+                                  queryParams: currentBranchId
+                                      ? { branchId: currentBranchId }
+                                      : undefined,
+                                  target: '_blank',
+                              },
+                              {
+                                  label: 'Customers',
+                                  icon: 'pi pi-users',
+                                  routerLink: ['/customers'],
+                                  permission: PermissionNames.Customers,
+                              },
+                          ],
+                      },
+                  ]
+                : []),
             {
                 label: 'Business',
                 icon: 'pi pi-briefcase',
@@ -96,22 +264,28 @@ export class AppMenuComponent implements OnInit {
                 icon: 'pi pi-cog',
                 items: [
                     { label: 'Users', icon: 'pi pi-user', routerLink: ['/profile/list'], permission: PermissionNames.Users },
+                    { label: 'Logged in', icon: 'pi pi-users', routerLink: ['/admin-log'], permission: PermissionNames.Users },
                     {
                         label: 'Staff',
                         icon: 'pi pi-id-card',
                         routerLink: ['/staff'],
                         anyPermission: [
                             PermissionNames.Staff,
+                            PermissionNames.StaffAttendance,
                             PermissionNames.StaffPayroll,
                         ],
                     },
                     { label: 'Roles', icon: 'pi pi-lock', routerLink: ['/profile/role'], permission: PermissionNames.Roles },
                     { label: 'Branches', icon: 'pi pi-sitemap', routerLink: ['/branches'], permission: PermissionNames.Branches },
                     { label: 'Lookups', icon: 'pi pi-list', routerLink: ['/lookups'], permission: PermissionNames.LookUps },
-
                     { label: 'Company types', icon: 'pi pi-building', routerLink: ['/host-catalog'], permission: PermissionNames.HostCatalog },
-                    { label: 'Email Templates', icon: 'pi pi-envelope', routerLink: ['/email-templates'], permission: PermissionNames.EmailTemplates },
+                    { label: 'Developers', icon: 'pi pi-code', routerLink: ['/developers'], permission: PermissionNames.Developers },
+                    { label: 'Sellers', icon: 'pi pi-briefcase', routerLink: ['/sellers'], permission: PermissionNames.Sellers },
+                    { label: 'Product pricing', icon: 'pi pi-tag', routerLink: ['/packages'], permission: PermissionNames.Packages },
+                    { label: 'Templates', icon: 'pi pi-envelope', routerLink: ['/email-templates'], permission: PermissionNames.EmailTemplates },
                     { label: 'Tenants', icon: 'pi pi-globe', routerLink: ['/tenants'], permission: PermissionNames.Tenants },
+                    { label: 'Subscriptions', icon: 'pi pi-credit-card', routerLink: ['/subscriptions'], permission: PermissionNames.Subscriptions },
+                    { label: 'Billing', icon: 'pi pi-wallet', routerLink: ['/billing'], permission: PermissionNames.Billing },
                 ]
             }
         ];
@@ -133,13 +307,18 @@ export class AppMenuComponent implements OnInit {
             .filter((item) => {
                 if (Array.isArray(item.anyPermission) && item.anyPermission.length) {
                     if (
-                        !item.anyPermission.some((p: string) =>
-                            this.permissionService.isGranted(p)
+                        !item.anyPermission.some(
+                            (p: string) =>
+                                this.permissionService.isGranted(p) ||
+                                this.hostAdminCanSee(p)
                         )
                     ) {
                         return false;
                     }
-                } else if (!this.permissionService.isGranted(item.permission)) {
+                } else if (
+                    !this.permissionService.isGranted(item.permission) &&
+                    !this.hostAdminCanSee(item.permission)
+                ) {
                     return false;
                 }
                 if (item.items) {
@@ -147,5 +326,21 @@ export class AppMenuComponent implements OnInit {
                 }
                 return true;
             });
+    }
+
+    /** Host admin edits product-page pricing even before the role grant is cached. */
+    private hostAdminCanSee(permission?: string): boolean {
+        if (!permission || !BranchContextService.isHostAdminSession()) {
+            return false;
+        }
+        return (
+            permission.startsWith('Pages.Users') ||
+            permission.startsWith('Pages.Packages') ||
+            permission.startsWith('Pages.Developers') ||
+            permission.startsWith('Pages.Sellers') ||
+            permission.startsWith('Pages.HostCatalog') ||
+            permission.startsWith('Pages.Tenants') ||
+            permission.startsWith('Pages.Subscriptions')
+        );
     }
 }

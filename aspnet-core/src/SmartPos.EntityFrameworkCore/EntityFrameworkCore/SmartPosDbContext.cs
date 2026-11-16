@@ -2,11 +2,13 @@ using Microsoft.EntityFrameworkCore;
 using Abp.Domain.Entities;
 using Abp.Zero.EntityFrameworkCore;
 using SmartPos.Accounts;
+using SmartPos.Authorization;
 using SmartPos.Authorization.Roles;
 using SmartPos.Authorization.Users;
 using SmartPos.Branches;
 using SmartPos.Brands;
 using SmartPos.Categories;
+using SmartPos.Addresses;
 using SmartPos.Customers;
 using SmartPos.Emailing;
 using SmartPos.Expenses;
@@ -18,8 +20,15 @@ using SmartPos.Orders;
 using SmartPos.Products;
 using SmartPos.Purchases;
 using SmartPos.Sales;
+using SmartPos.Restaurant;
+using SmartPos.Deals;
 using SmartPos.Staffs;
 using SmartPos.Suppliers;
+using SmartPos.Departments;
+using SmartPos.Developers;
+using SmartPos.Packages;
+using SmartPos.Billing;
+using SmartPos.Sellers;
 using SmartPos.Units;
 
 namespace SmartPos.EntityFrameworkCore
@@ -27,6 +36,8 @@ namespace SmartPos.EntityFrameworkCore
     public class SmartPosDbContext : AbpZeroDbContext<Tenant, Role, User, SmartPosDbContext>
     {
         public virtual DbSet<Category> Categories { get; set; }
+
+        public virtual DbSet<Department> Departments { get; set; }
 
         public virtual DbSet<Branch> Branches { get; set; }
 
@@ -42,6 +53,12 @@ namespace SmartPos.EntityFrameworkCore
 
         public virtual DbSet<HostCatalogItem> HostCatalogItems { get; set; }
 
+        public virtual DbSet<Developer> Developers { get; set; }
+
+        public virtual DbSet<Seller> Sellers { get; set; }
+
+        public virtual DbSet<Package> Packages { get; set; }
+
         public virtual DbSet<BranchSeedRequest> BranchSeedRequests { get; set; }
 
         public virtual DbSet<BranchSeedRequestItem> BranchSeedRequestItems { get; set; }
@@ -52,6 +69,10 @@ namespace SmartPos.EntityFrameworkCore
 
         public virtual DbSet<Customer> Customers { get; set; }
 
+        public virtual DbSet<CustomerFavorite> CustomerFavorites { get; set; }
+
+        public virtual DbSet<SavedAddress> SavedAddresses { get; set; }
+
         public virtual DbSet<Staff> Staff { get; set; }
 
         public virtual DbSet<StaffAttendance> StaffAttendances { get; set; }
@@ -61,6 +82,8 @@ namespace SmartPos.EntityFrameworkCore
         public virtual DbSet<StaffHistory> StaffHistories { get; set; }
 
         public virtual DbSet<Supplier> Suppliers { get; set; }
+
+        public virtual DbSet<SupplierProduct> SupplierProducts { get; set; }
 
         public virtual DbSet<BusinessAccount> Accounts { get; set; }
 
@@ -88,9 +111,41 @@ namespace SmartPos.EntityFrameworkCore
 
         public virtual DbSet<CustomerOrderLine> CustomerOrderLines { get; set; }
 
+        public virtual DbSet<CustomerChatMessage> CustomerChatMessages { get; set; }
+
+        public virtual DbSet<DeliveryArea> DeliveryAreas { get; set; }
+
+        public virtual DbSet<OnlineOrderHeroSlide> OnlineOrderHeroSlides { get; set; }
+
+        public virtual DbSet<DeliveryPromotion> DeliveryPromotions { get; set; }
+
         public virtual DbSet<StockAdjustment> StockAdjustments { get; set; }
 
         public virtual DbSet<StockAdjustmentLine> StockAdjustmentLines { get; set; }
+
+        public virtual DbSet<RestaurantTable> RestaurantTables { get; set; }
+
+        public virtual DbSet<RestaurantOrder> RestaurantOrders { get; set; }
+
+        public virtual DbSet<RestaurantOrderLine> RestaurantOrderLines { get; set; }
+
+        public virtual DbSet<RestaurantPrintLog> RestaurantPrintLogs { get; set; }
+
+        public virtual DbSet<ProductModifierGroup> ProductModifierGroups { get; set; }
+
+        public virtual DbSet<ProductModifierOption> ProductModifierOptions { get; set; }
+
+        public virtual DbSet<Deal> Deals { get; set; }
+
+        public virtual DbSet<DealDetail> DealDetails { get; set; }
+
+        public virtual DbSet<UserPresence> UserPresences { get; set; }
+
+        public virtual DbSet<PaymentMethod> PaymentMethods { get; set; }
+
+        public virtual DbSet<TenantSubscription> TenantSubscriptions { get; set; }
+
+        public virtual DbSet<SubscriptionPayment> SubscriptionPayments { get; set; }
 
         public SmartPosDbContext(DbContextOptions<SmartPosDbContext> options)
             : base(options)
@@ -148,6 +203,15 @@ namespace SmartPos.EntityFrameworkCore
                     .HasFilter("[IsDeleted] = 0");
             });
 
+            modelBuilder.Entity<Seller>(b =>
+            {
+                b.Property(x => x.CommissionPerSalePkr).HasPrecision(18, 2);
+                b.HasIndex(x => new { x.Status, x.CreationTime });
+                b.HasIndex(x => new { x.IsPubliclyListed, x.Status });
+                b.HasIndex(x => x.Email);
+                b.HasIndex(x => x.PhoneNumber);
+            });
+
             modelBuilder.Entity<HostCatalogItem>(b =>
             {
                 b.HasIndex(x => new { x.Type, x.CompanyTypeId, x.Name })
@@ -202,6 +266,23 @@ namespace SmartPos.EntityFrameworkCore
                     .WithMany()
                     .HasForeignKey(x => x.DefaultUnitId)
                     .OnDelete(DeleteBehavior.Restrict);
+                b.HasIndex(x => x.DepartmentId);
+                b.HasOne(x => x.Department)
+                    .WithMany()
+                    .HasForeignKey(x => x.DepartmentId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<Department>(b =>
+            {
+                b.HasIndex(x => new { x.TenantId, x.BranchId, x.Name })
+                    .IsUnique()
+                    .HasFilter("[IsDeleted] = 0");
+                b.HasIndex(x => x.BranchId);
+                b.HasOne(x => x.Branch)
+                    .WithMany()
+                    .HasForeignKey(x => x.BranchId)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
 
             modelBuilder.Entity<Brand>(b =>
@@ -250,9 +331,14 @@ namespace SmartPos.EntityFrameworkCore
                 b.Property(x => x.TaxPercent).HasPrecision(18, 2);
                 b.Property(x => x.DiscountPercent).HasPrecision(18, 2);
                 b.Property(x => x.DiscountAmount).HasPrecision(18, 2);
+                b.Property(x => x.CustomDomain).HasMaxLength(Branch.MaxCustomDomainLength);
+                b.Property(x => x.StorefrontTitle).HasMaxLength(Branch.MaxStorefrontTitleLength);
                 b.HasIndex(x => new { x.TenantId, x.Code })
                     .IsUnique()
                     .HasFilter("[IsDeleted] = 0");
+                b.HasIndex(x => x.CustomDomain)
+                    .IsUnique()
+                    .HasFilter("[CustomDomain] IS NOT NULL AND [CustomDomain] <> N''");
                 b.HasIndex(x => x.StatusId);
                 b.HasOne(x => x.StatusLookUp)
                     .WithMany()
@@ -308,10 +394,15 @@ namespace SmartPos.EntityFrameworkCore
                 b.Property(x => x.Debit).HasPrecision(18, 2);
                 b.Property(x => x.Credit).HasPrecision(18, 2);
                 b.HasIndex(x => x.AccountId);
+                b.HasIndex(x => x.BranchId);
                 b.HasIndex(x => x.TransactionDate);
                 b.HasOne(x => x.Account)
                     .WithMany()
                     .HasForeignKey(x => x.AccountId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                b.HasOne(x => x.Branch)
+                    .WithMany()
+                    .HasForeignKey(x => x.BranchId)
                     .OnDelete(DeleteBehavior.Restrict);
             });
 
@@ -326,6 +417,37 @@ namespace SmartPos.EntityFrameworkCore
                     .WithMany()
                     .HasForeignKey(x => x.AccountId)
                     .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<CustomerFavorite>(b =>
+            {
+                b.HasIndex(x => new { x.CustomerId, x.ProductId, x.BranchId }).IsUnique();
+                b.HasIndex(x => x.ProductId);
+                b.HasIndex(x => x.BranchId);
+                b.HasIndex(x => x.TenantId);
+                b.HasOne(x => x.Customer)
+                    .WithMany()
+                    .HasForeignKey(x => x.CustomerId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                b.HasOne(x => x.Product)
+                    .WithMany()
+                    .HasForeignKey(x => x.ProductId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                b.HasOne(x => x.Branch)
+                    .WithMany()
+                    .HasForeignKey(x => x.BranchId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<SavedAddress>(b =>
+            {
+                b.HasIndex(x => new { x.OwnerType, x.OwnerId });
+                b.HasIndex(x => x.DeliveryAreaId);
+                b.HasIndex(x => x.TenantId);
+                b.HasOne(x => x.DeliveryArea)
+                    .WithMany()
+                    .HasForeignKey(x => x.DeliveryAreaId)
+                    .OnDelete(DeleteBehavior.SetNull);
             });
 
             modelBuilder.Entity<Staff>(b =>
@@ -403,6 +525,21 @@ namespace SmartPos.EntityFrameworkCore
                     .OnDelete(DeleteBehavior.Restrict);
             });
 
+            modelBuilder.Entity<SupplierProduct>(b =>
+            {
+                b.HasIndex(x => new { x.TenantId, x.SupplierId, x.ProductId })
+                    .IsUnique()
+                    .HasFilter("[IsDeleted] = 0");
+                b.HasOne(x => x.Supplier)
+                    .WithMany()
+                    .HasForeignKey(x => x.SupplierId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                b.HasOne(x => x.Product)
+                    .WithMany()
+                    .HasForeignKey(x => x.ProductId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
             modelBuilder.Entity<Purchase>(b =>
             {
                 b.Property(x => x.TotalAmount).HasPrecision(18, 2);
@@ -473,6 +610,7 @@ namespace SmartPos.EntityFrameworkCore
                 b.Property(x => x.TaxPercent).HasPrecision(18, 2);
                 b.Property(x => x.TaxAmount).HasPrecision(18, 2);
                 b.Property(x => x.TotalAmount).HasPrecision(18, 2);
+                b.Property(x => x.DeliveryCharges).HasPrecision(18, 2);
                 b.Property(x => x.CashAmount).HasPrecision(18, 2);
                 b.Property(x => x.CardAmount).HasPrecision(18, 2);
                 b.Property(x => x.CreditAmount).HasPrecision(18, 2);
@@ -555,8 +693,12 @@ namespace SmartPos.EntityFrameworkCore
 
             modelBuilder.Entity<CustomerOrder>(b =>
             {
+                b.Property(x => x.SubTotal).HasPrecision(18, 2);
+                b.Property(x => x.DeliveryFee).HasPrecision(18, 2);
+                b.Property(x => x.OriginalDeliveryFee).HasPrecision(18, 2);
                 b.Property(x => x.TotalAmount).HasPrecision(18, 2);
                 b.HasIndex(x => x.BranchId);
+                b.HasIndex(x => x.DeliveryAreaId);
                 b.HasOne(x => x.Branch)
                     .WithMany()
                     .HasForeignKey(x => x.BranchId)
@@ -568,6 +710,52 @@ namespace SmartPos.EntityFrameworkCore
                 b.HasOne(x => x.Sale)
                     .WithMany()
                     .HasForeignKey(x => x.SaleId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                b.HasOne(x => x.DeliveryArea)
+                    .WithMany()
+                    .HasForeignKey(x => x.DeliveryAreaId)
+                    .OnDelete(DeleteBehavior.SetNull);
+                b.HasOne(x => x.DeliveryPromotion)
+                    .WithMany()
+                    .HasForeignKey(x => x.DeliveryPromotionId)
+                    .OnDelete(DeleteBehavior.SetNull);
+            });
+
+            modelBuilder.Entity<DeliveryArea>(b =>
+            {
+                b.Property(x => x.DeliveryFee).HasPrecision(18, 2);
+                b.Property(x => x.MinimumOrderAmount).HasPrecision(18, 2);
+                b.HasIndex(x => x.BranchId);
+                b.HasIndex(x => x.IsActive);
+                b.HasOne(x => x.Branch)
+                    .WithMany()
+                    .HasForeignKey(x => x.BranchId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<OnlineOrderHeroSlide>(b =>
+            {
+                b.HasIndex(x => new { x.BranchId, x.SortOrder });
+                b.HasIndex(x => new { x.BranchId, x.IsActive });
+                b.HasOne(x => x.Branch)
+                    .WithMany()
+                    .HasForeignKey(x => x.BranchId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<DeliveryPromotion>(b =>
+            {
+                b.Property(x => x.MinimumOrderAmount).HasPrecision(18, 2);
+                b.HasIndex(x => x.BranchId);
+                b.HasIndex(x => x.ProductId);
+                b.HasIndex(x => x.IsActive);
+                b.HasOne(x => x.Branch)
+                    .WithMany()
+                    .HasForeignKey(x => x.BranchId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                b.HasOne(x => x.Product)
+                    .WithMany()
+                    .HasForeignKey(x => x.ProductId)
                     .OnDelete(DeleteBehavior.Restrict);
             });
 
@@ -584,6 +772,23 @@ namespace SmartPos.EntityFrameworkCore
                     .WithMany()
                     .HasForeignKey(x => x.ProductId)
                     .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<CustomerChatMessage>(b =>
+            {
+                b.HasIndex(x => x.BranchId);
+                b.HasIndex(x => x.OrderId);
+                b.HasIndex(x => x.OrderNo);
+                b.HasIndex(x => x.SessionId);
+                b.HasIndex(x => x.CreationTime);
+                b.HasOne(x => x.Branch)
+                    .WithMany()
+                    .HasForeignKey(x => x.BranchId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                b.HasOne(x => x.Order)
+                    .WithMany()
+                    .HasForeignKey(x => x.OrderId)
+                    .OnDelete(DeleteBehavior.SetNull);
             });
 
             modelBuilder.Entity<StockAdjustment>(b =>
@@ -607,6 +812,128 @@ namespace SmartPos.EntityFrameworkCore
                     .WithMany()
                     .HasForeignKey(x => x.ProductId)
                     .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<RestaurantTable>(b =>
+            {
+                b.HasIndex(x => new { x.BranchId, x.TableNo });
+                b.HasOne(x => x.Branch)
+                    .WithMany()
+                    .HasForeignKey(x => x.BranchId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<RestaurantOrder>(b =>
+            {
+                b.HasIndex(x => new { x.BranchId, x.Status });
+                b.HasIndex(x => x.TableId);
+                b.HasOne(x => x.Branch)
+                    .WithMany()
+                    .HasForeignKey(x => x.BranchId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                b.HasOne(x => x.Table)
+                    .WithMany()
+                    .HasForeignKey(x => x.TableId)
+                    .OnDelete(DeleteBehavior.SetNull);
+            });
+
+            modelBuilder.Entity<RestaurantOrderLine>(b =>
+            {
+                b.HasOne(x => x.Order)
+                    .WithMany(x => x.Lines)
+                    .HasForeignKey(x => x.OrderId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                b.HasOne(x => x.Product)
+                    .WithMany()
+                    .HasForeignKey(x => x.ProductId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<ProductModifierGroup>(b =>
+            {
+                b.HasOne(x => x.Product)
+                    .WithMany()
+                    .HasForeignKey(x => x.ProductId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<ProductModifierOption>(b =>
+            {
+                b.HasOne(x => x.ModifierGroup)
+                    .WithMany(x => x.Options)
+                    .HasForeignKey(x => x.ModifierGroupId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<Deal>(b =>
+            {
+                b.Property(x => x.DealPrice).HasPrecision(18, 2);
+                b.HasOne(x => x.Branch)
+                    .WithMany()
+                    .HasForeignKey(x => x.BranchId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                b.HasOne(x => x.Product)
+                    .WithMany()
+                    .HasForeignKey(x => x.ProductId)
+                    .OnDelete(DeleteBehavior.SetNull);
+
+                b.HasIndex(x => new { x.TenantId, x.BranchId });
+            });
+
+            modelBuilder.Entity<DealDetail>(b =>
+            {
+                b.Property(x => x.Quantity).HasPrecision(18, 2);
+                b.Property(x => x.UnitPrice).HasPrecision(18, 2);
+                b.HasOne(x => x.Deal)
+                    .WithMany(x => x.DealDetails)
+                    .HasForeignKey(x => x.DealId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                b.HasOne(x => x.Product)
+                    .WithMany()
+                    .HasForeignKey(x => x.ProductId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                b.HasIndex(x => x.DealId);
+            });
+
+            modelBuilder.Entity<UserPresence>(b =>
+            {
+                b.HasIndex(x => x.UserId).IsUnique();
+                b.HasIndex(x => new { x.TenantId, x.BranchId, x.LastSeen });
+            });
+
+            modelBuilder.Entity<Package>(b =>
+            {
+                //b.Property(x => x.MonthlyAmount).HasPrecision(18, 2);
+                //b.Property(x => x.YearlyAmount).HasPrecision(18, 2);
+            });
+
+            modelBuilder.Entity<PaymentMethod>(b =>
+            {
+                b.Property(x => x.AccountTitle).HasMaxLength(PaymentMethod.MaxAccountTitleLength).IsRequired();
+                b.Property(x => x.AccountNumber).HasMaxLength(PaymentMethod.MaxAccountNumberLength).IsRequired();
+                b.Property(x => x.PayUrl).HasMaxLength(PaymentMethod.MaxPayUrlLength);
+                b.HasIndex(x => x.Kind).IsUnique().HasFilter("[IsDeleted] = 0");
+            });
+
+            modelBuilder.Entity<TenantSubscription>(b =>
+            {
+                b.Property(x => x.PlanName).HasMaxLength(TenantSubscription.MaxPlanNameLength).IsRequired();
+                b.Property(x => x.Amount).HasPrecision(18, 2);
+                b.HasIndex(x => x.TenantId).IsUnique().HasFilter("[IsDeleted] = 0");
+            });
+
+            modelBuilder.Entity<SubscriptionPayment>(b =>
+            {
+                b.Property(x => x.PlanName).HasMaxLength(SubscriptionPayment.MaxPlanNameLength).IsRequired();
+                b.Property(x => x.Amount).HasPrecision(18, 2);
+                b.Property(x => x.ApprovalToken).HasMaxLength(SubscriptionPayment.MaxApprovalTokenLength);
+                b.HasIndex(x => new { x.TenantId, x.Status });
+                b.HasIndex(x => x.ApprovalToken)
+                    .IsUnique()
+                    .HasFilter("[ApprovalToken] IS NOT NULL AND [IsDeleted] = 0");
             });
         }
     }

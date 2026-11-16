@@ -16,6 +16,10 @@ namespace SmartPos.Reports.Dto
     {
         public decimal TotalAmount { get; set; }
 
+        public decimal TotalPaidAmount { get; set; }
+
+        public decimal TotalDueAmount { get; set; }
+
         public List<SaleReportRowDto> Items { get; set; }
     }
 
@@ -32,6 +36,12 @@ namespace SmartPos.Reports.Dto
         public decimal TotalAmount { get; set; }
 
         public string Notes { get; set; }
+
+        public string SaleType { get; set; }
+
+        public decimal PaidAmount { get; set; }
+
+        public decimal DueAmount { get; set; }
     }
 
     public class PurchaseReportDto

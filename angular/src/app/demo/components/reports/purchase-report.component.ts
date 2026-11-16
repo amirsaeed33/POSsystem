@@ -19,6 +19,13 @@ export class PurchaseReportComponent implements OnInit {
     printDialogVisible = false;
     printingPurchaseId: number | null = null;
 
+    fetchPdf = () =>
+        this.reportService.getPurchaseReportPdf({
+            fromDate: this.fromDate || undefined,
+            toDate: this.toDate || undefined,
+            keyword: this.keyword?.trim() || undefined,
+        });
+
     constructor(public formatService: AppFormatService, 
         private reportService: ReportService,
         private messageService: MessageService,

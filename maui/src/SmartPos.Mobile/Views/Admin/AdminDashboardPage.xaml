@@ -1,0 +1,588 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:SmartPos.Mobile.ViewModels"
+             xmlns:models="clr-namespace:SmartPos.Mobile.Models"
+             xmlns:controls="clr-namespace:SmartPos.Mobile.Controls"
+             x:Class="SmartPos.Mobile.Views.Admin.AdminDashboardPage"
+             x:DataType="vm:AdminDashboardViewModel"
+             Title="Admin"
+             Shell.NavBarIsVisible="False"
+             Shell.TabBarIsVisible="False"
+             BackgroundColor="{StaticResource StaffPageBackground}">
+    <Grid RowDefinitions="*,Auto" BackgroundColor="{StaticResource StaffPageBackground}">
+        <ScrollView Grid.Row="0" BackgroundColor="{StaticResource StaffPageBackground}">
+            <VerticalStackLayout Padding="0,0,0,16" Spacing="0" BackgroundColor="{StaticResource StaffPageBackground}">
+
+                <!-- Hero -->
+                <Border StrokeThickness="0" BackgroundColor="{StaticResource StaffHero}" Padding="20,22,20,26">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="0,0,28,28" />
+                    </Border.StrokeShape>
+                    <VerticalStackLayout Spacing="14">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <VerticalStackLayout Spacing="4">
+                                <Border StrokeThickness="0" BackgroundColor="{StaticResource StaffHeroAccent}" Padding="10,4" HorizontalOptions="Start">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="20" />
+                                    </Border.StrokeShape>
+                                    <Label Text="SUPER ADMIN"
+                                           FontSize="10"
+                                           FontAttributes="Bold"
+                                           TextColor="{StaticResource StaffHeroLabel}"
+                                           CharacterSpacing="1.2" />
+                                </Border>
+                                <Label Text="{Binding Greeting}"
+                                       FontSize="24"
+                                       FontAttributes="Bold"
+                                       TextColor="{StaticResource White}" />
+                                <Label Text="{Binding HeaderSubtitle}"
+                                       FontSize="13"
+                                       TextColor="{StaticResource StaffHeroMuted}" />
+                            </VerticalStackLayout>
+
+                            <Border Grid.Column="1"
+                                    StrokeThickness="0"
+                                    BackgroundColor="{StaticResource StaffHeroAccent}"
+                                    WidthRequest="44"
+                                    HeightRequest="44"
+                                    VerticalOptions="Start">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="22" />
+                                </Border.StrokeShape>
+                                <Label Text="↻"
+                                       FontSize="20"
+                                       TextColor="{StaticResource White}"
+                                       HorizontalTextAlignment="Center"
+                                       VerticalTextAlignment="Center">
+                                    <Label.GestureRecognizers>
+                                        <TapGestureRecognizer Command="{Binding RefreshCommand}" />
+                                    </Label.GestureRecognizers>
+                                </Label>
+                            </Border>
+                        </Grid>
+
+                        <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
+                            <Border StrokeThickness="0" BackgroundColor="{StaticResource StaffHeroAccent}" Padding="10,12">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="14" />
+                                </Border.StrokeShape>
+                                <VerticalStackLayout Spacing="2">
+                                    <Label Text="OPEN" FontSize="10" TextColor="{StaticResource StaffHeroLabel}" />
+                                    <Label Text="{Binding OpenOrdersText}" FontSize="20" FontAttributes="Bold" TextColor="{StaticResource White}" />
+                                    <Label Text="orders" FontSize="11" TextColor="{StaticResource StaffTextOnHero}" />
+                                </VerticalStackLayout>
+                            </Border>
+                            <Border Grid.Column="1" StrokeThickness="0" BackgroundColor="{StaticResource StaffHeroAccent}" Padding="10,12">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="14" />
+                                </Border.StrokeShape>
+                                <VerticalStackLayout Spacing="2">
+                                    <Label Text="TODAY" FontSize="10" TextColor="{StaticResource StaffHeroLabel}" />
+                                    <Label Text="{Binding TodayOrdersText}" FontSize="20" FontAttributes="Bold" TextColor="{StaticResource White}" />
+                                    <Label Text="online" FontSize="11" TextColor="{StaticResource StaffTextOnHero}" />
+                                </VerticalStackLayout>
+                            </Border>
+                            <Border Grid.Column="2" StrokeThickness="0" BackgroundColor="{StaticResource StaffHeroAccent}" Padding="10,12">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="14" />
+                                </Border.StrokeShape>
+                                <VerticalStackLayout Spacing="2">
+                                    <Label Text="GROWTH" FontSize="10" TextColor="{StaticResource StaffHeroLabel}" />
+                                    <Label Text="{Binding GrowthText}" FontSize="20" FontAttributes="Bold" TextColor="{Binding GrowthColor}" />
+                                    <Label Text="vs yesterday" FontSize="11" TextColor="{StaticResource StaffTextOnHero}" />
+                                </VerticalStackLayout>
+                            </Border>
+                        </Grid>
+                    </VerticalStackLayout>
+                </Border>
+
+                <VerticalStackLayout Padding="16,16,16,0" Spacing="14">
+                    <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" Color="{StaticResource StaffPrimary}" />
+                    <Border StrokeThickness="0"
+                            BackgroundColor="{StaticResource DangerBackground}"
+                            Padding="12"
+                            IsVisible="{Binding HasError}">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="12" />
+                        </Border.StrokeShape>
+                        <Label Text="{Binding ErrorText}" TextColor="{StaticResource DangerText}" FontSize="13" />
+                    </Border>
+
+                    <!-- KPI row -->
+                    <Label Text="Today overview"
+                           FontAttributes="Bold"
+                           FontSize="17"
+                           TextColor="{StaticResource StaffInk}" />
+
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="10" RowDefinitions="Auto,Auto" RowSpacing="10">
+                        <Border StrokeThickness="0" BackgroundColor="{StaticResource CardBackground}" Padding="14">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="18" />
+                            </Border.StrokeShape>
+                            <Border.Shadow>
+                                <Shadow Brush="{StaticResource StaffHero}" Opacity="0.08" Radius="16" Offset="0,6" />
+                            </Border.Shadow>
+                            <VerticalStackLayout Spacing="8">
+                                <Grid ColumnDefinitions="Auto,*">
+                                    <Border StrokeThickness="0" BackgroundColor="{StaticResource SuccessBackgroundSoft}" WidthRequest="34" HeightRequest="34">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="10" />
+                                        </Border.StrokeShape>
+                                        <Label Text="₹"
+                                               FontSize="15"
+                                               FontAttributes="Bold"
+                                               TextColor="{StaticResource PrimaryDark}"
+                                               HorizontalTextAlignment="Center"
+                                               VerticalTextAlignment="Center" />
+                                    </Border>
+                                    <Label Grid.Column="1"
+                                           Text="Sales"
+                                           FontSize="13"
+                                           TextColor="{StaticResource AuthMutedText}"
+                                           VerticalOptions="Center"
+                                           Margin="8,0,0,0" />
+                                </Grid>
+                                <Label Text="{Binding SalesTodayText}" FontSize="22" FontAttributes="Bold" TextColor="{StaticResource StaffPrimary}" />
+                                <Label Text="{Binding SalesCountText}" FontSize="11" TextColor="{StaticResource AuthPlaceholder}" />
+                            </VerticalStackLayout>
+                        </Border>
+
+                        <Border Grid.Column="1" StrokeThickness="0" BackgroundColor="{StaticResource CardBackground}" Padding="14">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="18" />
+                            </Border.StrokeShape>
+                            <Border.Shadow>
+                                <Shadow Brush="{StaticResource StaffHero}" Opacity="0.08" Radius="16" Offset="0,6" />
+                            </Border.Shadow>
+                            <VerticalStackLayout Spacing="8">
+                                <Grid ColumnDefinitions="Auto,*">
+                                    <Border StrokeThickness="0" BackgroundColor="{StaticResource IndigoSoft}" WidthRequest="34" HeightRequest="34">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="10" />
+                                        </Border.StrokeShape>
+                                        <Label Text="%"
+                                               FontSize="14"
+                                               FontAttributes="Bold"
+                                               TextColor="{StaticResource InfoText}"
+                                               HorizontalTextAlignment="Center"
+                                               VerticalTextAlignment="Center" />
+                                    </Border>
+                                    <Label Grid.Column="1"
+                                           Text="Profit"
+                                           FontSize="13"
+                                           TextColor="{StaticResource AuthMutedText}"
+                                           VerticalOptions="Center"
+                                           Margin="8,0,0,0" />
+                                </Grid>
+                                <Label Text="{Binding ProfitTodayText}" FontSize="22" FontAttributes="Bold" TextColor="{StaticResource Slate800}" />
+                                <Label Text="{Binding ExpensesTodayText, StringFormat='Expenses {0}'}" FontSize="11" TextColor="{StaticResource AuthPlaceholder}" />
+                            </VerticalStackLayout>
+                        </Border>
+
+                        <Border Grid.Row="1" StrokeThickness="0" BackgroundColor="{StaticResource CardBackground}" Padding="14">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="18" />
+                            </Border.StrokeShape>
+                            <Border.Shadow>
+                                <Shadow Brush="{StaticResource StaffHero}" Opacity="0.08" Radius="16" Offset="0,6" />
+                            </Border.Shadow>
+                            <VerticalStackLayout Spacing="8">
+                                <Grid ColumnDefinitions="Auto,*">
+                                    <Border StrokeThickness="0" BackgroundColor="{StaticResource WarningBackgroundSoft}" WidthRequest="34" HeightRequest="34">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="10" />
+                                        </Border.StrokeShape>
+                                        <Label Text="↓"
+                                               FontSize="16"
+                                               FontAttributes="Bold"
+                                               TextColor="{StaticResource WarningStrong}"
+                                               HorizontalTextAlignment="Center"
+                                               VerticalTextAlignment="Center" />
+                                    </Border>
+                                    <Label Grid.Column="1"
+                                           Text="Purchases"
+                                           FontSize="13"
+                                           TextColor="{StaticResource AuthMutedText}"
+                                           VerticalOptions="Center"
+                                           Margin="8,0,0,0" />
+                                </Grid>
+                                <Label Text="{Binding PurchasesTodayText}" FontSize="22" FontAttributes="Bold" TextColor="{StaticResource WarningStrong}" />
+                                <Label Text="Stock intake today" FontSize="11" TextColor="{StaticResource AuthPlaceholder}" />
+                            </VerticalStackLayout>
+                        </Border>
+
+                        <Border Grid.Row="1" Grid.Column="1" StrokeThickness="0" BackgroundColor="{StaticResource CardBackground}" Padding="14">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="18" />
+                            </Border.StrokeShape>
+                            <Border.Shadow>
+                                <Shadow Brush="{StaticResource StaffHero}" Opacity="0.08" Radius="16" Offset="0,6" />
+                            </Border.Shadow>
+                            <VerticalStackLayout Spacing="8">
+                                <Grid ColumnDefinitions="Auto,*">
+                                    <Border StrokeThickness="0" BackgroundColor="{StaticResource Gray100}" WidthRequest="34" HeightRequest="34">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="10" />
+                                        </Border.StrokeShape>
+                                        <Label Text="⌂"
+                                               FontSize="15"
+                                               FontAttributes="Bold"
+                                               TextColor="{StaticResource Slate700}"
+                                               HorizontalTextAlignment="Center"
+                                               VerticalTextAlignment="Center" />
+                                    </Border>
+                                    <Label Grid.Column="1"
+                                           Text="Branches"
+                                           FontSize="13"
+                                           TextColor="{StaticResource AuthMutedText}"
+                                           VerticalOptions="Center"
+                                           Margin="8,0,0,0" />
+                                </Grid>
+                                <Label Text="{Binding BranchCountText}" FontSize="22" FontAttributes="Bold" TextColor="{StaticResource Slate800}" />
+                                <Label Text="Active locations" FontSize="11" TextColor="{StaticResource AuthPlaceholder}" />
+                            </VerticalStackLayout>
+                        </Border>
+                    </Grid>
+
+                    <!-- Weekly chart -->
+                    <Border StrokeThickness="0" BackgroundColor="{StaticResource CardBackground}" Padding="16">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="20" />
+                        </Border.StrokeShape>
+                        <Border.Shadow>
+                            <Shadow Brush="{StaticResource StaffHero}" Opacity="0.08" Radius="18" Offset="0,8" />
+                        </Border.Shadow>
+                        <VerticalStackLayout Spacing="12">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <VerticalStackLayout Spacing="2">
+                                    <Label Text="Last 7 days" FontAttributes="Bold" FontSize="16" TextColor="{StaticResource StaffInk}" />
+                                    <Label Text="Sales vs purchases" FontSize="12" TextColor="{StaticResource AuthPlaceholder}" />
+                                </VerticalStackLayout>
+                                <HorizontalStackLayout Grid.Column="1" Spacing="10" VerticalOptions="Center">
+                                    <HorizontalStackLayout Spacing="4">
+                                        <BoxView Color="{StaticResource StaffSuccess}" WidthRequest="8" HeightRequest="8" CornerRadius="4" VerticalOptions="Center" />
+                                        <Label Text="Sales" FontSize="11" TextColor="{StaticResource AuthMutedText}" VerticalOptions="Center" />
+                                    </HorizontalStackLayout>
+                                    <HorizontalStackLayout Spacing="4">
+                                        <BoxView Color="{StaticResource WarningStrong}" WidthRequest="8" HeightRequest="8" CornerRadius="4" VerticalOptions="Center" />
+                                        <Label Text="Buy" FontSize="11" TextColor="{StaticResource AuthMutedText}" VerticalOptions="Center" />
+                                    </HorizontalStackLayout>
+                                </HorizontalStackLayout>
+                            </Grid>
+
+                            <Label Text="{Binding ChartEmptyText}"
+                                   FontSize="13"
+                                   TextColor="{StaticResource AuthPlaceholder}"
+                                   HorizontalTextAlignment="Center"
+                                   Margin="0,18"
+                                   IsVisible="{Binding IsChartEmpty}" />
+
+                            <ScrollView Orientation="Horizontal" IsVisible="{Binding HasChartData}">
+                                <HorizontalStackLayout BindableLayout.ItemsSource="{Binding DayBars}" Spacing="12" Padding="2,0,2,2">
+                                    <BindableLayout.ItemTemplate>
+                                        <DataTemplate x:DataType="models:AdminDayBarItem">
+                                            <VerticalStackLayout WidthRequest="48" Spacing="6" VerticalOptions="End">
+                                                <Grid HeightRequest="110" VerticalOptions="End" ColumnDefinitions="*,*" ColumnSpacing="3">
+                                                    <BoxView Color="{StaticResource StaffSuccess}"
+                                                             CornerRadius="6,6,2,2"
+                                                             HorizontalOptions="Fill"
+                                                             VerticalOptions="End"
+                                                             HeightRequest="{Binding SalesBarHeight}" />
+                                                    <BoxView Grid.Column="1"
+                                                             Color="{StaticResource WarningStrong}"
+                                                             CornerRadius="6,6,2,2"
+                                                             HorizontalOptions="Fill"
+                                                             VerticalOptions="End"
+                                                             HeightRequest="{Binding PurchasesBarHeight}" />
+                                                </Grid>
+                                                <Label Text="{Binding DayLabel}"
+                                                       FontSize="11"
+                                                       FontAttributes="Bold"
+                                                       HorizontalTextAlignment="Center"
+                                                       TextColor="{StaticResource Slate600}" />
+                                            </VerticalStackLayout>
+                                        </DataTemplate>
+                                    </BindableLayout.ItemTemplate>
+                                </HorizontalStackLayout>
+                            </ScrollView>
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <!-- Order pipeline -->
+                    <Label Text="Live order pipeline"
+                           FontAttributes="Bold"
+                           FontSize="17"
+                           TextColor="{StaticResource StaffInk}" />
+                    <Border StrokeThickness="0" BackgroundColor="{StaticResource CardBackground}" Padding="14">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="20" />
+                        </Border.StrokeShape>
+                        <Border.Shadow>
+                            <Shadow Brush="{StaticResource StaffHero}" Opacity="0.08" Radius="16" Offset="0,6" />
+                        </Border.Shadow>
+                        <VerticalStackLayout Spacing="12">
+                            <Label Text="{Binding StatusSummary}" FontSize="13" TextColor="{StaticResource Slate600}" LineBreakMode="WordWrap" />
+                            <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
+                                <Border StrokeThickness="0" BackgroundColor="{StaticResource WarningBackgroundSoft}" Padding="12">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="14" />
+                                    </Border.StrokeShape>
+                                    <VerticalStackLayout Spacing="4">
+                                        <Label Text="Pending" FontSize="11" TextColor="{StaticResource WarningDeep}" />
+                                        <Label Text="{Binding PendingOrdersText}" FontSize="24" FontAttributes="Bold" TextColor="{StaticResource WarningStrong}" />
+                                    </VerticalStackLayout>
+                                </Border>
+                                <Border Grid.Column="1" StrokeThickness="0" BackgroundColor="{StaticResource InfoBackground}" Padding="12">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="14" />
+                                    </Border.StrokeShape>
+                                    <VerticalStackLayout Spacing="4">
+                                        <Label Text="Preparing" FontSize="11" TextColor="{StaticResource InfoText}" />
+                                        <Label Text="{Binding PreparingText}" FontSize="24" FontAttributes="Bold" TextColor="{StaticResource AuthSecondaryText}" />
+                                    </VerticalStackLayout>
+                                </Border>
+                                <Border Grid.Column="2" StrokeThickness="0" BackgroundColor="{StaticResource SuccessBackground}" Padding="12">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="14" />
+                                    </Border.StrokeShape>
+                                    <VerticalStackLayout Spacing="4">
+                                        <Label Text="Delivered" FontSize="11" TextColor="{StaticResource SuccessText}" />
+                                        <Label Text="{Binding DeliveredText}" FontSize="24" FontAttributes="Bold" TextColor="{StaticResource Tertiary}" />
+                                    </VerticalStackLayout>
+                                </Border>
+                            </Grid>
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <!-- Area-wise orders -->
+                    <Label Text="Orders by area"
+                           FontAttributes="Bold"
+                           FontSize="17"
+                           TextColor="{StaticResource StaffInk}" />
+                    <Border StrokeThickness="0" BackgroundColor="{StaticResource CardBackground}" Padding="14">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="20" />
+                        </Border.StrokeShape>
+                        <Border.Shadow>
+                            <Shadow Brush="{StaticResource StaffHero}" Opacity="0.08" Radius="16" Offset="0,6" />
+                        </Border.Shadow>
+                        <VerticalStackLayout Spacing="12">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <Label Text="{Binding TopAreaSummary}"
+                                       FontSize="13"
+                                       TextColor="{StaticResource Slate600}"
+                                       LineBreakMode="WordWrap" />
+                                <Border Grid.Column="1"
+                                        StrokeThickness="0"
+                                        BackgroundColor="{StaticResource SuccessBackgroundSoft}"
+                                        Padding="8,4"
+                                        VerticalOptions="Start"
+                                        IsVisible="{Binding HasAreaStats}">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="10" />
+                                    </Border.StrokeShape>
+                                    <Label Text="TOP ZONE"
+                                           FontSize="10"
+                                           FontAttributes="Bold"
+                                           TextColor="{StaticResource SuccessText}" />
+                                </Border>
+                            </Grid>
+
+                            <Label Text="No area orders yet. Delivery orders with a zone will appear here."
+                                   FontSize="13"
+                                   TextColor="{StaticResource AuthPlaceholder}"
+                                   IsVisible="{Binding IsAreaStatsEmpty}" />
+
+                            <VerticalStackLayout BindableLayout.ItemsSource="{Binding AreaRanks}"
+                                                 Spacing="10"
+                                                 IsVisible="{Binding HasAreaStats}">
+                                <BindableLayout.ItemTemplate>
+                                    <DataTemplate x:DataType="models:AdminAreaRankItem">
+                                        <Border StrokeThickness="0"
+                                                BackgroundColor="{Binding SoftAccent}"
+                                                Padding="12">
+                                            <Border.StrokeShape>
+                                                <RoundRectangle CornerRadius="14" />
+                                            </Border.StrokeShape>
+                                            <VerticalStackLayout Spacing="8">
+                                                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                                                    <Border StrokeThickness="0"
+                                                            BackgroundColor="{Binding Accent}"
+                                                            WidthRequest="28"
+                                                            HeightRequest="28"
+                                                            VerticalOptions="Center">
+                                                        <Border.StrokeShape>
+                                                            <RoundRectangle CornerRadius="14" />
+                                                        </Border.StrokeShape>
+                                                        <Label Text="{Binding RankLabel}"
+                                                               FontSize="11"
+                                                               FontAttributes="Bold"
+                                                               TextColor="{StaticResource White}"
+                                                               HorizontalTextAlignment="Center"
+                                                               VerticalTextAlignment="Center" />
+                                                    </Border>
+                                                    <VerticalStackLayout Grid.Column="1" Spacing="1" VerticalOptions="Center">
+                                                        <Label Text="{Binding AreaName}"
+                                                               FontAttributes="Bold"
+                                                               FontSize="14"
+                                                               TextColor="{StaticResource StaffInk}"
+                                                               LineBreakMode="TailTruncation" />
+                                                        <Label Text="{Binding OrderCountText}"
+                                                               FontSize="12"
+                                                               TextColor="{StaticResource AuthMutedText}" />
+                                                    </VerticalStackLayout>
+                                                    <VerticalStackLayout Grid.Column="2" Spacing="1" HorizontalOptions="End">
+                                                        <Label Text="{Binding ShareText}"
+                                                               FontAttributes="Bold"
+                                                               FontSize="14"
+                                                               TextColor="{Binding Accent}"
+                                                               HorizontalTextAlignment="End" />
+                                                        <Label Text="{Binding AmountText}"
+                                                               FontSize="11"
+                                                               TextColor="{StaticResource AuthMutedText}"
+                                                               HorizontalTextAlignment="End" />
+                                                    </VerticalStackLayout>
+                                                </Grid>
+                                                <BoxView Color="{Binding Accent}"
+                                                         HeightRequest="7"
+                                                         CornerRadius="4"
+                                                         HorizontalOptions="Start"
+                                                         WidthRequest="{Binding BarWidth}" />
+                                            </VerticalStackLayout>
+                                        </Border>
+                                    </DataTemplate>
+                                </BindableLayout.ItemTemplate>
+                            </VerticalStackLayout>
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <!-- Inventory health -->
+                    <Label Text="Inventory health"
+                           FontAttributes="Bold"
+                           FontSize="17"
+                           TextColor="{StaticResource StaffInk}" />
+                    <Border StrokeThickness="0" BackgroundColor="{StaticResource CardBackground}" Padding="14">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="20" />
+                        </Border.StrokeShape>
+                        <Border.Shadow>
+                            <Shadow Brush="{StaticResource StaffHero}" Opacity="0.08" Radius="16" Offset="0,6" />
+                        </Border.Shadow>
+                        <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
+                            <VerticalStackLayout Spacing="6" HorizontalOptions="Center">
+                                <Border StrokeThickness="0" BackgroundColor="{StaticResource SuccessBackground}" WidthRequest="58" HeightRequest="58" HorizontalOptions="Center">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="29" />
+                                    </Border.StrokeShape>
+                                    <Label Text="{Binding InStockText}"
+                                           FontSize="18"
+                                           FontAttributes="Bold"
+                                           TextColor="{StaticResource Tertiary}"
+                                           HorizontalTextAlignment="Center"
+                                           VerticalTextAlignment="Center" />
+                                </Border>
+                                <Label Text="In stock" FontSize="11" TextColor="{StaticResource AuthMutedText}" HorizontalTextAlignment="Center" />
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Grid.Column="1" Spacing="6" HorizontalOptions="Center">
+                                <Border StrokeThickness="0" BackgroundColor="{StaticResource WarningBackgroundSoft}" WidthRequest="58" HeightRequest="58" HorizontalOptions="Center">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="29" />
+                                    </Border.StrokeShape>
+                                    <Label Text="{Binding LowStockText}"
+                                           FontSize="18"
+                                           FontAttributes="Bold"
+                                           TextColor="{StaticResource WarningStrong}"
+                                           HorizontalTextAlignment="Center"
+                                           VerticalTextAlignment="Center" />
+                                </Border>
+                                <Label Text="Low stock" FontSize="11" TextColor="{StaticResource AuthMutedText}" HorizontalTextAlignment="Center" />
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Grid.Column="2" Spacing="6" HorizontalOptions="Center">
+                                <Border StrokeThickness="0" BackgroundColor="{StaticResource DangerBackgroundSoft}" WidthRequest="58" HeightRequest="58" HorizontalOptions="Center">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="29" />
+                                    </Border.StrokeShape>
+                                    <Label Text="{Binding OutStockText}"
+                                           FontSize="18"
+                                           FontAttributes="Bold"
+                                           TextColor="{StaticResource DangerText}"
+                                           HorizontalTextAlignment="Center"
+                                           VerticalTextAlignment="Center" />
+                                </Border>
+                                <Label Text="Out of stock" FontSize="11" TextColor="{StaticResource AuthMutedText}" HorizontalTextAlignment="Center" />
+                            </VerticalStackLayout>
+                        </Grid>
+                    </Border>
+
+                    <!-- Recent activity -->
+                    <Grid ColumnDefinitions="*,Auto">
+                        <Label Text="Recent activity" FontAttributes="Bold" FontSize="17" TextColor="{StaticResource StaffInk}" />
+                        <Label Grid.Column="1"
+                               Text="{Binding TimelineCountText}"
+                               FontSize="12"
+                               TextColor="{StaticResource AuthPlaceholder}"
+                               VerticalOptions="Center" />
+                    </Grid>
+
+                    <Label Text="No recent sales or purchases yet."
+                           FontSize="13"
+                           TextColor="{StaticResource AuthPlaceholder}"
+                           IsVisible="{Binding IsTimelineEmpty}"
+                           Margin="0,4,0,8" />
+
+                    <VerticalStackLayout BindableLayout.ItemsSource="{Binding Timeline}" Spacing="8" IsVisible="{Binding HasTimeline}">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate x:DataType="models:AdminTimelineItem">
+                                <Border StrokeThickness="0" BackgroundColor="{StaticResource CardBackground}" Padding="12,12">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="14" />
+                                    </Border.StrokeShape>
+                                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                                        <Border StrokeThickness="0"
+                                                BackgroundColor="{Binding AccentSoft}"
+                                                WidthRequest="10"
+                                                HeightRequest="42">
+                                            <Border.StrokeShape>
+                                                <RoundRectangle CornerRadius="6" />
+                                            </Border.StrokeShape>
+                                        </Border>
+                                        <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                                            <Label Text="{Binding Title}"
+                                                   FontAttributes="Bold"
+                                                   FontSize="14"
+                                                   TextColor="{StaticResource CartText}"
+                                                   LineBreakMode="TailTruncation" />
+                                            <Label Text="{Binding Subtitle}" FontSize="12" TextColor="{StaticResource AuthPlaceholder}" />
+                                        </VerticalStackLayout>
+                                        <Label Grid.Column="2"
+                                               Text="{Binding AmountText}"
+                                               TextColor="{Binding Accent}"
+                                               FontAttributes="Bold"
+                                               FontSize="14"
+                                               VerticalOptions="Center" />
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </VerticalStackLayout>
+
+                    <controls:AppButton Text="Refresh dashboard"
+                                        Command="{Binding RefreshCommand}"
+                                        Variant="StaffPrimary"
+                                        CornerRadius="14"
+                                        ButtonHeight="48"
+                                        Margin="0,6,0,8" />
+                </VerticalStackLayout>
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <controls:TabLoadingOverlay Grid.Row="0" />
+
+        <controls:BubbleTabBar Grid.Row="1"
+                               Mode="Admin"
+                               SelectedIndex="0"
+                               VerticalOptions="Fill"
+                               HorizontalOptions="Fill" />
+    </Grid>
+</ContentPage>

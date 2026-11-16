@@ -3,6 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 using Abp.Domain.Entities;
 using Abp.Domain.Entities.Auditing;
 using SmartPos.Branches;
+using SmartPos.Departments;
 using SmartPos.Units;
 
 namespace SmartPos.Categories
@@ -12,6 +13,7 @@ namespace SmartPos.Categories
     {
         public const int MaxNameLength = 128;
         public const int MaxDescriptionLength = 512;
+        public const int MaxImagePathLength = 512;
 
         public virtual int? TenantId { get; set; }
 
@@ -20,12 +22,20 @@ namespace SmartPos.Categories
         [ForeignKey(nameof(BranchId))]
         public virtual Branch Branch { get; set; }
 
+        public virtual int? DepartmentId { get; set; }
+
+        [ForeignKey(nameof(DepartmentId))]
+        public virtual Department Department { get; set; }
+
         [Required]
         [StringLength(MaxNameLength)]
         public virtual string Name { get; set; }
 
         [StringLength(MaxDescriptionLength)]
         public virtual string Description { get; set; }
+
+        [StringLength(MaxImagePathLength)]
+        public virtual string ImagePath { get; set; }
 
         public virtual bool IsActive { get; set; } = true;
 

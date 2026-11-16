@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Abp;
 using Abp.Authorization;
 using Abp.Dependency;
@@ -13,6 +13,20 @@ namespace SmartPos.Authorization
             LocalizationSourceName = SmartPosConsts.LocalizationSourceName;
         }
 
+        private string SafeL(string name, string fallback, params object[] args)
+        {
+            try
+            {
+                var text = args != null && args.Length > 0 ? L(name, args) : L(name);
+                if (!string.IsNullOrWhiteSpace(text)) return text;
+            }
+            catch
+            {
+                // Localization dictionary fallback
+            }
+            return args != null && args.Length > 0 ? string.Format(fallback, args) : fallback;
+        }
+
         public Exception CreateExceptionForFailedLoginAttempt(AbpLoginResultType result, string usernameOrEmailAddress, string tenancyName)
         {
             switch (result)
@@ -21,20 +35,38 @@ namespace SmartPos.Authorization
                     return new Exception("Don't call this method with a success result!");
                 case AbpLoginResultType.InvalidUserNameOrEmailAddress:
                 case AbpLoginResultType.InvalidPassword:
-                    return new UserFriendlyException(L("LoginFailed"), L("InvalidUserNameOrPassword"));
+                    return new UserFriendlyException(
+                        SafeL("LoginFailed", "Login failed"),
+                        SafeL("InvalidUserNameOrPassword", "Invalid user name or password")
+                    );
                 case AbpLoginResultType.InvalidTenancyName:
-                    return new UserFriendlyException(L("LoginFailed"), L("ThereIsNoTenantDefinedWithName{0}", tenancyName));
+                    return new UserFriendlyException(
+                        SafeL("LoginFailed", "Login failed"),
+                        SafeL("ThereIsNoTenantDefinedWithName{0}", "There is no tenant defined with name {0}", tenancyName)
+                    );
                 case AbpLoginResultType.TenantIsNotActive:
-                    return new UserFriendlyException(L("LoginFailed"), L("TenantIsNotActive", tenancyName));
+                    return new UserFriendlyException(
+                        SafeL("LoginFailed", "Login failed"),
+                        SafeL("TenantIsNotActive", "Tenant {0} is not active.", tenancyName)
+                    );
                 case AbpLoginResultType.UserIsNotActive:
-                    return new UserFriendlyException(L("LoginFailed"), L("UserIsNotActiveAndCanNotLogin", usernameOrEmailAddress));
+                    return new UserFriendlyException(
+                        SafeL("LoginFailed", "Login failed"),
+                        SafeL("UserIsNotActiveAndCanNotLogin", "User {0} is not active and can not login.", usernameOrEmailAddress)
+                    );
                 case AbpLoginResultType.UserEmailIsNotConfirmed:
-                    return new UserFriendlyException(L("LoginFailed"), L("UserEmailIsNotConfirmedAndCanNotLogin"));
+                    return new UserFriendlyException(
+                        SafeL("LoginFailed", "Login failed"),
+                        SafeL("UserEmailIsNotConfirmedAndCanNotLogin", "User email is not confirmed and cannot login.")
+                    );
                 case AbpLoginResultType.LockedOut:
-                    return new UserFriendlyException(L("LoginFailed"), L("UserLockedOutMessage"));
+                    return new UserFriendlyException(
+                        SafeL("LoginFailed", "Login failed"),
+                        SafeL("UserLockedOutMessage", "Your account is locked out.")
+                    );
                 default: // Can not fall to default actually. But other result types can be added in the future and we may forget to handle it
                     Logger.Warn("Unhandled login fail reason: " + result);
-                    return new UserFriendlyException(L("LoginFailed"));
+                    return new UserFriendlyException(SafeL("LoginFailed", "Login failed"));
             }
         }
 
@@ -46,18 +78,18 @@ namespace SmartPos.Authorization
                     throw new Exception("Don't call this method with a success result!");
                 case AbpLoginResultType.InvalidUserNameOrEmailAddress:
                 case AbpLoginResultType.InvalidPassword:
-                    return L("InvalidUserNameOrPassword");
+                    return SafeL("InvalidUserNameOrPassword", "Invalid user name or password");
                 case AbpLoginResultType.InvalidTenancyName:
-                    return L("ThereIsNoTenantDefinedWithName{0}", tenancyName);
+                    return SafeL("ThereIsNoTenantDefinedWithName{0}", "There is no tenant defined with name {0}", tenancyName);
                 case AbpLoginResultType.TenantIsNotActive:
-                    return L("TenantIsNotActive", tenancyName);
+                    return SafeL("TenantIsNotActive", "Tenant {0} is not active.", tenancyName);
                 case AbpLoginResultType.UserIsNotActive:
-                    return L("UserIsNotActiveAndCanNotLogin", usernameOrEmailAddress);
+                    return SafeL("UserIsNotActiveAndCanNotLogin", "User {0} is not active and can not login.", usernameOrEmailAddress);
                 case AbpLoginResultType.UserEmailIsNotConfirmed:
-                    return L("UserEmailIsNotConfirmedAndCanNotLogin");
+                    return SafeL("UserEmailIsNotConfirmedAndCanNotLogin", "User email is not confirmed and cannot login.");
                 default: // Can not fall to default actually. But other result types can be added in the future and we may forget to handle it
                     Logger.Warn("Unhandled login fail reason: " + result);
-                    return L("LoginFailed");
+                    return SafeL("LoginFailed", "Login failed");
             }
         }
     }

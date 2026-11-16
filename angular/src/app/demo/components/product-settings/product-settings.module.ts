@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { TabViewModule } from 'primeng/tabview';
 import { BrandsSharedModule } from '../brands/brands-shared.module';
 import { CategoriesSharedModule } from '../categories/categories-shared.module';
+import { DepartmentsSharedModule } from '../departments/departments-shared.module';
 import { UnitsSharedModule } from '../units/units-shared.module';
 import { ProductSettingsRoutingModule } from './product-settings-routing.module';
 import { ProductSettingsComponent } from './product-settings.component';
@@ -12,6 +13,7 @@ import { ProductSettingsComponent } from './product-settings.component';
         CommonModule,
         TabViewModule,
         BrandsSharedModule,
+        DepartmentsSharedModule,
         UnitsSharedModule,
         CategoriesSharedModule,
         ProductSettingsRoutingModule,

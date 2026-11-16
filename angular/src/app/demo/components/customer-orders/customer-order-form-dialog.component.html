@@ -61,6 +61,73 @@
                     [(ngModel)]="order.notes"
                 />
             </div>
+
+            <div class="field col-12 md:col-4" *ngIf="savedAddresses.length > 0 || loadingSavedAddresses">
+                <label>Saved address + zone</label>
+                <p-dropdown
+                    [options]="savedAddresses"
+                    [(ngModel)]="selectedSavedAddressId"
+                    (onChange)="onSavedAddressPicked($event.value)"
+                    optionLabel="address"
+                    optionValue="id"
+                    placeholder="Pick saved address"
+                    [showClear]="true"
+                    [filter]="true"
+                    filterBy="address,deliveryAreaName,label"
+                    appendTo="body"
+                    styleClass="w-full"
+                >
+                    <ng-template let-addr pTemplate="item">
+                        <div>
+                            <div class="font-medium">{{ addr.label || addr.address }}</div>
+                            <div class="text-xs text-500" *ngIf="addr.deliveryAreaName">Zone: {{ addr.deliveryAreaName }}</div>
+                        </div>
+                    </ng-template>
+                </p-dropdown>
+                <small class="text-500" *ngIf="loadingSavedAddresses">Loading…</small>
+            </div>
+
+            <div class="field col-12 md:col-4" *ngIf="deliveryAreas.length > 0">
+                <label>Delivery area / zone</label>
+                <p-dropdown
+                    [options]="deliveryAreas"
+                    [(ngModel)]="selectedDeliveryAreaId"
+                    (onChange)="onDeliveryAreaChange($event.value)"
+                    optionLabel="name"
+                    optionValue="id"
+                    placeholder="Select zone"
+                    appendTo="body"
+                    styleClass="w-full"
+                >
+                    <ng-template let-area pTemplate="item">
+                        <div class="flex justify-content-between w-full gap-2">
+                            <span>{{ area.name }}</span>
+                            <span class="text-xs">{{ area.deliveryFee === 0 ? 'FREE' : ('PKR ' + area.deliveryFee) }}</span>
+                        </div>
+                    </ng-template>
+                </p-dropdown>
+            </div>
+
+            <div class="field col-12 md:col-4">
+                <label>Delivery address</label>
+                <input
+                    pInputText
+                    [(ngModel)]="deliveryAddress"
+                    (ngModelChange)="selectedSavedAddressId = null"
+                    placeholder="House / street"
+                    maxlength="512"
+                />
+            </div>
+
+            <div class="field col-12 md:col-4">
+                <label>Landmark</label>
+                <input
+                    pInputText
+                    [(ngModel)]="deliveryLandmark"
+                    placeholder="Nearby landmark"
+                    maxlength="256"
+                />
+            </div>
         </div>
 
         <div class="grid">

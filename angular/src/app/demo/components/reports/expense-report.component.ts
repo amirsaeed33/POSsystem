@@ -19,6 +19,13 @@ export class ExpenseReportComponent implements OnInit {
     printDialogVisible = false;
     printingExpenseId: number | null = null;
 
+    fetchPdf = () =>
+        this.reportService.getExpenseReportPdf({
+            fromDate: this.fromDate || undefined,
+            toDate: this.toDate || undefined,
+            keyword: this.keyword?.trim() || undefined,
+        });
+
     constructor(public formatService: AppFormatService, 
         private reportService: ReportService,
         private messageService: MessageService,

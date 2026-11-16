@@ -6,6 +6,7 @@ import { RippleModule } from 'primeng/ripple';
 import { InputTextModule } from 'primeng/inputtext';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { TableModule } from 'primeng/table';
+import { TabViewModule } from 'primeng/tabview';
 import { DialogModule } from 'primeng/dialog';
 import { ToastModule } from 'primeng/toast';
 import { TooltipModule } from 'primeng/tooltip';
@@ -13,11 +14,14 @@ import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { DropdownModule } from 'primeng/dropdown';
 import { TagModule } from 'primeng/tag';
 import { StyleClassModule } from 'primeng/styleclass';
+import { RadioButtonModule } from 'primeng/radiobutton';
 import { CustomerOrdersRoutingModule } from './customer-orders-routing.module';
 import { CustomerOrderListComponent } from './customer-order-list.component';
 import { CustomerOrderFormDialogComponent } from './customer-order-form-dialog.component';
 import { CustomerOrderViewDialogComponent } from './customer-order-view-dialog.component';
 import { AppRowActionsComponent } from 'src/app/shared/components/row-actions/row-actions.component';
+import { OrderChatComponent } from 'src/app/shared/components/order-chat/order-chat.component';
+import { StaffSharedModule } from '../staff/staff-shared.module';
 
 @NgModule({
     imports: [
@@ -29,6 +33,7 @@ import { AppRowActionsComponent } from 'src/app/shared/components/row-actions/ro
         InputTextModule,
         InputNumberModule,
         TableModule,
+        TabViewModule,
         DialogModule,
         ToastModule,
         TooltipModule,
@@ -36,7 +41,10 @@ import { AppRowActionsComponent } from 'src/app/shared/components/row-actions/ro
         DropdownModule,
         TagModule,
         StyleClassModule,
+        RadioButtonModule,
         AppRowActionsComponent,
+        OrderChatComponent,
+        StaffSharedModule,
     ],
     declarations: [
         CustomerOrderListComponent,
@@ -44,4 +52,4 @@ import { AppRowActionsComponent } from 'src/app/shared/components/row-actions/ro
         CustomerOrderViewDialogComponent,
     ],
 })
-export class CustomerOrdersModule {}
+export class CustomerOrdersModule { }

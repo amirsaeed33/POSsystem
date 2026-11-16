@@ -1,0 +1,44 @@
+.hidden {
+    display: none !important;
+}
+
+.hero-banner-form {
+    .field > label {
+        display: block;
+        margin-bottom: 0.35rem;
+        font-weight: 600;
+    }
+}
+
+.hero-sort-control {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    max-width: 14rem;
+}
+
+.hero-sort-btn.p-button {
+    flex: 0 0 2.5rem;
+    width: 2.5rem !important;
+    min-width: 2.5rem !important;
+    height: 2.5rem;
+    padding: 0 !important;
+}
+
+.hero-sort-input {
+    flex: 1 1 auto;
+    width: 4.5rem !important;
+    min-width: 4.5rem;
+    max-width: 6rem;
+    height: 2.5rem;
+    text-align: center;
+    font-weight: 700;
+}
+
+.hero-active-row {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    min-height: 2.5rem;
+}

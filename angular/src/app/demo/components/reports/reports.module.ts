@@ -16,6 +16,7 @@ import { StockReportComponent } from './stock-report.component';
 import { ProductProfitReportComponent } from './product-profit-report.component';
 import { BalanceSheetReportComponent } from './balance-sheet-report.component';
 import { InvoicePrintModule } from '../invoices/invoice-print.module';
+import { ShareReportButtonComponent } from './shared/share-report-button.component';
 
 @NgModule({
     imports: [
@@ -30,6 +31,7 @@ import { InvoicePrintModule } from '../invoices/invoice-print.module';
         ToastModule,
         TagModule,
         TooltipModule,
+        ShareReportButtonComponent,
     ],
     declarations: [
         SaleReportComponent,

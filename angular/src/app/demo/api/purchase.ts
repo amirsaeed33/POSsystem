@@ -3,6 +3,7 @@ export interface PurchaseLineDto {
     purchaseId: number;
     productId: number;
     productName?: string;
+    productBarcode?: string;
     quantity: number;
     unitCost: number;
     lineTotal: number;
@@ -20,6 +21,15 @@ export interface PurchaseDto {
     dueAmount?: number;
     notes?: string;
     lines?: PurchaseLineDto[];
+}
+
+export interface PurchasePaymentHistoryDto {
+    id: number;
+    transactionDate: string | Date;
+    amount: number;
+    paymentAccountId?: number;
+    paymentAccountName?: string;
+    description?: string;
 }
 
 export interface CreatePurchaseLineDto {

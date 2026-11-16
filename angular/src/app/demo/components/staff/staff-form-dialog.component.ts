@@ -22,6 +22,8 @@ import { LookUpDto } from 'src/app/demo/api/lookup';
 export class StaffFormDialogComponent implements OnChanges {
     @Input() visible = false;
     @Input() staffId: number | null = null;
+    /** When creating, pre-select this designation (e.g. "Delivery Rider"). */
+    @Input() defaultDesignation: string | null = null;
     @Output() visibleChange = new EventEmitter<boolean>();
     @Output() saved = new EventEmitter<void>();
 
@@ -147,6 +149,9 @@ export class StaffFormDialogComponent implements OnChanges {
 
     private resetForm(): void {
         this.staff = this.emptyStaff();
+        if (!this.staffId && this.defaultDesignation?.trim()) {
+            this.staff.designation = this.defaultDesignation.trim();
+        }
         this.saving = false;
         this.loading = false;
     }

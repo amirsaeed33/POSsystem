@@ -19,6 +19,11 @@ namespace SmartPos.Authorization
             roles.CreateChildPermission(PermissionNames.Pages_Roles_Edit, L("EditRole"));
             roles.CreateChildPermission(PermissionNames.Pages_Roles_Delete, L("DeleteRole"));
 
+            var departments = context.CreatePermission(PermissionNames.Pages_Departments, L("Departments"));
+            departments.CreateChildPermission(PermissionNames.Pages_Departments_Create, L("CreateDepartment"));
+            departments.CreateChildPermission(PermissionNames.Pages_Departments_Edit, L("EditDepartment"));
+            departments.CreateChildPermission(PermissionNames.Pages_Departments_Delete, L("DeleteDepartment"));
+
             var categories = context.CreatePermission(PermissionNames.Pages_Categories, L("Categories"));
             categories.CreateChildPermission(PermissionNames.Pages_Categories_Create, L("CreateCategory"));
             categories.CreateChildPermission(PermissionNames.Pages_Categories_Edit, L("EditCategory"));
@@ -109,6 +114,12 @@ namespace SmartPos.Authorization
             customerOrders.CreateChildPermission(PermissionNames.Pages_CustomerOrders_Create, L("CreateCustomerOrder"));
             customerOrders.CreateChildPermission(PermissionNames.Pages_CustomerOrders_Edit, L("EditCustomerOrder"));
             customerOrders.CreateChildPermission(PermissionNames.Pages_CustomerOrders_Delete, L("DeleteCustomerOrder"));
+            customerOrders.CreateChildPermission(PermissionNames.Pages_CustomerOrders_OverrideDeliveryFee, L("OverrideDeliveryFee"));
+
+            var deliveryAreas = context.CreatePermission(PermissionNames.Pages_DeliveryAreas, L("DeliveryAreas"));
+            deliveryAreas.CreateChildPermission(PermissionNames.Pages_DeliveryAreas_Create, L("CreateDeliveryArea"));
+            deliveryAreas.CreateChildPermission(PermissionNames.Pages_DeliveryAreas_Edit, L("EditDeliveryArea"));
+            deliveryAreas.CreateChildPermission(PermissionNames.Pages_DeliveryAreas_Delete, L("DeleteDeliveryArea"));
 
             var emailTemplates = context.CreatePermission(PermissionNames.Pages_EmailTemplates, L("EmailTemplates"));
             emailTemplates.CreateChildPermission(PermissionNames.Pages_EmailTemplates_Create, L("CreateEmailTemplate"));
@@ -124,17 +135,110 @@ namespace SmartPos.Authorization
                 PermissionNames.Pages_HostCatalog,
                 L("HostCatalog"),
                 multiTenancySides: MultiTenancySides.Host);
-            hostCatalog.CreateChildPermission(PermissionNames.Pages_HostCatalog_Create, L("CreateHostCatalog"));
-            hostCatalog.CreateChildPermission(PermissionNames.Pages_HostCatalog_Edit, L("EditHostCatalog"));
-            hostCatalog.CreateChildPermission(PermissionNames.Pages_HostCatalog_Delete, L("DeleteHostCatalog"));
+            hostCatalog.CreateChildPermission(
+                PermissionNames.Pages_HostCatalog_Create,
+                L("CreateHostCatalog"),
+                multiTenancySides: MultiTenancySides.Host);
+            hostCatalog.CreateChildPermission(
+                PermissionNames.Pages_HostCatalog_Edit,
+                L("EditHostCatalog"),
+                multiTenancySides: MultiTenancySides.Host);
+            hostCatalog.CreateChildPermission(
+                PermissionNames.Pages_HostCatalog_Delete,
+                L("DeleteHostCatalog"),
+                multiTenancySides: MultiTenancySides.Host);
+
+            var developers = context.CreatePermission(
+                PermissionNames.Pages_Developers,
+                L("Developers"),
+                multiTenancySides: MultiTenancySides.Host);
+            developers.CreateChildPermission(
+                PermissionNames.Pages_Developers_Create,
+                L("CreateDeveloper"),
+                multiTenancySides: MultiTenancySides.Host);
+            developers.CreateChildPermission(
+                PermissionNames.Pages_Developers_Edit,
+                L("EditDeveloper"),
+                multiTenancySides: MultiTenancySides.Host);
+            developers.CreateChildPermission(
+                PermissionNames.Pages_Developers_Delete,
+                L("DeleteDeveloper"),
+                multiTenancySides: MultiTenancySides.Host);
+
+            var sellers = context.CreatePermission(
+                PermissionNames.Pages_Sellers,
+                L("Sellers"),
+                multiTenancySides: MultiTenancySides.Host);
+            sellers.CreateChildPermission(
+                PermissionNames.Pages_Sellers_Approve,
+                L("ApproveSeller"),
+                multiTenancySides: MultiTenancySides.Host);
+            sellers.CreateChildPermission(
+                PermissionNames.Pages_Sellers_Edit,
+                L("EditSeller"),
+                multiTenancySides: MultiTenancySides.Host);
+            sellers.CreateChildPermission(
+                PermissionNames.Pages_Sellers_Delete,
+                L("DeleteSeller"),
+                multiTenancySides: MultiTenancySides.Host);
+
+            context.CreatePermission(
+                PermissionNames.Pages_Subscriptions,
+                L("Subscriptions"),
+                multiTenancySides: MultiTenancySides.Host);
+
+            context.CreatePermission(
+                PermissionNames.Pages_Billing,
+                L("Billing"),
+                multiTenancySides: MultiTenancySides.Tenant);
+
+            var packages = context.CreatePermission(
+                PermissionNames.Pages_Packages,
+                L("Packages"),
+                multiTenancySides: MultiTenancySides.Host);
+            packages.CreateChildPermission(
+                PermissionNames.Pages_Packages_Create,
+                L("CreatePackage"),
+                multiTenancySides: MultiTenancySides.Host);
+            packages.CreateChildPermission(
+                PermissionNames.Pages_Packages_Edit,
+                L("EditPackage"),
+                multiTenancySides: MultiTenancySides.Host);
+            packages.CreateChildPermission(
+                PermissionNames.Pages_Packages_Delete,
+                L("DeletePackage"),
+                multiTenancySides: MultiTenancySides.Host);
 
             var tenants = context.CreatePermission(PermissionNames.Pages_Tenants, L("Tenants"), multiTenancySides: MultiTenancySides.Host);
-            tenants.CreateChildPermission(PermissionNames.Pages_Tenants_Create, L("CreateTenant"));
-            tenants.CreateChildPermission(PermissionNames.Pages_Tenants_Edit, L("EditTenant"));
-            tenants.CreateChildPermission(PermissionNames.Pages_Tenants_Delete, L("DeleteTenant"));
+            tenants.CreateChildPermission(
+                PermissionNames.Pages_Tenants_Create,
+                L("CreateTenant"),
+                multiTenancySides: MultiTenancySides.Host);
+            tenants.CreateChildPermission(
+                PermissionNames.Pages_Tenants_Edit,
+                L("EditTenant"),
+                multiTenancySides: MultiTenancySides.Host);
+            tenants.CreateChildPermission(
+                PermissionNames.Pages_Tenants_Delete,
+                L("DeleteTenant"),
+                multiTenancySides: MultiTenancySides.Host);
 
             var notificationSettings = context.CreatePermission(PermissionNames.Pages_NotificationSettings, L("NotificationSettings"));
             notificationSettings.CreateChildPermission(PermissionNames.Pages_NotificationSettings_Edit, L("EditNotificationSettings"));
+
+            var rider = context.CreatePermission(PermissionNames.Pages_Rider, L("RiderPortal"));
+            rider.CreateChildPermission(PermissionNames.Pages_Rider_Dashboard, L("RiderDashboard"));
+            rider.CreateChildPermission(PermissionNames.Pages_Rider_OrderHistory, L("RiderOrderHistory"));
+
+            var pos = context.CreatePermission(PermissionNames.Pages_Pos, L("PointOfSale"));
+            pos.CreateChildPermission(PermissionNames.Pages_Pos_Create, L("CreateSale"));
+            pos.CreateChildPermission(PermissionNames.Pages_Pos_Edit, L("EditSale"));
+            pos.CreateChildPermission(PermissionNames.Pages_Pos_Delete, L("DeleteSale"));
+
+            var diningTables = context.CreatePermission(PermissionNames.Pages_DiningTables, L("DiningTables"));
+            diningTables.CreateChildPermission(PermissionNames.Pages_DiningTables_Create, L("CreateDiningTable"));
+            diningTables.CreateChildPermission(PermissionNames.Pages_DiningTables_Edit, L("EditDiningTable"));
+            diningTables.CreateChildPermission(PermissionNames.Pages_DiningTables_Delete, L("DeleteDiningTable"));
         }
 
         private static ILocalizableString L(string name)

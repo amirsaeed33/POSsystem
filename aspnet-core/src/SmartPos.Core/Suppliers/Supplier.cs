@@ -13,7 +13,6 @@ namespace SmartPos.Suppliers
         public const int MaxNameLength = 128;
         public const int MaxPhoneLength = 32;
         public const int MaxEmailLength = 256;
-        public const int MaxAddressLength = 512;
         public const int MaxDescriptionLength = 512;
 
         public virtual int? TenantId { get; set; }
@@ -37,9 +36,6 @@ namespace SmartPos.Suppliers
 
         [StringLength(MaxEmailLength)]
         public virtual string Email { get; set; }
-
-        [StringLength(MaxAddressLength)]
-        public virtual string Address { get; set; }
 
         [StringLength(MaxDescriptionLength)]
         public virtual string Description { get; set; }

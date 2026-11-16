@@ -35,9 +35,9 @@ export class StaffPayrollFormDialogComponent implements OnChanges {
         value: i + 1,
     }));
 
+    // Paid is only set via Pay salary / Post to accounts (posts Cash/Bank + Expense).
     paymentStatusOptions = [
         { label: 'Pending', value: PayrollPaymentStatus.Pending },
-        { label: 'Paid', value: PayrollPaymentStatus.Paid },
         { label: 'Cancelled', value: PayrollPaymentStatus.Cancelled },
     ];
 

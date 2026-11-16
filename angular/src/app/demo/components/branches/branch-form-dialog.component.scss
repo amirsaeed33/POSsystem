@@ -9,3 +9,13 @@
         padding-bottom: 1rem;
     }
 }
+
+/* Keep GPS header actions the same height (Pin Current Location = View Map). */
+.gps-action-btns .gps-action-btn {
+  height: 2rem;
+  min-height: 2rem;
+  max-height: 2rem;
+  padding: 0 0.75rem !important;
+  line-height: 1 !important;
+  box-sizing: border-box;
+}

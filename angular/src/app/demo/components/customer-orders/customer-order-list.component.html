@@ -1,4 +1,31 @@
 <div class="card">
+    <p-tabView
+        [activeIndex]="activeListTab"
+        (activeIndexChange)="onListTabChange($event)"
+        styleClass="order-list-tabs mb-2"
+    >
+        <p-tabPanel>
+            <ng-template pTemplate="header">
+                <span class="flex align-items-center gap-2">
+                    <i class="pi pi-list"></i>
+                    <span>All Orders</span>
+                    <span class="order-tab-count">{{ totalRecords }}</span>
+                </span>
+            </ng-template>
+        </p-tabPanel>
+        <p-tabPanel>
+            <ng-template pTemplate="header">
+                <span class="flex align-items-center gap-2">
+                    <i class="pi pi-map-marker"></i>
+                    <span>Area-Wise Order History</span>
+                    <span class="order-tab-count" *ngIf="areaGroups.length">{{ areaGroups.length }}</span>
+                </span>
+            </ng-template>
+        </p-tabPanel>
+    </p-tabView>
+
+    <!-- All Orders View (activeListTab === 0) -->
+    <div *ngIf="activeListTab === 0">
     <p-table
         #dt
         [value]="orders"
@@ -9,10 +36,10 @@
         [loading]="loading"
         currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries"
         [rowsPerPageOptions]="[10, 25, 50]"
-        [globalFilterFields]="['orderNo', 'customerName', 'statusName', 'saleInvoiceNo', 'notes']"
+        [globalFilterFields]="['orderNo', 'customerName', 'deliveryAreaName', 'statusName', 'saleInvoiceNo', 'notes']"
     >
         <ng-template pTemplate="caption">
-            <div class="flex flex-wrap gap-2 align-items-center justify-content-between">
+            <div class="flex flex-wrap gap-3 align-items-center justify-content-between">
                 <div class="flex flex-wrap gap-2 align-items-center flex-order-1 sm:flex-order-0">
                     <span class="p-input-icon-left w-full sm:w-20rem">
                         <i class="pi pi-search"></i>
@@ -20,7 +47,7 @@
                             pInputText
                             type="text"
                             class="w-full"
-                            placeholder="Search customer orders"
+                            placeholder="Search orders, customer, area..."
                             [(ngModel)]="keyword"
                             (keyup.enter)="onSearch()"
                             (input)="onGlobalFilter(dt, $event)"
@@ -46,15 +73,49 @@
                         (click)="onSearch()"
                     ></button>
                 </div>
-                <button
-                    pButton
-                    pRipple
-                    type="button"
-                    icon="pi pi-plus"
-                    label="Create"
-                    class="p-button-primary w-full sm:w-auto flex-order-0 sm:flex-order-1 font-semibold"
-                    (click)="openCreateDialog()"
-                ></button>
+
+                <div class="flex flex-wrap gap-2 align-items-center flex-order-0 sm:flex-order-1">
+                    <!-- Live Auto-Sync Pill -->
+                    <div
+                        class="inline-flex align-items-center gap-2 px-3 py-2 border-round surface-100 hover:surface-200 cursor-pointer border-1 surface-border transition-colors select-none"
+                        (click)="toggleAutoSync()"
+                        [pTooltip]="autoSyncEnabled ? 'Real-time auto-sync is active. Click to pause.' : 'Auto-sync is paused. Click to resume.'"
+                        tooltipPosition="bottom"
+                    >
+                        <span
+                            class="pulse-dot"
+                            [ngClass]="autoSyncEnabled ? 'pulse-dot-active' : 'pulse-dot-paused'"
+                        ></span>
+                        <span class="text-xs font-semibold" [ngClass]="autoSyncEnabled ? 'text-green-700' : 'text-500'">
+                            {{ autoSyncEnabled ? ('Live Auto-Sync (' + autoSyncCountdown + 's)') : 'Auto-Sync Paused' }}
+                        </span>
+                        <i
+                            *ngIf="isSilentSyncing"
+                            class="pi pi-spin pi-spinner text-xs text-primary ml-1"
+                        ></i>
+                    </div>
+
+                    <button
+                        pButton
+                        pRipple
+                        type="button"
+                        [icon]="isSilentSyncing || loading ? 'pi pi-spin pi-spinner' : 'pi pi-refresh'"
+                        class="p-button-outlined p-button-secondary"
+                        pTooltip="Refresh orders list now"
+                        tooltipPosition="bottom"
+                        (click)="manualRefresh()"
+                    ></button>
+
+                    <button
+                        pButton
+                        pRipple
+                        type="button"
+                        icon="pi pi-plus"
+                        label="Create"
+                        class="p-button-primary w-full sm:w-auto font-semibold"
+                        (click)="openCreateDialog()"
+                    ></button>
+                </div>
             </div>
         </ng-template>
 
@@ -67,8 +128,15 @@
                 <th pSortableColumn="customerName">
                     Customer <p-sortIcon field="customerName"></p-sortIcon>
                 </th>
+                <th pSortableColumn="deliveryAreaName">
+                    Delivery Area <p-sortIcon field="deliveryAreaName"></p-sortIcon>
+                </th>
+                <th pSortableColumn="deliveryFee" class="text-right">
+                    Delivery Fee <p-sortIcon field="deliveryFee"></p-sortIcon>
+                </th>
                 <th pSortableColumn="status">Status <p-sortIcon field="status"></p-sortIcon></th>
-                <th pSortableColumn="totalAmount">
+                <th *ngIf="isRestaurant" pSortableColumn="riderName">Rider <p-sortIcon field="riderName"></p-sortIcon></th>
+                <th pSortableColumn="totalAmount" class="text-right">
                     Total <p-sortIcon field="totalAmount"></p-sortIcon>
                 </th>
                 <th pSortableColumn="saleInvoiceNo">
@@ -80,16 +148,105 @@
 
         <ng-template pTemplate="body" let-order>
             <tr>
-                <td>{{ order.orderNo || ('#' + order.id) }}</td>
-                <td>{{ order.orderDate | date: formatService.dateFormat }}</td>
+                <td class="font-bold">
+                    <div class="flex align-items-center gap-2">
+                        <span>{{ order.orderNo || ('#' + order.id) }}</span>
+                        <span
+                            *ngIf="order.tokenNo != null"
+                            class="text-xs font-semibold text-primary white-space-nowrap"
+                        >
+                            Token #{{ order.tokenNo }}
+                        </span>
+                        <button
+                            pButton
+                            type="button"
+                            icon="pi pi-comments"
+                            [ngClass]="hasUnreadChat(order) ? 'p-button-rounded p-button-danger p-button-sm relative' : 'p-button-rounded p-button-text p-button-xs text-teal-600 hover:surface-200'"
+                            [pTooltip]="hasUnreadChat(order) ? 'New customer message received!' : 'Chat with customer'"
+                            tooltipPosition="top"
+                            (click)="openChatDialog(order)"
+                            aria-label="Chat with customer"
+                        >
+                            <span *ngIf="hasUnreadChat(order)" class="ml-1 text-xs font-bold">New</span>
+                        </button>
+                    </div>
+                </td>
+                <td>
+                    <div class="font-medium text-800">{{ order.orderDate | date: formatService.dateFormat }}</div>
+                    <div class="text-xs text-500 font-normal">{{ order.orderDate | date: 'shortTime' }}</div>
+                </td>
                 <td>{{ order.customerName || '—' }}</td>
+                <td>
+                    <span *ngIf="order.deliveryAreaName" class="font-medium text-700">
+                        <i class="pi pi-map-marker text-red-500 mr-1 text-xs"></i>{{ order.deliveryAreaName }}
+                    </span>
+                    <span *ngIf="!order.deliveryAreaName" class="text-400 text-xs">—</span>
+                </td>
+                <td class="text-right font-semibold">
+                    <span *ngIf="order.deliveryFee === 0 || order.isFreeDelivery" class="text-green-600">
+                        <span class="p-badge p-badge-success text-xs">FREE</span>
+                    </span>
+                    <span *ngIf="order.deliveryFee > 0" class="text-700">
+                        PKR {{ order.deliveryFee | number: '1.2-2' }}
+                    </span>
+                    <div *ngIf="order.originalDeliveryFee !== null && order.originalDeliveryFee !== undefined && order.originalDeliveryFee !== order.deliveryFee" class="text-xs text-orange-600 font-normal">
+                        (orig: {{ order.originalDeliveryFee | number: '1.0-0' }})
+                    </div>
+                </td>
                 <td>
                     <p-tag
                         [value]="statusLabel(order)"
                         [severity]="statusSeverity(order.status)"
                     ></p-tag>
                 </td>
-                <td>{{ order.totalAmount | number: '1.2-2' }}</td>
+                <td *ngIf="isRestaurant">
+                    <div *ngIf="order.riderName" class="flex align-items-center justify-content-between gap-1">
+                        <div class="flex flex-column gap-1">
+                            <span class="font-bold text-teal-800 flex align-items-center gap-1 text-sm">
+                                <i class="pi pi-compass text-teal-600"></i>{{ order.riderName }}
+                            </span>
+                            <span *ngIf="order.riderPhone" class="text-xs text-500">
+                                {{ order.riderPhone }}
+                            </span>
+                        </div>
+                        <button
+                            *ngIf="!isClosed(order)"
+                            pButton
+                            pRipple
+                            type="button"
+                            icon="pi pi-pencil"
+                            class="p-button-rounded p-button-text p-button-sm text-teal-700 hover:surface-100 p-0"
+                            style="width: 1.85rem; height: 1.85rem;"
+                            (click)="openAssignRiderDialog(order)"
+                            pTooltip="Change / Reassign Rider"
+                            tooltipPosition="top"
+                        ></button>
+                    </div>
+                    <div *ngIf="!order.riderName">
+                        <button
+                            *ngIf="order.status === 1 || order.status === 3"
+                            type="button"
+                            class="inline-flex align-items-center justify-content-center border-circle cursor-pointer border-none text-yellow-800 bg-yellow-100 hover:bg-yellow-200 transition-colors transition-duration-150"
+                            style="width: 2.25rem; height: 2.25rem; padding: 0;"
+                            (click)="openAssignRiderDialog(order)"
+                            pTooltip="Assign Rider"
+                            tooltipPosition="top"
+                            aria-label="Assign Rider"
+                        >
+                            <!-- Delivery rider on bike -->
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true">
+                                <circle cx="5.5" cy="17.5" r="2.5" fill="none" stroke="currentColor" stroke-width="1.6"/>
+                                <circle cx="18.5" cy="17.5" r="2.5" fill="none" stroke="currentColor" stroke-width="1.6"/>
+                                <circle cx="12" cy="5.2" r="1.7"/>
+                                <path d="M10.8 7.2c.4 1.4 1.2 2.2 2.4 2.6l1.6 3.2h2.2l1.1 2.2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M8.2 17.5h4.2l1.4-2.8H10l-.8 1.4H7.4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M11.2 9.6H8.6L7 12.2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </button>
+                        <span *ngIf="order.status !== 1 && order.status !== 3" class="text-400 text-xs">—</span>
+                    </div>
+                </td>
+                <td class="text-right font-bold text-primary">{{ order.totalAmount | number: '1.2-2' }}</td>
                 <td>{{ order.saleInvoiceNo || '—' }}</td>
                 <td class="text-center">
                     <app-row-actions
@@ -101,12 +258,258 @@
 
         <ng-template pTemplate="emptymessage">
             <tr>
-                <td colspan="7" class="text-center p-4">
+                <td [attr.colspan]="isRestaurant ? 10 : 9" class="text-center p-4">
                     <div class="text-500">No customer orders found</div>
                 </td>
             </tr>
         </ng-template>
     </p-table>
+    </div>
+
+    <!-- Area-Wise Order History View (activeListTab === 1) -->
+    <div *ngIf="activeListTab === 1" class="mt-2">
+        <!-- Filter Toolbar -->
+        <div class="p-3 border-1 surface-border border-round surface-card mb-3 no-print">
+            <div class="flex flex-wrap gap-2 align-items-center justify-content-between">
+                <div class="flex flex-wrap gap-2 align-items-center flex-order-1 sm:flex-order-0">
+                    <!-- Search Keyword -->
+                    <span class="p-input-icon-left w-full sm:w-16rem">
+                        <i class="pi pi-search"></i>
+                        <input
+                            pInputText
+                            type="text"
+                            class="w-full"
+                            placeholder="Search orders, customer..."
+                            [(ngModel)]="areaKeyword"
+                            (keyup.enter)="computeAreaWiseGroups()"
+                        />
+                    </span>
+
+                    <!-- Area Dropdown -->
+                    <p-dropdown
+                        [options]="areaOptions"
+                        [(ngModel)]="selectedArea"
+                        (onChange)="computeAreaWiseGroups()"
+                        optionLabel="label"
+                        optionValue="value"
+                        placeholder="All Areas"
+                        styleClass="w-full sm:w-13rem"
+                    ></p-dropdown>
+
+                    <!-- From Date & Time -->
+                    <div class="flex align-items-center gap-1">
+                        <span class="text-600 text-sm font-medium">From:</span>
+                        <input
+                            pInputText
+                            type="datetime-local"
+                            [(ngModel)]="areaFromDateTime"
+                            (change)="computeAreaWiseGroups()"
+                            class="w-full sm:w-13rem"
+                        />
+                    </div>
+
+                    <!-- To Date & Time -->
+                    <div class="flex align-items-center gap-1">
+                        <span class="text-600 text-sm font-medium">To:</span>
+                        <input
+                            pInputText
+                            type="datetime-local"
+                            [(ngModel)]="areaToDateTime"
+                            (change)="computeAreaWiseGroups()"
+                            class="w-full sm:w-13rem"
+                        />
+                    </div>
+
+                    <!-- Reset Filters Button -->
+                    <button
+                        *ngIf="areaKeyword || selectedArea !== null || areaFromDateTime || areaToDateTime"
+                        pButton
+                        pRipple
+                        type="button"
+                        icon="pi pi-times"
+                        class="p-button-text p-button-secondary"
+                        pTooltip="Reset filters"
+                        tooltipPosition="top"
+                        (click)="clearAreaFilters()"
+                    ></button>
+
+                    <!-- Search / Refresh Button -->
+                    <button
+                        pButton
+                        pRipple
+                        type="button"
+                        icon="pi pi-search"
+                        class="p-button-outlined"
+                        label="Search"
+                        (click)="computeAreaWiseGroups()"
+                    ></button>
+
+                    <!-- Print Button -->
+                    <button
+                        pButton
+                        pRipple
+                        type="button"
+                        icon="pi pi-print"
+                        class="p-button-outlined"
+                        label="Print"
+                        (click)="printAreaWiseReport()"
+                    ></button>
+                </div>
+
+                <!-- Grand Total badge -->
+                <div class="flex align-items-center gap-3">
+                    <div class="text-right">
+                        <div class="text-xs text-500 font-semibold uppercase">Total Area Sales</div>
+                        <div class="text-xl font-bold text-primary">
+                            {{ areaGrandTotalAmount | currency : 'PKR ' : 'symbol' : '1.2-2' }}
+                        </div>
+                        <div class="text-xs text-600 font-medium">
+                            {{ areaGrandTotalOrders }} {{ areaGrandTotalOrders === 1 ? 'Order' : 'Orders' }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Empty State -->
+        <div *ngIf="areaGroups.length === 0" class="text-center p-5 surface-50 border-round border-1 surface-border my-3">
+            <i class="pi pi-inbox text-500 text-4xl mb-2"></i>
+            <div class="text-900 font-semibold text-lg">No area-wise orders found</div>
+            <div class="text-500 text-sm mt-1">There are no customer orders matching the selected area or date & time filters.</div>
+            <button
+                pButton
+                pRipple
+                type="button"
+                icon="pi pi-refresh"
+                label="Reset Filters"
+                class="p-button-outlined mt-3"
+                (click)="clearAreaFilters()"
+            ></button>
+        </div>
+
+        <!-- Area Groups Cards -->
+        <ng-container *ngIf="areaGroups.length > 0">
+            <div
+                class="mb-4 border-1 surface-border border-round overflow-hidden shadow-1"
+                *ngFor="let group of areaGroups"
+            >
+                <!-- Area Heading Banner -->
+                <div class="bg-primary-50 p-3 px-4 flex flex-wrap align-items-center justify-content-between border-bottom-1 surface-border">
+                    <div class="flex align-items-center gap-2">
+                        <i class="pi pi-map-marker text-primary text-xl"></i>
+                        <h5 class="m-0 text-900 font-bold">{{ group.areaName }}</h5>
+                        <span class="p-tag p-tag-info p-tag-rounded text-xs">{{ group.orders.length }} {{ group.orders.length === 1 ? 'Order' : 'Orders' }}</span>
+                    </div>
+                    <div class="flex align-items-center gap-3">
+                        <span class="text-600 text-sm">Orders Count: <strong class="text-900">{{ group.orderCount }}</strong></span>
+                        <span class="text-600 text-sm">Area Total: <strong class="text-primary text-base">{{ group.totalAmount | currency : 'PKR ' : 'symbol' : '1.2-2' }}</strong></span>
+                    </div>
+                </div>
+
+                <!-- Orders Table -->
+                <p-table
+                    [value]="group.orders"
+                    responsiveLayout="scroll"
+                    styleClass="p-datatable-striped p-datatable-sm"
+                >
+                    <ng-template pTemplate="header">
+                        <tr>
+                            <th style="width: 50px;">#</th>
+                            <th style="min-width: 130px;">Order No</th>
+                            <th style="min-width: 150px;">Order Date & Time</th>
+                            <th style="min-width: 150px;">Customer</th>
+                            <th style="min-width: 120px;" class="text-right">Delivery Fee</th>
+                            <th style="min-width: 110px;">Status</th>
+                            <th *ngIf="isRestaurant" style="min-width: 130px;">Rider</th>
+                            <th style="text-align: right; min-width: 120px;">Total Amount</th>
+                            <th class="text-center" style="width: 90px;">Actions</th>
+                        </tr>
+                    </ng-template>
+                    <ng-template pTemplate="body" let-order let-i="rowIndex">
+                        <tr>
+                            <td class="text-500">{{ i + 1 }}</td>
+                            <td class="font-bold">
+                                <a href="javascript:void(0)" class="text-primary hover:underline cursor-pointer" (click)="openViewDialog(order)">
+                                    {{ order.orderNo || ('#' + order.id) }}
+                                </a>
+                            </td>
+                            <td>
+                                <div class="font-medium text-800">{{ order.orderDate | date: formatService.dateFormat }}</div>
+                                <div class="text-xs text-500 font-normal">{{ order.orderDate | date: 'shortTime' }}</div>
+                            </td>
+                            <td>
+                                <div class="font-medium text-900">{{ order.customerName || '—' }}</div>
+                                <div *ngIf="order.customerPhone" class="text-xs text-500">{{ order.customerPhone }}</div>
+                            </td>
+                            <td class="text-right font-semibold">
+                                <span *ngIf="order.deliveryFee === 0 || order.isFreeDelivery" class="text-green-600">
+                                    <span class="p-badge p-badge-success text-xs">FREE</span>
+                                </span>
+                                <span *ngIf="order.deliveryFee > 0" class="text-700">
+                                    PKR {{ order.deliveryFee | number: '1.2-2' }}
+                                </span>
+                            </td>
+                            <td>
+                                <p-tag
+                                    [value]="statusLabel(order)"
+                                    [severity]="statusSeverity(order.status)"
+                                ></p-tag>
+                            </td>
+                            <td *ngIf="isRestaurant">
+                                <span *ngIf="order.riderName" class="font-medium text-teal-800 text-sm flex align-items-center gap-1">
+                                    <i class="pi pi-compass text-teal-600"></i>{{ order.riderName }}
+                                </span>
+                                <span *ngIf="!order.riderName" class="text-400 text-xs">—</span>
+                            </td>
+                            <td style="text-align: right;" class="font-bold text-primary">
+                                {{ order.totalAmount | currency : 'PKR ' : 'symbol' : '1.2-2' }}
+                            </td>
+                            <td class="text-center">
+                                <div class="flex align-items-center justify-content-center gap-1">
+                                    <button
+                                        pButton
+                                        pRipple
+                                        type="button"
+                                        icon="pi pi-eye"
+                                        class="p-button-rounded p-button-text p-button-sm text-primary hover:surface-200"
+                                        pTooltip="View details"
+                                        tooltipPosition="top"
+                                        (click)="openViewDialog(order)"
+                                    ></button>
+                                    <app-row-actions
+                                        [items]="getRowActions(order)"
+                                    ></app-row-actions>
+                                </div>
+                            </td>
+                        </tr>
+                    </ng-template>
+                    <ng-template pTemplate="footer">
+                        <tr>
+                            <td [attr.colspan]="isRestaurant ? 6 : 5" class="text-right font-bold text-700 bg-gray-50 uppercase text-sm">
+                                {{ group.areaName }} Total:
+                            </td>
+                            <td style="text-align: right;" class="font-bold bg-gray-50 text-900">
+                                {{ group.orderCount }} {{ group.orderCount === 1 ? 'Order' : 'Orders' }}
+                            </td>
+                            <td style="text-align: right;" class="font-bold text-primary bg-gray-50 text-base">
+                                {{ group.totalAmount | currency : 'PKR ' : 'symbol' : '1.2-2' }}
+                            </td>
+                            <td class="bg-gray-50"></td>
+                        </tr>
+                    </ng-template>
+                </p-table>
+            </div>
+
+            <!-- Grand Total Summary Card -->
+            <div *ngIf="areaGroups.length > 1" class="surface-card p-3 px-4 border-round border-1 surface-border shadow-1 flex flex-wrap justify-content-between align-items-center mt-3 bg-primary-100">
+                <span class="font-bold text-900 text-lg uppercase">All Areas Grand Total</span>
+                <div class="flex align-items-center gap-4">
+                    <span class="text-base text-700 font-medium">Total Orders: <strong class="text-900">{{ areaGrandTotalOrders }}</strong></span>
+                    <span class="text-base text-700 font-medium">Grand Total Sales: <strong class="text-primary text-xl">{{ areaGrandTotalAmount | currency : 'PKR ' : 'symbol' : '1.2-2' }}</strong></span>
+                </div>
+            </div>
+        </ng-container>
+    </div>
 
     <app-customer-order-form-dialog
         [(visible)]="createDialogVisible"
@@ -116,8 +519,260 @@
     <app-customer-order-view-dialog
         [(visible)]="viewDialogVisible"
         [orderId]="viewingOrderId"
+        (orderUpdated)="loadOrders()"
     ></app-customer-order-view-dialog>
+
+    <!-- Dedicated Quick Chat Dialog with Customer -->
+    <p-dialog
+        header="Customer Order Chat"
+        [(visible)]="chatDialogVisible"
+        [modal]="true"
+        appendTo="body"
+        [style]="{ width: '38rem' }"
+        [breakpoints]="{ '960px': '92vw' }"
+        [draggable]="false"
+        [resizable]="false"
+    >
+        <app-order-chat
+            *ngIf="chatDialogVisible && selectedOrderForChat"
+            [orderNo]="selectedOrderForChat.orderNo || ('#' + selectedOrderForChat.id)"
+            [branchId]="selectedOrderForChat.branchId"
+            [customerName]="selectedOrderForChat.customerName"
+            [customerMobile]="selectedOrderForChat.customerPhone"
+            mode="store"
+            height="340px"
+            [title]="'Chat - ' + (selectedOrderForChat.orderNo || ('#' + selectedOrderForChat.id))"
+            [subtitle]="selectedOrderForChat.customerName || 'Customer'"
+        ></app-order-chat>
+    </p-dialog>
+
+    <!-- 🛵 Assign / Reassign Delivery Rider Dialog (Restaurant Only) -->
+    <p-dialog
+        [header]="selectedOrderForRider?.riderName ? ('🛵 Reassign Delivery Rider - Order #' + (selectedOrderForRider?.orderNo || selectedOrderForRider?.id)) : ('🛵 Assign Delivery Rider - Order #' + (selectedOrderForRider?.orderNo || selectedOrderForRider?.id))"
+        [(visible)]="assignRiderDialogVisible"
+        [modal]="true"
+        appendTo="body"
+        [style]="{ width: '42rem', maxWidth: '95vw' }"
+        [draggable]="false"
+        [resizable]="false"
+    >
+        <div class="flex flex-column gap-3" *ngIf="selectedOrderForRider">
+            <!-- Order Summary Banner -->
+            <div class="surface-50 border-round p-3 grid m-0 border-1 surface-border">
+                <div class="col-12 sm:col-6 p-2">
+                    <span class="text-500 text-xs block mb-1">Customer:</span>
+                    <span class="font-bold text-900 text-base">{{ selectedOrderForRider.customerName || 'Customer' }}</span>
+                    <div class="text-xs text-600 mt-1" *ngIf="selectedOrderForRider.customerPhone">
+                        <i class="pi pi-phone mr-1"></i>{{ selectedOrderForRider.customerPhone }}
+                    </div>
+                </div>
+                <div class="col-12 sm:col-6 p-2">
+                    <span class="text-500 text-xs block mb-1">Destination:</span>
+                    <span class="font-semibold text-900 text-sm">
+                        <i class="pi pi-map-marker text-red-500 mr-1"></i>{{ selectedOrderForRider.deliveryAreaName || 'Area not specified' }}
+                    </span>
+                    <div class="font-bold text-primary mt-1 text-base">
+                        Total: PKR {{ selectedOrderForRider.totalAmount | number: '1.2-2' }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Riders List -->
+            <div>
+                <div class="flex align-items-center justify-content-between gap-2 mb-2 flex-wrap">
+                    <div>
+                        <label class="font-bold text-900 m-0">Select Delivery Rider</label>
+                        <div class="text-xs text-500 mt-1">Staff with designation 'Delivery Rider'</div>
+                    </div>
+                    <button
+                        *ngIf="canCreateStaff"
+                        pButton
+                        pRipple
+                        type="button"
+                        label="Add Rider"
+                        icon="pi pi-plus"
+                        class="p-button-sm p-button-outlined border-round-lg"
+                        [disabled]="loadingRiders || assigningRider"
+                        (click)="openAddRiderDialog()"
+                    ></button>
+                </div>
+
+                <!-- Loading State -->
+                <div *ngIf="loadingRiders" class="text-center py-4 text-500">
+                    <i class="pi pi-spin pi-spinner text-xl mr-2"></i>Loading delivery riders...
+                </div>
+
+                <!-- Empty State -->
+                <div *ngIf="!loadingRiders && !availableRiders.length" class="text-center py-4 surface-50 border-round">
+                    <i class="pi pi-users text-400 text-3xl mb-2 block"></i>
+                    <div class="font-bold text-700">No Delivery Riders Found</div>
+                    <div class="text-xs text-500 mt-1 mb-3">
+                        No active staff members with designation "Delivery Rider" found in this branch.
+                    </div>
+                    <button
+                        *ngIf="canCreateStaff"
+                        pButton
+                        pRipple
+                        type="button"
+                        label="Add Rider"
+                        icon="pi pi-user-plus"
+                        class="p-button-sm border-round-lg"
+                        [disabled]="assigningRider"
+                        (click)="openAddRiderDialog()"
+                    ></button>
+                </div>
+
+                <!-- Riders Cards -->
+                <div *ngIf="!loadingRiders && availableRiders.length" class="flex flex-column gap-2 max-h-24rem overflow-y-auto pr-1">
+                    <div
+                        *ngFor="let rider of availableRiders"
+                        class="p-3 border-round-xl border-1 flex flex-wrap align-items-center justify-content-between gap-2 transition-all transition-duration-150"
+                        [style.background]="rider.isBusy ? '#fef2f2' : selectedRider?.riderId === rider.riderId ? '#e0f2fe' : '#ffffff'"
+                        [style.borderColor]="rider.isBusy ? '#fca5a5' : selectedRider?.riderId === rider.riderId ? '#0284c7' : '#e2e8f0'"
+                        [style.cursor]="rider.isBusy ? 'not-allowed' : 'pointer'"
+                        (click)="!rider.isBusy && (selectedRider = rider)"
+                    >
+                        <div class="flex align-items-center gap-3">
+                            <div
+                                class="border-circle flex align-items-center justify-content-center text-lg font-bold"
+                                [style.background]="rider.isBusy ? '#fee2e2' : selectedRider?.riderId === rider.riderId ? '#0284c7' : '#f1f5f9'"
+                                [style.color]="rider.isBusy ? '#dc2626' : selectedRider?.riderId === rider.riderId ? '#ffffff' : '#475569'"
+                                style="width: 2.75rem; height: 2.75rem; flex-shrink: 0;"
+                            >
+                                <i class="pi pi-compass"></i>
+                            </div>
+                            <div>
+                                <div class="font-bold text-900 text-base flex align-items-center gap-2">
+                                    {{ rider.riderName }}
+                                    <span *ngIf="rider.employeeCode" class="text-xs text-500 font-normal">({{ rider.employeeCode }})</span>
+                                    <span *ngIf="selectedOrderForRider?.riderId === rider.riderId" class="px-2 py-0.5 border-round text-xs font-semibold bg-teal-100 text-teal-800 border-1 border-teal-300">
+                                        Current Rider
+                                    </span>
+                                </div>
+                                <div class="text-xs text-600 mt-1">
+                                    <i class="pi pi-phone mr-1" *ngIf="rider.riderPhone"></i>{{ rider.riderPhone || 'No contact phone' }}
+                                </div>
+                                <!-- Rider Statistics: Last Order Time & Today Delivered Count -->
+                                <div class="mt-2 flex flex-wrap align-items-center gap-2">
+                                    <!-- Last Order Time Badge -->
+                                    <span
+                                        class="inline-flex align-items-center gap-1 px-2 py-0.5 border-round text-xs font-medium"
+                                        [ngClass]="rider.lastOrderTime ? 'bg-indigo-50 text-indigo-700 border-1 border-indigo-200' : 'bg-gray-100 text-gray-600 border-1 border-gray-200'"
+                                    >
+                                        <i class="pi pi-clock text-xs"></i>
+                                        {{ rider.lastOrderTimeText || 'No previous orders' }}
+                                    </span>
+
+                                    <!-- Today's Delivered Orders Badge -->
+                                    <span
+                                        class="inline-flex align-items-center gap-1 px-2 py-0.5 border-round text-xs font-medium"
+                                        [ngClass]="(rider.todayDeliveredCount || 0) > 0 ? 'bg-green-50 text-green-700 border-1 border-green-200' : 'bg-orange-50 text-orange-700 border-1 border-orange-200'"
+                                    >
+                                        <i [class]="(rider.todayDeliveredCount || 0) > 0 ? 'pi pi-check-circle text-xs' : 'pi pi-info-circle text-xs'"></i>
+                                        {{ rider.todayDeliveredText || 'No order delivered today' }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex align-items-center gap-2">
+                            <!-- Busy Rider Status Badge -->
+                            <span
+                                *ngIf="rider.isBusy"
+                                class="px-2.5 py-1.5 border-round font-bold text-xs bg-red-100 text-red-700 border-1 border-red-300 flex align-items-center gap-1 shadow-1"
+                            >
+                                <i class="pi pi-exclamation-triangle text-red-600 font-bold"></i>
+                                Already delivering Order #{{ rider.busyOrderNo }}
+                            </span>
+
+                            <!-- Available Badge -->
+                            <span
+                                *ngIf="!rider.isBusy"
+                                class="px-2 py-1 border-round font-semibold text-xs bg-green-100 text-green-800"
+                            >
+                                <i class="pi pi-check mr-1"></i>Available
+                            </span>
+
+                            <!-- Selection Radio -->
+                            <p-radioButton
+                                *ngIf="!rider.isBusy"
+                                name="riderGroup"
+                                [value]="rider"
+                                [(ngModel)]="selectedRider"
+                                [disabled]="rider.isBusy"
+                            ></p-radioButton>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <ng-template pTemplate="footer">
+            <div class="flex flex-wrap align-items-center justify-content-between gap-2 w-full pt-2">
+                <button
+                    pButton
+                    pRipple
+                    type="button"
+                    label="Cancel"
+                    icon="pi pi-times"
+                    class="p-button-text p-button-secondary border-round-lg px-3"
+                    [disabled]="assigningRider"
+                    (click)="assignRiderDialogVisible = false"
+                ></button>
+
+                <button
+                    pButton
+                    pRipple
+                    type="button"
+                    [label]="selectedOrderForRider?.riderName ? 'Reassign Rider' : 'Assign Rider'"
+                    icon="pi pi-check"
+                    class="p-button-success border-round-lg px-4 font-semibold shadow-2"
+                    [disabled]="!selectedRider || selectedRider.isBusy || assigningRider || (selectedOrderForRider?.riderId === selectedRider.riderId)"
+                    [loading]="assigningRider"
+                    (click)="confirmAssignOrReassignRider()"
+                ></button>
+            </div>
+        </ng-template>
+    </p-dialog>
+
+    <app-staff-form-dialog
+        [(visible)]="addRiderDialogVisible"
+        [staffId]="null"
+        [defaultDesignation]="'Delivery Rider'"
+        (saved)="onRiderStaffSaved()"
+    ></app-staff-form-dialog>
 
     <p-toast></p-toast>
     <p-confirmDialog></p-confirmDialog>
 </div>
+
+<style>
+.pulse-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+}
+.pulse-dot-active {
+    background-color: #22c55e;
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+    animation: pulse-green 1.8s infinite;
+}
+.pulse-dot-paused {
+    background-color: #94a3b8;
+}
+@keyframes pulse-green {
+    0% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+    }
+    70% {
+        transform: scale(1);
+        box-shadow: 0 0 0 6px rgba(34, 197, 94, 0);
+    }
+    100% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+    }
+}
+</style>

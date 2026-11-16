@@ -15,6 +15,8 @@ namespace SmartPos.Orders
     {
         public const int MaxOrderNoLength = 64;
         public const int MaxNotesLength = 512;
+        public const int MaxPaymentMethodLength = 32;
+        public const int MaxCustomerFeedbackCommentLength = 500;
 
         public virtual int? TenantId { get; set; }
 
@@ -34,17 +36,81 @@ namespace SmartPos.Orders
         [StringLength(MaxOrderNoLength)]
         public virtual string OrderNo { get; set; }
 
+        /// <summary>Daily queue/token number for online delivery orders (resets each calendar day per branch).</summary>
+        public virtual int? TokenNo { get; set; }
+
         public virtual CustomerOrderStatus Status { get; set; }
+
+        public virtual decimal SubTotal { get; set; }
+
+        public virtual decimal DeliveryFee { get; set; }
+
+        public virtual int? DeliveryAreaId { get; set; }
+
+        [ForeignKey(nameof(DeliveryAreaId))]
+        public virtual DeliveryArea DeliveryArea { get; set; }
+
+        [StringLength(128)]
+        public virtual string DeliveryAreaName { get; set; }
+
+        public virtual bool IsFreeDelivery { get; set; }
+
+        [StringLength(256)]
+        public virtual string FreeDeliveryReason { get; set; }
+
+        public virtual int? DeliveryPromotionId { get; set; }
+
+        [ForeignKey(nameof(DeliveryPromotionId))]
+        public virtual DeliveryPromotion DeliveryPromotion { get; set; }
+
+        public virtual decimal? OriginalDeliveryFee { get; set; }
+
+        [StringLength(256)]
+        public virtual string DeliveryFeeOverrideReason { get; set; }
+
+        public virtual long? DeliveryFeeOverriddenByUserId { get; set; }
+
+        public virtual DateTime? DeliveryFeeOverrideTime { get; set; }
 
         public virtual decimal TotalAmount { get; set; }
 
         [StringLength(MaxNotesLength)]
         public virtual string Notes { get; set; }
 
+        /// <summary>Customer checkout choice: CashOnDelivery or OnlinePayment.</summary>
+        [StringLength(MaxPaymentMethodLength)]
+        public virtual string PaymentMethod { get; set; }
+
+        /// <summary>Optional 1–5 star rating captured when rider marks delivery complete.</summary>
+        public virtual int? DeliveryRating { get; set; }
+
+        /// <summary>Optional 1–5 star rating given by the customer for this delivery.</summary>
+        public virtual int? CustomerRating { get; set; }
+
+        /// <summary>Optional written feedback left by the customer with their rating.</summary>
+        [StringLength(MaxCustomerFeedbackCommentLength)]
+        public virtual string CustomerFeedbackComment { get; set; }
+
         public virtual int? SaleId { get; set; }
 
         [ForeignKey(nameof(SaleId))]
         public virtual Sale Sale { get; set; }
+
+        public virtual double? Latitude { get; set; }
+
+        public virtual double? Longitude { get; set; }
+
+        public virtual double? DistanceKm { get; set; }
+
+        public virtual int? RiderId { get; set; }
+
+        [StringLength(128)]
+        public virtual string RiderName { get; set; }
+
+        [StringLength(32)]
+        public virtual string RiderPhone { get; set; }
+
+        public virtual DateTime? RiderAssignedTime { get; set; }
 
         public virtual ICollection<CustomerOrderLine> Lines { get; set; }
     }

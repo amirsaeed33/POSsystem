@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Threading.Tasks;
 using Abp.Application.Services;
 using SmartPos.Dashboard.Dto;
@@ -10,5 +10,8 @@ namespace SmartPos.Dashboard
         Task<DashboardDto> GetAsync();
 
         Task<List<PinnedProductOverviewDto>> GetPinnedProductsOverviewAsync(GetPinnedProductsInput input);
+            // ONLINE-PIPELINE START
+        Task<OnlineOrderPipelineDto> GetOnlineOrderPipelineAsync(GetOnlineOrderPipelineInput input = null);
+        // ONLINE-PIPELINE END
     }
 }

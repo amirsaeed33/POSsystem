@@ -1,12 +1,20 @@
 .product-list-thumb {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
+    width: 46px;
+    height: 46px;
+    border-radius: 0.75rem;
     object-fit: cover;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
+    border: 1px solid var(--surface-border);
+    background: var(--surface-ground);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+
+    &:hover {
+        transform: scale(1.04);
+        box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12);
+    }
 }
 
 .product-list-thumb.product-initials {
@@ -14,6 +22,260 @@
     font-size: 0.8rem;
     letter-spacing: 0.03em;
     color: var(--primary-color);
-    background: var(--surface-ground);
+    background: color-mix(in srgb, var(--primary-color) 10%, white);
     user-select: none;
+}
+
+.product-name-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-width: 10rem;
+}
+
+.product-name-link {
+    color: var(--primary-color);
+    font-weight: 600;
+    text-decoration: none;
+
+    &:hover {
+        text-decoration: underline;
+    }
+}
+
+.product-name-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+}
+
+.product-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+    font-size: 0.68rem;
+    font-weight: 700;
+    padding: 0.12rem 0.45rem;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    line-height: 1.2;
+
+    &.is-category {
+        color: #334155;
+        background: #f1f5f9;
+        border-color: #e2e8f0;
+    }
+
+    &.is-info {
+        color: #0369a1;
+        background: #e0f2fe;
+        border-color: #bae6fd;
+    }
+
+    &.is-success {
+        color: #047857;
+        background: #ecfdf5;
+        border-color: #a7f3d0;
+    }
+
+    &.is-deal {
+        color: #b45309;
+        background: #fffbeb;
+        border-color: #fde68a;
+    }
+
+    &.is-shared {
+        color: #4338ca;
+        background: #eef2ff;
+        border-color: #c7d2fe;
+    }
+}
+
+.product-mono {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.8rem;
+    color: var(--text-color-secondary);
+}
+
+.product-price {
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-color);
+}
+
+.product-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 1.5rem 0.75rem;
+
+    .pi {
+        font-size: 1.75rem;
+        color: var(--text-color-secondary);
+        margin-bottom: 0.25rem;
+    }
+}
+
+:host ::ng-deep .product-list-tabs {
+    .p-tabview-nav {
+        border-bottom: 1px solid var(--surface-border);
+        gap: 0.25rem;
+    }
+
+    .p-tabview-nav-link {
+        border-radius: 0.65rem 0.65rem 0 0 !important;
+    }
+
+    .p-tabview-panels {
+        display: none;
+    }
+}
+
+.product-tab-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.35rem;
+    height: 1.35rem;
+    padding: 0 0.35rem;
+    border-radius: 999px;
+    background: var(--surface-200);
+    color: var(--text-color-secondary);
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+/* Modifier dialog — option row (no overlap) */
+.modifier-option-form {
+    width: 100%;
+}
+
+.modifier-option-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 0.5rem;
+}
+
+.modifier-option-name {
+    flex: 1 1 12rem;
+    min-width: 0;
+}
+
+.modifier-size-chips {
+    margin-top: 0.15rem;
+}
+
+.modifier-size-chip {
+    font-size: 0.75rem !important;
+    padding: 0.15rem 0.55rem !important;
+}
+
+.modifier-option-price {
+    flex: 0 0 7.5rem;
+    width: 7.5rem;
+    max-width: 100%;
+
+    ::ng-deep .p-inputnumber,
+    ::ng-deep .p-inputnumber-input {
+        width: 100% !important;
+    }
+}
+
+.modifier-option-btn {
+    flex: 0 0 auto;
+    align-self: flex-start;
+    margin-top: 0.1rem;
+}
+
+/* Modifier dialog — create group row (no clipped Create button) */
+.modifier-create-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 0.75rem;
+}
+
+.modifier-create-name {
+    flex: 1 1 14rem;
+    min-width: 0;
+}
+
+.modifier-create-flags {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem 1rem;
+    flex: 0 0 auto;
+    padding-bottom: 0.35rem;
+}
+
+.modifier-create-btn {
+    flex: 0 0 auto;
+    min-width: 6.5rem;
+}
+
+.deal-image-upload {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    cursor: pointer;
+    border-radius: 14px;
+    overflow: hidden;
+}
+
+.deal-image-preview {
+    width: 120px;
+    height: 120px;
+    object-fit: cover;
+    display: block;
+    border-radius: 14px;
+    border: 2px solid var(--primary-color);
+}
+
+.deal-image-placeholder {
+    width: 120px;
+    height: 120px;
+    border-radius: 14px;
+    border: 2px dashed var(--primary-color);
+    background: var(--surface-100);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.15rem;
+}
+
+.deal-image-clear {
+    position: absolute !important;
+    top: 6px;
+    right: 6px;
+    width: 1.75rem !important;
+    height: 1.75rem !important;
+}
+
+.deal-products-table-wrapper {
+    max-height: 300px;
+    overflow-y: auto !important;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+    border: 1px solid var(--surface-border);
+    border-radius: 8px;
+    display: block;
+    position: relative;
+    background: var(--surface-0, #ffffff);
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    thead th {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        background-color: var(--surface-50, #f8fafc) !important;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+    }
 }

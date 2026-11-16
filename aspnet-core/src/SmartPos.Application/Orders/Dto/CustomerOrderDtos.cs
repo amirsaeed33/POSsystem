@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using Abp.Application.Services.Dto;
+using SmartPos.Customers;
 using SmartPos.Orders;
 
 namespace SmartPos.Orders.Dto
@@ -21,9 +22,81 @@ namespace SmartPos.Orders.Dto
         [StringLength(CustomerOrder.MaxNotesLength)]
         public string Notes { get; set; }
 
+        /// <summary>CashOnDelivery or OnlinePayment.</summary>
+        [StringLength(CustomerOrder.MaxPaymentMethodLength)]
+        public string PaymentMethod { get; set; }
+
+        public double? Latitude { get; set; }
+
+        public double? Longitude { get; set; }
+
+        public double? DistanceKm { get; set; }
+
+        public string GoogleMapsLink { get; set; }
+
+        public string DeliveryAddress { get; set; }
+
+        public string DeliveryLandmark { get; set; }
+
+        public int? DeliveryAreaId { get; set; }
+
+        public string DeliveryArea { get; set; }
+
+        public decimal? Subtotal { get; set; }
+
+        public decimal? DeliveryCharges { get; set; }
+
+        public decimal? GrandTotal { get; set; }
+
         [Required]
         [MinLength(1)]
         public List<CreateCustomerOrderLineDto> Lines { get; set; }
+    }
+
+    public class OverrideDeliveryFeeInput
+    {
+        [Required]
+        public int OrderId { get; set; }
+
+        [Range(0, 100000)]
+        public decimal NewDeliveryFee { get; set; }
+
+        [Required]
+        [StringLength(256, MinimumLength = 3)]
+        public string Reason { get; set; }
+    }
+
+    /// <summary>Admin completes a delivered order and posts payment into Sales.</summary>
+    public class CompleteCustomerOrderInput
+    {
+        [Required]
+        public int OrderId { get; set; }
+
+        /// <summary>Optional cash/card amount received. Null = full order total.</summary>
+        public decimal? PaymentReceivedAmount { get; set; }
+    }
+
+    public class OnlineBranchDto
+    {
+        public int Id { get; set; }
+        public string Name { get; set; }
+        public bool IsRestaurant { get; set; }
+        public string Address { get; set; }
+        public string ImagePath { get; set; }
+    }
+
+    /// <summary>Resolved from Host header for branded custom-domain storefronts.</summary>
+    public class StorefrontByHostDto
+    {
+        public int BranchId { get; set; }
+        public int? TenantId { get; set; }
+        public string BranchName { get; set; }
+        public string StorefrontTitle { get; set; }
+        public string CustomDomain { get; set; }
+        public string Address { get; set; }
+        public string Phone { get; set; }
+        public string ImagePath { get; set; }
+        public bool IsRestaurant { get; set; }
     }
 
     public class OnlineStoreHeaderDto
@@ -34,6 +107,19 @@ namespace SmartPos.Orders.Dto
         public string Phone { get; set; }
         public string CurrencyFormat { get; set; }
         public string DateFormat { get; set; }
+        public decimal BaseDeliveryFee { get; set; }
+        public bool IsDeliveryEnabled { get; set; }
+        public decimal FreeDeliveryThreshold { get; set; }
+        public string DeliveryAreaNote { get; set; }
+        public bool IsRestaurant { get; set; }
+        public int BusinessType { get; set; }
+        public double? Latitude { get; set; }
+        public double? Longitude { get; set; }
+        public string FacebookUrl { get; set; }
+        public string InstagramUrl { get; set; }
+        public string YoutubeUrl { get; set; }
+        public string ImagePath { get; set; }
+        public List<string> Categories { get; set; } = new List<string>();
     }
 
     public class OnlineProductDto
@@ -42,6 +128,7 @@ namespace SmartPos.Orders.Dto
         public string Name { get; set; }
         public string Description { get; set; }
         public string CategoryName { get; set; }
+        public int? CategoryId { get; set; }
         public string BrandName { get; set; }
         public string Barcode { get; set; }
         public string UnitName { get; set; }
@@ -51,6 +138,29 @@ namespace SmartPos.Orders.Dto
         public bool InStock { get; set; }
         public decimal StockQuantity { get; set; }
         public string Specifications { get; set; }
+        public bool IsFreeDelivery { get; set; }
+        public bool IsDeal { get; set; }
+        public string CardTag { get; set; }
+    }
+
+    /// <summary>
+    /// Paged online catalog request. Legacy GetOnlineCatalog remains unpaged for older clients.
+    /// </summary>
+    public class PagedOnlineCatalogResultRequestDto : PagedResultRequestDto
+    {
+        public int? BranchId { get; set; }
+
+        public int? CategoryId { get; set; }
+
+        /// <summary>Exact category name match (MAUI chips / store header).</summary>
+        public string CategoryName { get; set; }
+
+        /// <summary>OR multi-select category names; ignored when null/empty.</summary>
+        public List<string> CategoryNames { get; set; }
+
+        public string Keyword { get; set; }
+
+        public bool DealsOnly { get; set; }
     }
 
     public class CreateCustomerOrderLineDto
@@ -78,31 +188,220 @@ namespace SmartPos.Orders.Dto
         public decimal UnitPrice { get; set; }
 
         public decimal LineTotal { get; set; }
+
+        public bool IsDeal { get; set; }
+
+        public List<string> DealItems { get; set; } = new List<string>();
     }
 
     public class CustomerOrderDto : EntityDto
     {
+        public int BranchId { get; set; }
+
+        public string BranchName { get; set; }
+
         public int CustomerId { get; set; }
 
         public string CustomerName { get; set; }
+
+        public string CustomerPhone { get; set; }
+
+        public string CustomerAddress { get; set; }
 
         public DateTime OrderDate { get; set; }
 
         public string OrderNo { get; set; }
 
+        public int? TokenNo { get; set; }
+
         public CustomerOrderStatus Status { get; set; }
 
         public string StatusName { get; set; }
+
+        public decimal SubTotal { get; set; }
+
+        public decimal DeliveryFee { get; set; }
+
+        public int? DeliveryAreaId { get; set; }
+
+        public string DeliveryAreaName { get; set; }
+
+        public bool IsFreeDelivery { get; set; }
+
+        public string FreeDeliveryReason { get; set; }
+
+        public decimal? OriginalDeliveryFee { get; set; }
+
+        public string DeliveryFeeOverrideReason { get; set; }
+
+        public string DeliveryFeeOverriddenByName { get; set; }
+
+        public DateTime? DeliveryFeeOverrideTime { get; set; }
 
         public decimal TotalAmount { get; set; }
 
         public string Notes { get; set; }
 
+        /// <summary>CashOnDelivery or OnlinePayment.</summary>
+        public string PaymentMethod { get; set; }
+
+        /// <summary>1–5 stars given by the rider when completing delivery.</summary>
+        public int? DeliveryRating { get; set; }
+
+        /// <summary>1–5 stars given by the customer for this delivery.</summary>
+        public int? CustomerRating { get; set; }
+
+        /// <summary>Optional written feedback left with the customer rating.</summary>
+        public string CustomerFeedbackComment { get; set; }
+
         public int? SaleId { get; set; }
 
         public string SaleInvoiceNo { get; set; }
 
+        public decimal PaidAmount { get; set; }
+
+        public decimal DueAmount { get; set; }
+
+        public double? Latitude { get; set; }
+
+        public double? Longitude { get; set; }
+
+        public double? DistanceKm { get; set; }
+
+        public int? RiderId { get; set; }
+
+        public string RiderName { get; set; }
+
+        public string RiderPhone { get; set; }
+
+        public DateTime? RiderAssignedTime { get; set; }
+
         public List<CustomerOrderLineDto> Lines { get; set; }
+    }
+
+    public class AssignRiderDto
+    {
+        public int OrderId { get; set; }
+        public int RiderId { get; set; }
+        public string RiderName { get; set; }
+        public string RiderPhone { get; set; }
+    }
+
+    public class RateCustomerOrderInput
+    {
+        public string OrderNo { get; set; }
+
+        public int Rating { get; set; }
+
+        /// <summary>Optional written comment (max 500 chars).</summary>
+        [StringLength(CustomerOrder.MaxCustomerFeedbackCommentLength)]
+        public string Comment { get; set; }
+    }
+
+    public class CustomerOrderHistoryInput
+    {
+        public string Phone { get; set; }
+
+        public int? BranchId { get; set; }
+
+        public int MaxResultCount { get; set; } = 30;
+    }
+
+    public class OnlineCustomerProfileDto
+    {
+        public int Id { get; set; }
+
+        public int BranchId { get; set; }
+
+        public string Name { get; set; }
+
+        public string Phone { get; set; }
+
+        public string Email { get; set; }
+
+        public string Address { get; set; }
+
+        public double? Latitude { get; set; }
+
+        public double? Longitude { get; set; }
+
+        public string ImagePath { get; set; }
+
+        /// <summary>Saved delivery addresses with zones for quick re-select.</summary>
+        public List<SmartPos.Customers.Dto.CustomerSavedAddressDto> SavedAddresses { get; set; }
+            = new List<SmartPos.Customers.Dto.CustomerSavedAddressDto>();
+    }
+
+    public class BranchFeedbackDto
+    {
+        public int OrderId { get; set; }
+
+        public int CustomerId { get; set; }
+
+        public string OrderNo { get; set; }
+
+        public string CustomerName { get; set; }
+
+        public string CustomerImagePath { get; set; }
+
+        public int Rating { get; set; }
+
+        public DateTime OrderDate { get; set; }
+
+        public string BranchName { get; set; }
+
+        public string Comment { get; set; }
+
+        /// <summary>Ordered product names shown on public feedback cards.</summary>
+        public List<string> ItemNames { get; set; } = new List<string>();
+
+        public string ItemsSummary { get; set; }
+    }
+
+    public class UpsertOnlineCustomerProfileInput
+    {
+        public int? BranchId { get; set; }
+
+        [Required]
+        [StringLength(Customer.MaxNameLength)]
+        public string Name { get; set; }
+
+        [Required]
+        [StringLength(Customer.MaxPhoneLength)]
+        public string Phone { get; set; }
+
+        [StringLength(Customer.MaxEmailLength)]
+        public string Email { get; set; }
+
+        [StringLength(Customer.MaxAddressLength)]
+        public string Address { get; set; }
+
+        /// <summary>GPS latitude for the default address (not shown in UI).</summary>
+        public double? Latitude { get; set; }
+
+        /// <summary>GPS longitude for the default address (not shown in UI).</summary>
+        public double? Longitude { get; set; }
+
+        /// <summary>data:image... payload for a new photo, or leave empty to keep existing.</summary>
+        public string ImageBase64 { get; set; }
+
+        public bool ClearImage { get; set; }
+    }
+
+    public class DeliveryRiderStatusDto
+    {
+        public int RiderId { get; set; }
+        public string RiderName { get; set; }
+        public string RiderPhone { get; set; }
+        public string EmployeeCode { get; set; }
+        public bool IsBusy { get; set; }
+        public string BusyOrderNo { get; set; }
+        public int? BusyOrderId { get; set; }
+        public DateTime? LastOrderTime { get; set; }
+        public string LastOrderTimeText { get; set; }
+        public int IdleMinutes { get; set; }
+        public int TodayDeliveredCount { get; set; }
+        public string TodayDeliveredText { get; set; }
     }
 
     public class PagedCustomerOrderResultRequestDto : PagedResultRequestDto
