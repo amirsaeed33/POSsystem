@@ -440,12 +440,41 @@ public partial class CustomerOrderViewModel : BaseViewModel
 
     private void BindProductsFromLoaded()
     {
-        Products.Clear();
-        foreach (var p in _allProducts)
+        var sameIds = Products.Count == _allProducts.Count;
+        if (sameIds)
         {
-            p.CartQty = _cart.GetQty(p.Id);
-            p.IsFavorite = _favorites.IsFavorite(p.Id);
-            Products.Add(p);
+            for (var i = 0; i < _allProducts.Count; i++)
+            {
+                if (Products[i].Id != _allProducts[i].Id)
+                {
+                    sameIds = false;
+                    break;
+                }
+            }
+        }
+
+        if (sameIds)
+        {
+            for (var i = 0; i < _allProducts.Count; i++)
+            {
+                var p = _allProducts[i];
+                p.CartQty = _cart.GetQty(p.Id);
+                p.IsFavorite = _favorites.IsFavorite(p.Id);
+                if (!ReferenceEquals(Products[i], p))
+                {
+                    Products[i] = p;
+                }
+            }
+        }
+        else
+        {
+            Products.Clear();
+            foreach (var p in _allProducts)
+            {
+                p.CartQty = _cart.GetQty(p.Id);
+                p.IsFavorite = _favorites.IsFavorite(p.Id);
+                Products.Add(p);
+            }
         }
 
         OnPropertyChanged(nameof(DishesCountLabel));
