@@ -340,11 +340,12 @@ namespace SmartPos.Restaurant
 
             // Handle removal of lines
             var inputLineIds = input.Lines.Where(l => l.Id.HasValue).Select(l => l.Id.Value).ToList();
-            if (isWaiter || order.OrderType == OrderType.Takeaway)
+            if (isWaiter)
             {
-                // For Waiters or Takeaway KOT: items already sent to kitchen (KOT) or printed cannot be removed by line deletion.
-                // An active KOT order must be paid/settled or explicitly cancelled via CancelOrderAsync.
-                var unprintedLinesToRemove = order.Lines.Where(l => !l.IsSentToKitchen && l.PrintedQuantity <= 0 && !inputLineIds.Contains(l.Id)).ToList();
+                // Waiters cannot remove items already sent/printed on KOT.
+                var unprintedLinesToRemove = order.Lines
+                    .Where(l => !l.IsSentToKitchen && l.PrintedQuantity <= 0 && !inputLineIds.Contains(l.Id))
+                    .ToList();
                 foreach (var rem in unprintedLinesToRemove)
                 {
                     order.Lines.Remove(rem);
@@ -352,11 +353,19 @@ namespace SmartPos.Restaurant
             }
             else
             {
-                // Admin can remove any lines
-                var linesToRemove = order.Lines.Where(l => !inputLineIds.Contains(l.Id)).ToList();
-                foreach (var rem in linesToRemove)
+                // Admin: unprinted lines can be removed; printed lines become qty 0 so VOID KOT can print.
+                var linesMissingFromInput = order.Lines.Where(l => !inputLineIds.Contains(l.Id)).ToList();
+                foreach (var rem in linesMissingFromInput)
                 {
-                    order.Lines.Remove(rem);
+                    if (rem.IsSentToKitchen || rem.PrintedQuantity > 0)
+                    {
+                        rem.Quantity = 0;
+                        rem.LineTotal = 0;
+                    }
+                    else
+                    {
+                        order.Lines.Remove(rem);
+                    }
                 }
             }
 
@@ -384,13 +393,10 @@ namespace SmartPos.Restaurant
                         existingLine.KitchenNotes = lDto.KitchenNotes;
                         existingLine.SelectedModifiers = lDto.SelectedModifiers;
                         existingLine.IsSentToKitchen = existingLine.IsSentToKitchen || lDto.IsSentToKitchen || existingLine.PrintedQuantity > 0;
+                        // Keep PrintedQuantity so SendToKitchen can detect admin voids (Printed > Qty).
                         if (lDto.PrintedQuantity > existingLine.PrintedQuantity)
                         {
                             existingLine.PrintedQuantity = lDto.PrintedQuantity;
-                        }
-                        else if (!isWaiter && existingLine.PrintedQuantity > existingLine.Quantity)
-                        {
-                            existingLine.PrintedQuantity = existingLine.Quantity;
                         }
                         continue;
                     }
@@ -729,8 +735,9 @@ namespace SmartPos.Restaurant
 
             var printer = await GetCurrentPrinterIdentityAsync();
 
-            // Smart KOT: Calculate delta items (Quantity - PrintedQuantity)
+            // Smart KOT: additions (Qty > Printed) and admin voids (Printed > Qty)
             var itemsToPrint = new List<KitchenSlipItemDto>();
+            var itemsToVoid = new List<KitchenSlipItemDto>();
             foreach (var line in order.Lines)
             {
                 var additionalQty = line.Quantity - line.PrintedQuantity;
@@ -748,11 +755,24 @@ namespace SmartPos.Restaurant
                         SelectedModifiers = line.SelectedModifiers
                     });
                 }
+                else if (additionalQty < 0 && line.PrintedQuantity > 0)
+                {
+                    var voidQty = line.PrintedQuantity - line.Quantity;
+                    itemsToVoid.Add(new KitchenSlipItemDto
+                    {
+                        LineId = line.Id,
+                        ProductName = line.ProductName,
+                        Quantity = voidQty,
+                        PreviousQuantity = line.PrintedQuantity,
+                        TotalQuantity = line.Quantity,
+                        KitchenNotes = line.KitchenNotes,
+                        SelectedModifiers = line.SelectedModifiers
+                    });
+                }
             }
 
-            if (itemsToPrint.Any())
+            if (itemsToPrint.Any() || itemsToVoid.Any())
             {
-                // New KOT items put the ticket back into kitchen work.
                 order.KitchenStatus = RestaurantKitchenStatus.InProgress;
                 order.KitchenReadyTime = null;
                 await _orderRepository.UpdateAsync(order);
@@ -763,8 +783,21 @@ namespace SmartPos.Restaurant
                 ? $"Car: {order.CarName} - {order.CarNumber} ({order.CarLocation})"
                 : (order.TableNo ?? "Takeaway");
 
-            // Never reprint previously sent items, whether admin or waiter
-            if (!itemsToPrint.Any())
+            var fullOrderItems = order.Lines
+                .Where(l => l.Quantity > 0)
+                .Select(l => new KitchenSlipItemDto
+                {
+                    LineId = l.Id,
+                    ProductName = l.ProductName,
+                    Quantity = l.Quantity,
+                    PreviousQuantity = 0,
+                    TotalQuantity = l.Quantity,
+                    KitchenNotes = l.KitchenNotes,
+                    SelectedModifiers = l.SelectedModifiers
+                })
+                .ToList();
+
+            if (!itemsToPrint.Any() && !itemsToVoid.Any())
             {
                 return new SendToKitchenResultDto
                 {
@@ -783,13 +816,20 @@ namespace SmartPos.Restaurant
                     PrintedByName = printer.Name,
                     PrintedByRole = printer.Role,
                     HasNewItems = false,
+                    HasVoidItems = false,
                     Message = "All items for this order have already been sent to kitchen.",
-                    NewItems = new List<KitchenSlipItemDto>()
+                    NewItems = new List<KitchenSlipItemDto>(),
+                    VoidItems = new List<KitchenSlipItemDto>(),
+                    FullOrderItems = fullOrderItems
                 };
             }
 
-            // Do not prematurely mark items as printed here.
-            // Items are reliably marked as printed when printing is confirmed via ConfirmKotPrintAsync.
+            // Do not mark printed here — ConfirmKotPrintAsync syncs PrintedQuantity after print.
+            // Deduct → full order reprint (same token). Add-only → delta items.
+            var message = itemsToVoid.Any()
+                ? "Updated order ready — full KOT reprint (same token)."
+                : $"{itemsToPrint.Count} new item(s) ready for kitchen.";
+
             return new SendToKitchenResultDto
             {
                 OrderId = order.Id,
@@ -806,9 +846,12 @@ namespace SmartPos.Restaurant
                 PrintedByUserId = printer.UserId,
                 PrintedByName = printer.Name,
                 PrintedByRole = printer.Role,
-                HasNewItems = true,
-                Message = "New items ready to send to kitchen.",
-                NewItems = itemsToPrint
+                HasNewItems = itemsToPrint.Any(),
+                HasVoidItems = itemsToVoid.Any(),
+                Message = message,
+                NewItems = itemsToPrint,
+                VoidItems = itemsToVoid,
+                FullOrderItems = fullOrderItems
             };
         }
 
@@ -887,21 +930,34 @@ namespace SmartPos.Restaurant
             await _branchAccessChecker.EnsureCanAccessBranchAsync(order.BranchId);
 
             var now = Clock.Now;
-            var targetLines = input.LineIds != null && input.LineIds.Any()
+            var changedLines = input.LineIds != null && input.LineIds.Any()
                 ? order.Lines.Where(l => input.LineIds.Contains(l.Id)).ToList()
-                : order.Lines.Where(l => l.Quantity > l.PrintedQuantity).ToList();
+                : order.Lines.Where(l => l.PrintedQuantity != l.Quantity).ToList();
 
-            foreach (var line in targetLines)
+            var hasVoid = changedLines.Any(l => l.PrintedQuantity > l.Quantity);
+            var hasAdd = changedLines.Any(l => l.Quantity > l.PrintedQuantity);
+
+            foreach (var line in changedLines)
             {
                 line.PrintedQuantity = line.Quantity;
-                line.IsSentToKitchen = true;
-                line.SentToKitchenTime = now;
+                if (line.Quantity > 0)
+                {
+                    line.IsSentToKitchen = true;
+                    line.SentToKitchenTime = now;
+                }
+            }
+
+            // Drop fully voided lines after VOID slip is confirmed.
+            var zeroLines = order.Lines.Where(l => l.Quantity <= 0).ToList();
+            foreach (var zero in zeroLines)
+            {
+                order.Lines.Remove(zero);
             }
 
             var printer = await GetCurrentPrinterIdentityAsync();
             order.LastPrintedBy = $"{printer.Name} ({printer.Role})";
             order.LastPrintedTime = now;
-            if (targetLines.Any())
+            if (changedLines.Any())
             {
                 order.KitchenStatus = RestaurantKitchenStatus.InProgress;
                 order.KitchenReadyTime = null;
@@ -914,7 +970,7 @@ namespace SmartPos.Restaurant
                 BranchId = order.BranchId,
                 OrderId = order.Id,
                 OrderNo = order.OrderNo,
-                ReceiptType = "KOT",
+                ReceiptType = hasVoid && !hasAdd ? "KOT-VOID" : (hasVoid ? "KOT-MIXED" : "KOT"),
                 PrintedByUserId = printer.UserId,
                 PrintedByName = printer.Name,
                 PrintedByRole = printer.Role,
@@ -944,8 +1000,9 @@ namespace SmartPos.Restaurant
                 PrintedByUserId = printer.UserId,
                 PrintedByName = printer.Name,
                 PrintedByRole = printer.Role,
-                HasNewItems = true,
-                NewItems = targetLines.Select(l => new KitchenSlipItemDto
+                HasNewItems = hasAdd,
+                HasVoidItems = hasVoid,
+                NewItems = changedLines.Where(l => l.Quantity > 0).Select(l => new KitchenSlipItemDto
                 {
                     LineId = l.Id,
                     ProductName = l.ProductName,

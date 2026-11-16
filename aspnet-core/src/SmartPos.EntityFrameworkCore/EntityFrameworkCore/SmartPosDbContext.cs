@@ -906,8 +906,8 @@ namespace SmartPos.EntityFrameworkCore
 
             modelBuilder.Entity<Package>(b =>
             {
-                b.Property(x => x.MonthlyAmount).HasPrecision(18, 2);
-                b.Property(x => x.YearlyAmount).HasPrecision(18, 2);
+                //b.Property(x => x.MonthlyAmount).HasPrecision(18, 2);
+                //b.Property(x => x.YearlyAmount).HasPrecision(18, 2);
             });
 
             modelBuilder.Entity<PaymentMethod>(b =>

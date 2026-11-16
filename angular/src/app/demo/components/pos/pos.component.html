@@ -577,28 +577,30 @@
                                     <div class="mt-1 flex align-items-center gap-2">
                                         <small class="text-500" *ngIf="!isRestaurantMode">Stock: {{ line.stockQuantity }}</small>
                                         <span
-                                            *ngIf="isRestaurantMode && orderType === 'dineIn' && line.isSentToKitchen && (!line.printedQuantity || line.quantity <= line.printedQuantity)"
-                                            class="text-xs text-green-600 font-semibold flex align-items-center gap-1"
+                                            *ngIf="isRestaurantMode && line.isSentToKitchen && line.printedQuantity && line.quantity < line.printedQuantity"
+                                            class="text-xs text-red-700 bg-red-50 px-2 py-0.5 border-round font-semibold flex align-items-center gap-1"
                                         >
-                                            <i class="pi pi-check-circle"></i> {{ isCarService ? 'Sent to Car' : 'Sent to Table' }}
+                                            <i class="pi pi-minus-circle"></i> Sent: {{ line.printedQuantity }} &bull; Void: −{{ line.printedQuantity - line.quantity }}
                                         </span>
                                         <span
-                                            *ngIf="isRestaurantMode && orderType === 'dineIn' && line.isSentToKitchen && line.printedQuantity && line.quantity > line.printedQuantity"
+                                            *ngIf="isRestaurantMode && line.isSentToKitchen && (!line.printedQuantity || line.quantity === line.printedQuantity)"
+                                            class="text-xs text-green-600 font-semibold flex align-items-center gap-1"
+                                        >
+                                            <i class="pi pi-check-circle"></i>
+                                            {{ orderType === 'takeaway' ? 'Sent to KOT' : (isCarService ? 'Sent to Car' : 'Sent to Table') }}
+                                        </span>
+                                        <span
+                                            *ngIf="isRestaurantMode && line.isSentToKitchen && line.printedQuantity && line.quantity > line.printedQuantity"
                                             class="text-xs text-blue-700 bg-blue-50 px-2 py-0.5 border-round font-semibold flex align-items-center gap-1"
                                         >
                                             <i class="pi pi-plus-circle"></i> Sent: {{ line.printedQuantity }} &bull; New: +{{ line.quantity - line.printedQuantity }}
                                         </span>
                                         <span
-                                            *ngIf="isRestaurantMode && orderType === 'dineIn' && !line.isSentToKitchen"
+                                            *ngIf="isRestaurantMode && !line.isSentToKitchen"
                                             class="text-xs text-amber-600 font-semibold flex align-items-center gap-1"
                                         >
-                                            <i class="pi pi-clock"></i> {{ isCarService ? 'Not Sent to Car' : 'Not Sent to Table' }}
-                                        </span>
-                                        <span
-                                            *ngIf="isRestaurantMode && orderType === 'takeaway'"
-                                            class="text-xs text-blue-600 font-semibold flex align-items-center gap-1"
-                                        >
-                                            <i class="pi pi-shopping-bag"></i> Takeaway
+                                            <i class="pi pi-clock"></i>
+                                            {{ orderType === 'takeaway' ? 'Not Sent to KOT' : (isCarService ? 'Not Sent to Car' : 'Not Sent to Table') }}
                                         </span>
                                     </div>
                                 </td>
@@ -651,7 +653,7 @@
                                     <i
                                         *ngIf="!canRemoveLine(line)"
                                         class="pi pi-lock text-400 text-sm"
-                                        title="Previously sent KOT item cannot be removed. Use Cancel KOT to cancel order."
+                                        title="Waiters cannot remove previously sent KOT items."
                                     ></i>
                                 </td>
                             </tr>
@@ -730,28 +732,30 @@
                                 <div class="mt-1 flex align-items-center gap-2">
                                     <small class="text-500" *ngIf="!isRestaurantMode">Stock: {{ line.stockQuantity }}</small>
                                     <span
-                                        *ngIf="isRestaurantMode && orderType === 'dineIn' && line.isSentToKitchen && (!line.printedQuantity || line.quantity <= line.printedQuantity)"
-                                        class="text-xs text-green-600 font-semibold flex align-items-center gap-1"
+                                        *ngIf="isRestaurantMode && line.isSentToKitchen && line.printedQuantity && line.quantity < line.printedQuantity"
+                                        class="text-xs text-red-700 bg-red-50 px-2 py-0.5 border-round font-semibold flex align-items-center gap-1"
                                     >
-                                        <i class="pi pi-check-circle"></i> {{ isCarService ? 'Sent to Car' : 'Sent to Table' }}
+                                        <i class="pi pi-minus-circle"></i> Sent: {{ line.printedQuantity }} &bull; Void: −{{ line.printedQuantity - line.quantity }}
                                     </span>
                                     <span
-                                        *ngIf="isRestaurantMode && orderType === 'dineIn' && line.isSentToKitchen && line.printedQuantity && line.quantity > line.printedQuantity"
+                                        *ngIf="isRestaurantMode && line.isSentToKitchen && (!line.printedQuantity || line.quantity === line.printedQuantity)"
+                                        class="text-xs text-green-600 font-semibold flex align-items-center gap-1"
+                                    >
+                                        <i class="pi pi-check-circle"></i>
+                                        {{ orderType === 'takeaway' ? 'Sent to KOT' : (isCarService ? 'Sent to Car' : 'Sent to Table') }}
+                                    </span>
+                                    <span
+                                        *ngIf="isRestaurantMode && line.isSentToKitchen && line.printedQuantity && line.quantity > line.printedQuantity"
                                         class="text-xs text-blue-700 bg-blue-50 px-2 py-0.5 border-round font-semibold flex align-items-center gap-1"
                                     >
                                         <i class="pi pi-plus-circle"></i> Sent: {{ line.printedQuantity }} &bull; New: +{{ line.quantity - line.printedQuantity }}
                                     </span>
                                     <span
-                                        *ngIf="isRestaurantMode && orderType === 'dineIn' && !line.isSentToKitchen"
+                                        *ngIf="isRestaurantMode && !line.isSentToKitchen"
                                         class="text-xs text-amber-600 font-semibold flex align-items-center gap-1"
                                     >
-                                        <i class="pi pi-clock"></i> {{ isCarService ? 'Not Sent to Car' : 'Not Sent to Table' }}
-                                    </span>
-                                    <span
-                                        *ngIf="isRestaurantMode && orderType === 'takeaway'"
-                                        class="text-xs text-blue-600 font-semibold flex align-items-center gap-1"
-                                    >
-                                        <i class="pi pi-shopping-bag"></i> Takeaway
+                                        <i class="pi pi-clock"></i>
+                                        {{ orderType === 'takeaway' ? 'Not Sent to KOT' : (isCarService ? 'Not Sent to Car' : 'Not Sent to Table') }}
                                     </span>
                                 </div>
                             </div>
@@ -768,7 +772,7 @@
                             <i
                                 *ngIf="!canRemoveLine(line)"
                                 class="pi pi-lock text-400 text-sm p-2"
-                                title="Previously sent KOT item cannot be removed. Use Cancel KOT to cancel order."
+                                title="Waiters cannot remove previously sent KOT items."
                             ></i>
                         </div>
                         <div class="pos-cart-item-controls mt-2">

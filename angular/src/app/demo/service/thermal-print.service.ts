@@ -924,10 +924,20 @@ export class ThermalPrintService {
             items = items.filter((i) => isBarItem(i.productName));
         }
 
+        const isVoidSlip = !!kot.isVoidSlip;
+        const isUpdatedFullOrder = !!kot.isUpdatedFullOrder;
         const slipTitle =
             filterType === 'bar'
-                ? '*** BAR ORDER TICKET (BOT) ***'
-                : '*** KITCHEN ORDER TICKET (KOT) ***';
+                ? isUpdatedFullOrder
+                    ? '*** UPDATED BAR TICKET ***'
+                    : isVoidSlip
+                      ? '*** VOID BAR TICKET ***'
+                      : '*** BAR ORDER TICKET (BOT) ***'
+                : isUpdatedFullOrder
+                  ? '*** UPDATED KOT (FULL ORDER) ***'
+                  : isVoidSlip
+                    ? '*** VOID / CANCEL KOT ***'
+                    : '*** KITCHEN ORDER TICKET (KOT) ***';
 
         const linesHtml = items.length
             ? items
@@ -944,18 +954,24 @@ export class ThermalPrintService {
                     const mods = parsed.extraModifiers.length
                         ? `<div style="font-size: 8.5px; color: #444; margin-top: 1px;">Opts: ${parsed.extraModifiers.join(', ')}</div>`
                         : '';
-                    const qtyChange =
-                        item.previousQuantity && item.previousQuantity > 0
-                            ? `<span style="font-size: 8.5px; color: #555;">(+${item.quantity} new, total: ${item.totalQuantity || item.previousQuantity + item.quantity})</span>`
-                            : '';
+                    const qtyChange = isVoidSlip
+                        ? `<span style="font-size: 8.5px; color: #b91c1c;">(VOID −${item.quantity}${
+                              item.previousQuantity
+                                  ? `, was ${item.previousQuantity} → now ${item.totalQuantity ?? Math.max(0, item.previousQuantity - item.quantity)}`
+                                  : ''
+                          })</span>`
+                        : item.previousQuantity && item.previousQuantity > 0
+                          ? `<span style="font-size: 8.5px; color: #555;">(+${item.quantity} new, total: ${item.totalQuantity || item.previousQuantity + item.quantity})</span>`
+                          : '';
+                    const qtyLabel = isVoidSlip ? `-${item.quantity}x` : `${item.quantity}x`;
 
                     return `
                         <tr style="border-bottom: 1px dashed #000;">
                             <td style="width: 22%; font-size: ${is58 ? '14px' : '18px'}; font-weight: bold; vertical-align: top; padding: 4px 0;">
-                                ${item.quantity}x
+                                ${qtyLabel}
                             </td>
                             <td style="width: 78%; font-size: ${is58 ? '12px' : '15px'}; font-weight: bold; padding: 4px 0;">
-                                <div>${item.productName}</div>
+                                <div>${isVoidSlip ? 'VOID: ' : ''}${item.productName}</div>
                                 ${qtyChange}
                                 ${dealList}
                                 ${mods}
@@ -1017,7 +1033,13 @@ export class ThermalPrintService {
                 <div class="divider"></div>
                 <div class="text-center meta-text" style="font-size: ${is58 ? '9px' : '11px'};">
                     <div>Print Time: ${new Date().toLocaleString()}</div>
-                    <div class="bold" style="margin-top: 3px; font-size: ${is58 ? '11px' : '12.5px'};">* * * END OF ORDER * * *</div>
+                    <div class="bold" style="margin-top: 3px; font-size: ${is58 ? '11px' : '12.5px'};">${
+                        isUpdatedFullOrder
+                            ? '* * * UPDATED ORDER — DISCARD OLD SLIP * * *'
+                            : isVoidSlip
+                              ? '* * * VOID COMPLETE * * *'
+                              : '* * * END OF ORDER * * *'
+                    }</div>
                     <div style="font-size: 9px; margin-top: 4px; color: #444; line-height: 1.35;">
                         <div>${branch.softwareDeveloperName || 'Software develop by AlNawabTech'}</div>
                         ${branch.softwareDeveloperPhone ? `<div>${branch.softwareDeveloperPhone}</div>` : ''}
