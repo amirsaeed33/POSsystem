@@ -1,18 +1,16 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../constants/app_colors.dart';
 
 class BottomNavItem {
   final String label;
-  final String activeIcon;
-  final String idleIcon;
+  final IconData icon;
+  final IconData? activeIcon;
 
   const BottomNavItem({
     required this.label,
-    required this.activeIcon,
-    required this.idleIcon,
+    required this.icon,
+    this.activeIcon,
   });
 }
 
@@ -33,54 +31,62 @@ class CustomBottomNavBar extends StatelessWidget {
     final bottomInset = MediaQuery.of(context).padding.bottom;
 
     return Padding(
-      padding: EdgeInsets.fromLTRB(18, 0, 18, bottomInset > 0 ? bottomInset : 14),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(32),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-          child: Container(
-            padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(32),
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Colors.white.withValues(alpha: 0.92),
-                  const Color(0xFFFFF8F3).withValues(alpha: 0.88),
-                ],
-              ),
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.85),
-                width: 1.2,
-              ),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x22000000),
-                  blurRadius: 28,
-                  offset: Offset(0, 14),
-                  spreadRadius: -4,
-                ),
-                BoxShadow(
-                  color: Color(0x18C84B11),
-                  blurRadius: 20,
-                  offset: Offset(0, 8),
-                ),
-              ],
+      padding: EdgeInsets.fromLTRB(20, 0, 20, bottomInset > 0 ? bottomInset : 16),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(36),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x28000000),
+              blurRadius: 32,
+              offset: Offset(0, 16),
+              spreadRadius: -8,
             ),
-            child: Row(
-              children: List.generate(items.length, (index) {
-                final selected = index == currentIndex;
-                final item = items[index];
-
-                return Expanded(
-                  child: _FancyNavTile(
-                    item: item,
+            BoxShadow(
+              color: Color(0x22C84B11),
+              blurRadius: 24,
+              offset: Offset(0, 10),
+            ),
+            BoxShadow(
+              color: Color(0x14FFFFFF),
+              blurRadius: 1,
+              offset: Offset(0, -1),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(36),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
+            child: Container(
+              height: 68,
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(36),
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.white.withValues(alpha: 0.96),
+                    const Color(0xFFFFF6F0).withValues(alpha: 0.90),
+                  ],
+                ),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.95),
+                  width: 1.4,
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: List.generate(items.length, (index) {
+                  final selected = index == currentIndex;
+                  return _FancyNavTile(
+                    item: items[index],
                     selected: selected,
                     onTap: () => onTap(index),
-                  ),
-                );
-              }),
+                  );
+                }),
+              ),
             ),
           ),
         ),
@@ -104,7 +110,8 @@ class _FancyNavTile extends StatefulWidget {
   State<_FancyNavTile> createState() => _FancyNavTileState();
 }
 
-class _FancyNavTileState extends State<_FancyNavTile> with SingleTickerProviderStateMixin {
+class _FancyNavTileState extends State<_FancyNavTile>
+    with SingleTickerProviderStateMixin {
   late final AnimationController _press;
 
   @override
@@ -112,8 +119,8 @@ class _FancyNavTileState extends State<_FancyNavTile> with SingleTickerProviderS
     super.initState();
     _press = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 120),
-      lowerBound: 0.94,
+      duration: const Duration(milliseconds: 110),
+      lowerBound: 0.92,
       upperBound: 1,
       value: 1,
     );
@@ -127,6 +134,10 @@ class _FancyNavTileState extends State<_FancyNavTile> with SingleTickerProviderS
 
   @override
   Widget build(BuildContext context) {
+    final iconData = widget.selected
+        ? (widget.item.activeIcon ?? widget.item.icon)
+        : widget.item.icon;
+
     return GestureDetector(
       onTapDown: (_) => _press.reverse(),
       onTapUp: (_) {
@@ -135,75 +146,89 @@ class _FancyNavTileState extends State<_FancyNavTile> with SingleTickerProviderS
       },
       onTapCancel: () => _press.forward(),
       behavior: HitTestBehavior.opaque,
-      child: ScaleTransition(
-        scale: _press,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 320),
-          curve: Curves.easeOutCubic,
-          margin: const EdgeInsets.symmetric(horizontal: 2),
-          padding: EdgeInsets.symmetric(
-            horizontal: widget.selected ? 12 : 8,
-            vertical: 10,
-          ),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(24),
-            gradient: widget.selected
-                ? const LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      Color(0xFFFFF1E8),
-                      Color(0xFFF8DCC8),
-                    ],
-                  )
-                : null,
-            boxShadow: widget.selected
-                ? const [
-                    BoxShadow(
-                      color: Color(0x22C84B11),
-                      blurRadius: 12,
-                      offset: Offset(0, 4),
-                    ),
-                  ]
-                : null,
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              AnimatedScale(
-                scale: widget.selected ? 1.08 : 1,
-                duration: const Duration(milliseconds: 280),
-                curve: Curves.easeOutBack,
-                child: SvgPicture.asset(
-                  widget.selected ? widget.item.activeIcon : widget.item.idleIcon,
-                  width: 22,
-                  height: 22,
-                  colorFilter: ColorFilter.mode(
-                    widget.selected ? AppColors.primary : const Color(0xFF9A8B80),
-                    BlendMode.srcIn,
-                  ),
-                ),
+      child: Semantics(
+        label: widget.item.label,
+        button: true,
+        selected: widget.selected,
+        child: ScaleTransition(
+          scale: _press,
+          child: AnimatedSize(
+            duration: const Duration(milliseconds: 380),
+            curve: Curves.easeOutCubic,
+            alignment: Alignment.center,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 380),
+              curve: Curves.easeOutCubic,
+              height: 52,
+              padding: EdgeInsets.symmetric(
+                horizontal: widget.selected ? 16 : 14,
               ),
-              AnimatedSize(
-                duration: const Duration(milliseconds: 280),
-                curve: Curves.easeOutCubic,
-                child: widget.selected
-                    ? Padding(
-                        padding: const EdgeInsets.only(left: 8),
-                        child: Text(
-                          widget.item.label,
-                          style: GoogleFonts.manrope(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.primary,
-                            letterSpacing: 0.2,
-                          ),
-                        ),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(28),
+                gradient: widget.selected
+                    ? const LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          Color(0xFFFFF3EB),
+                          Color(0xFFF7D9C4),
+                        ],
                       )
-                    : const SizedBox.shrink(),
+                    : null,
+                boxShadow: widget.selected
+                    ? const [
+                        BoxShadow(
+                          color: Color(0x28C84B11),
+                          blurRadius: 14,
+                          offset: Offset(0, 5),
+                        ),
+                      ]
+                    : null,
               ),
-            ],
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  AnimatedScale(
+                    scale: widget.selected ? 1.06 : 1,
+                    duration: const Duration(milliseconds: 320),
+                    curve: Curves.easeOutBack,
+                    child: Icon(
+                      iconData,
+                      size: 23,
+                      color: widget.selected
+                          ? AppColors.primary
+                          : const Color(0xFF9A8B80),
+                    ),
+                  ),
+                  ClipRect(
+                    child: AnimatedAlign(
+                      duration: const Duration(milliseconds: 380),
+                      curve: Curves.easeOutCubic,
+                      alignment: Alignment.centerLeft,
+                      widthFactor: widget.selected ? 1 : 0,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const SizedBox(width: 8),
+                          Text(
+                            widget.item.label,
+                            maxLines: 1,
+                            softWrap: false,
+                            style: const TextStyle(
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 13.5,
+                              letterSpacing: 0.15,
+                              height: 1.1,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
       ),

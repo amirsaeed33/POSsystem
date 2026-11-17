@@ -19,6 +19,20 @@ subprojects {
     project.evaluationDependsOn(":app")
 }
 
+// Force a consistent local NDK for all Android library modules (e.g. :jni).
+subprojects {
+    pluginManager.withPlugin("com.android.library") {
+        extensions.findByName("android")?.let { ext ->
+            try {
+                val setNdk = ext.javaClass.methods.firstOrNull { it.name == "setNdkVersion" && it.parameterCount == 1 }
+                setNdk?.invoke(ext, "28.2.13676358")
+            } catch (_: Exception) {
+                // Best-effort; junction path also covers Flutter's default NDK folder.
+            }
+        }
+    }
+}
+
 tasks.register<Delete>("clean") {
     delete(rootProject.layout.buildDirectory)
 }

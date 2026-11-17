@@ -192,31 +192,36 @@ class _CustomerShellScreenState extends State<CustomerShellScreen> {
     const navItems = [
       BottomNavItem(
         label: 'Home',
-        activeIcon: 'assets/images/tab_home_active.svg',
-        idleIcon: 'assets/images/tab_home_idle.svg',
+        icon: Icons.home_outlined,
+        activeIcon: Icons.home_rounded,
       ),
       BottomNavItem(
         label: 'Menu',
-        activeIcon: 'assets/images/tab_order_active.svg',
-        idleIcon: 'assets/images/tab_order_idle.svg',
+        icon: Icons.restaurant_menu_outlined,
+        activeIcon: Icons.restaurant_menu_rounded,
       ),
       BottomNavItem(
         label: 'Favorites',
-        activeIcon: 'assets/images/tab_favorites_active.svg',
-        idleIcon: 'assets/images/tab_favorites_idle.svg',
+        icon: Icons.favorite_border_rounded,
+        activeIcon: Icons.favorite_rounded,
       ),
       BottomNavItem(
         label: 'Profile',
-        activeIcon: 'assets/images/tab_account_active.svg',
-        idleIcon: 'assets/images/tab_account_idle.svg',
+        icon: Icons.person_outline_rounded,
+        activeIcon: Icons.person_rounded,
       ),
     ];
 
     return Scaffold(
       backgroundColor: AppColors.pageBackground,
-      body: IndexedStack(
-        index: _currentIndex,
-        children: pages,
+      extendBody: true,
+      body: Padding(
+        // Keep tab content clear of the floating fancy nav.
+        padding: const EdgeInsets.only(bottom: 88),
+        child: IndexedStack(
+          index: _currentIndex,
+          children: pages,
+        ),
       ),
       bottomNavigationBar: CustomBottomNavBar(
         currentIndex: _currentIndex,

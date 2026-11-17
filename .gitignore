@@ -95,6 +95,38 @@ TestResults/
 .nyc_output/
 
 # =========================
+# Flutter / mobile local artifacts
+# =========================
+.pub-cache/
+flutter_app/.dart_tool/
+flutter_app/.flutter-plugins
+flutter_app/.flutter-plugins-dependencies
+flutter_app/.packages
+flutter_app/.pub-cache/
+flutter_app/.pub/
+flutter_app/build/
+flutter_app/coverage/
+flutter_app/android/.gradle/
+flutter_app/android/local.properties
+flutter_app/android/.cxx/
+flutter_app/android/app/.cxx/
+flutter_app/android/build/
+flutter_app/android/app/build/
+flutter_app/**/GeneratedPluginRegistrant.java
+flutter_app/**/GeneratedPluginRegistrant.m
+flutter_app/**/GeneratedPluginRegistrant.swift
+flutter_app/**/*.apk
+flutter_app/**/*.aab
+flutter_app/**/*.ap_
+flutter_app/**/app.*.symbols
+flutter_app/**/app.*.map.json
+maui/**/[Bb]in/
+maui/**/[Oo]bj/
+maui/**/.vs/
+maui/**/*.user
+maui/**/DeviceSpecificCache/
+
+# =========================
 # Misc
 # =========================
 *.db
