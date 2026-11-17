@@ -100,6 +100,22 @@ namespace SmartPos.Restaurant
             return roles.Contains(StaticRoleNames.Tenants.Waiter);
         }
 
+        private async Task<bool> IsCurrentUserCashierAsync()
+        {
+            if (!AbpSession.UserId.HasValue) return false;
+            var currentUser = await _userManager.FindByIdAsync(AbpSession.UserId.Value.ToString());
+            if (currentUser == null) return false;
+            var roles = await _userManager.GetRolesAsync(currentUser);
+            return roles.Any(r =>
+                string.Equals(r, StaticRoleNames.Tenants.Cashier, StringComparison.OrdinalIgnoreCase));
+        }
+
+        /// <summary>Waiter and Cashier may add after KOT but cannot deduct/remove printed items.</summary>
+        private async Task<bool> CannotDeductAfterKotAsync()
+        {
+            return await IsCurrentUserWaiterAsync() || await IsCurrentUserCashierAsync();
+        }
+
         public async Task<List<RestaurantOrderDto>> GetActiveOrdersAsync(int branchId)
         {
             await _branchAccessChecker.EnsureCanAccessBranchAsync(branchId);
@@ -340,9 +356,10 @@ namespace SmartPos.Restaurant
 
             // Handle removal of lines
             var inputLineIds = input.Lines.Where(l => l.Id.HasValue).Select(l => l.Id.Value).ToList();
-            if (isWaiter)
+            var cannotDeduct = await CannotDeductAfterKotAsync();
+            if (cannotDeduct)
             {
-                // Waiters cannot remove items already sent/printed on KOT.
+                // Waiter/Cashier cannot remove items already sent/printed on KOT.
                 var unprintedLinesToRemove = order.Lines
                     .Where(l => !l.IsSentToKitchen && l.PrintedQuantity <= 0 && !inputLineIds.Contains(l.Id))
                     .ToList();
@@ -353,7 +370,7 @@ namespace SmartPos.Restaurant
             }
             else
             {
-                // Admin: unprinted lines can be removed; printed lines become qty 0 so VOID KOT can print.
+                // Admin: unprinted lines can be removed; printed lines become qty 0 so full KOT can reprint.
                 var linesMissingFromInput = order.Lines.Where(l => !inputLineIds.Contains(l.Id)).ToList();
                 foreach (var rem in linesMissingFromInput)
                 {
@@ -379,11 +396,12 @@ namespace SmartPos.Restaurant
                     var existingLine = order.Lines.FirstOrDefault(l => l.Id == lDto.Id.Value);
                     if (existingLine != null)
                     {
-                        if (isWaiter && (existingLine.IsSentToKitchen || existingLine.PrintedQuantity > 0))
+                        if (cannotDeduct && (existingLine.IsSentToKitchen || existingLine.PrintedQuantity > 0))
                         {
                             if (lDto.Quantity < existingLine.PrintedQuantity || lDto.Quantity < existingLine.Quantity)
                             {
-                                throw new UserFriendlyException($"Waiters cannot deduct or decrease quantity for '{existingLine.ProductName}'.");
+                                throw new UserFriendlyException(
+                                    $"Cannot deduct or decrease quantity for '{existingLine.ProductName}' after KOT. Only admin can deduct.");
                             }
                         }
 

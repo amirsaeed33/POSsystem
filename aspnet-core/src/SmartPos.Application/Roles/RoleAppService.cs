@@ -22,12 +22,18 @@ namespace SmartPos.Roles
     {
         private readonly RoleManager _roleManager;
         private readonly UserManager _userManager;
+        private readonly CashierRolePermissionSyncer _cashierRolePermissionSyncer;
 
-        public RoleAppService(IRepository<Role> repository, RoleManager roleManager, UserManager userManager)
+        public RoleAppService(
+            IRepository<Role> repository,
+            RoleManager roleManager,
+            UserManager userManager,
+            CashierRolePermissionSyncer cashierRolePermissionSyncer)
             : base(repository)
         {
             _roleManager = roleManager;
             _userManager = userManager;
+            _cashierRolePermissionSyncer = cashierRolePermissionSyncer;
         }
 
         public override async Task<RoleDto> CreateAsync(CreateRoleDto input)
@@ -51,6 +57,8 @@ namespace SmartPos.Roles
 
         public async Task<ListResultDto<RoleListDto>> GetRolesAsync(GetRolesInput input)
         {
+            await _cashierRolePermissionSyncer.EnsureAsync(AbpSession.TenantId);
+
             var roles = await _roleManager
                 .Roles
                 .WhereIf(

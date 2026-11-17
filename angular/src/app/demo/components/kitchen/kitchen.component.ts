@@ -13,9 +13,11 @@ import {
     RestaurantOrderLineDto,
     RestaurantOrderStatuses,
 } from '../../api/restaurant-order';
+import { PermissionNames } from '../../api/permission-names';
 import { PaymentType } from '../../api/sale';
 import { BranchContextService } from '../../service/branch-context.service';
 import { CustomerOrderService } from '../../service/customer-order.service';
+import { PermissionService } from '../../service/permission.service';
 import { RestaurantOrderService } from '../../service/restaurant-order.service';
 
 type RunningOrderFilter = 'all' | 'dinein' | 'takeaway' | 'car' | 'online';
@@ -65,9 +67,14 @@ export class KitchenComponent implements OnInit, OnDestroy {
         private restaurantOrderService: RestaurantOrderService,
         private customerOrderService: CustomerOrderService,
         private branchContext: BranchContextService,
+        private permissionService: PermissionService,
         private confirmationService: ConfirmationService,
         private messageService: MessageService
     ) {}
+
+    get canLoadOnlineOrders(): boolean {
+        return this.permissionService.isGranted(PermissionNames.CustomerOrders);
+    }
 
     ngOnInit(): void {
         this.branchSub = this.branchContext.currentBranch$.subscribe((branch) => {
@@ -159,15 +166,23 @@ export class KitchenComponent implements OnInit, OnDestroy {
             this.loading = true;
         }
         try {
-            const [all, customerPage] = await Promise.all([
-                this.restaurantOrderService.getActiveOrders(this.branchId),
-                this.customerOrderService.getAll({ maxResultCount: 300, skipCount: 0 }),
-            ]);
+            const all = await this.restaurantOrderService.getActiveOrders(this.branchId);
 
             this.customerOrdersById.clear();
-            for (const co of customerPage?.items || []) {
-                if (co?.id) {
-                    this.customerOrdersById.set(co.id, co);
+            // Cashier may have Dine Hub without Customer Orders — don't fail the whole page.
+            if (this.canLoadOnlineOrders) {
+                try {
+                    const customerPage = await this.customerOrderService.getAll({
+                        maxResultCount: 300,
+                        skipCount: 0,
+                    });
+                    for (const co of customerPage?.items || []) {
+                        if (co?.id) {
+                            this.customerOrdersById.set(co.id, co);
+                        }
+                    }
+                } catch {
+                    // Online enrichment optional
                 }
             }
 

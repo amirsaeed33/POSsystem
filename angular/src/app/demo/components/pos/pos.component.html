@@ -612,7 +612,7 @@
                                             type="button"
                                             label="−"
                                             class="p-button-outlined pos-touch-btn"
-                                            [disabled]="isWaiter && line.quantity <= getMinQty(line)"
+                                            [disabled]="cannotDeductAfterKot && line.quantity <= getMinQty(line)"
                                             (click)="bumpQty(line, -1)"
                                         ></button>
                                         <p-inputNumber
@@ -783,7 +783,7 @@
                                     type="button"
                                     label="−"
                                     class="p-button-outlined pos-touch-btn"
-                                    [disabled]="isWaiter && line.quantity <= getMinQty(line)"
+                                    [disabled]="cannotDeductAfterKot && line.quantity <= getMinQty(line)"
                                     (click)="bumpQty(line, -1)"
                                 ></button>
                                 <p-inputNumber

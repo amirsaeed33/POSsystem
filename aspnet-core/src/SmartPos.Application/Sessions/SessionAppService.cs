@@ -18,15 +18,18 @@ namespace SmartPos.Sessions
         private readonly IRepository<Branch> _branchRepository;
         private readonly IRepository<Staff> _staffRepository;
         private readonly RoleManager _roleManager;
+        private readonly CashierRolePermissionSyncer _cashierRolePermissionSyncer;
 
         public SessionAppService(
             IRepository<Branch> branchRepository,
             IRepository<Staff> staffRepository,
-            RoleManager roleManager)
+            RoleManager roleManager,
+            CashierRolePermissionSyncer cashierRolePermissionSyncer)
         {
             _branchRepository = branchRepository;
             _staffRepository = staffRepository;
             _roleManager = roleManager;
+            _cashierRolePermissionSyncer = cashierRolePermissionSyncer;
         }
 
         [DisableAuditing]
@@ -44,6 +47,9 @@ namespace SmartPos.Sessions
 
             if (AbpSession.TenantId.HasValue)
             {
+                // Keep Cashier role grants in sync (Dine Hub + Staff + Payroll).
+                await _cashierRolePermissionSyncer.EnsureAsync(AbpSession.TenantId);
+
                 var tenant = await GetCurrentTenantAsync();
                 output.Tenant = tenant != null ? new TenantLoginInfoDto
                 {
