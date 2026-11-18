@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/constants/app_colors.dart';
+import '../../core/constants/branch_ui_copy.dart';
 import '../../core/widgets/app_button.dart';
 import '../../models/order_models.dart';
 import '../../services/online_catalog_service.dart';
@@ -9,12 +10,14 @@ class OrderTrackingScreen extends StatefulWidget {
   final int orderId;
   final String orderNo;
   final OnlineCatalogService catalogService;
+  final bool isRestaurant;
 
   const OrderTrackingScreen({
     super.key,
     required this.orderId,
     required this.orderNo,
     required this.catalogService,
+    this.isRestaurant = true,
   });
 
   @override
@@ -142,14 +145,14 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                       ),
                       _buildStep(
                         title: 'Order Confirmed',
-                        subtitle: 'Restaurant accepted your order',
+                        subtitle: BranchUiCopy.orderConfirmedSubtitle(widget.isRestaurant),
                         isPassed: (_tracking?.status ?? 0) >= 1,
                         isCurrent: (_tracking?.status ?? 0) == 1,
                         isLast: false,
                       ),
                       _buildStep(
-                        title: 'Preparing Food',
-                        subtitle: 'Our chefs are cooking your meal',
+                        title: BranchUiCopy.preparingTitle(widget.isRestaurant),
+                        subtitle: BranchUiCopy.preparingSubtitle(widget.isRestaurant),
                         isPassed: (_tracking?.status ?? 0) >= 2,
                         isCurrent: (_tracking?.status ?? 0) == 2,
                         isLast: false,
@@ -163,7 +166,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                       ),
                       _buildStep(
                         title: 'Delivered',
-                        subtitle: 'Enjoy your food!',
+                        subtitle: BranchUiCopy.deliveredSubtitle(widget.isRestaurant),
                         isPassed: (_tracking?.status ?? 0) >= 4,
                         isCurrent: (_tracking?.status ?? 0) == 4,
                         isLast: true,

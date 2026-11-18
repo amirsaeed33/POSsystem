@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
+import '../../core/constants/branch_ui_copy.dart';
 import '../../models/product_models.dart';
 import '../../services/online_catalog_service.dart';
 import '../../services/cart_service.dart';
@@ -10,12 +11,14 @@ class FavoritesTab extends StatefulWidget {
   final OnlineCatalogService catalogService;
   final CartService cartService;
   final int? branchId;
+  final bool isRestaurant;
 
   const FavoritesTab({
     super.key,
     required this.catalogService,
     required this.cartService,
     this.branchId,
+    this.isRestaurant = true,
   });
 
   @override
@@ -80,15 +83,18 @@ class _FavoritesTabState extends State<FavoritesTab> {
       body: _loading
           ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
           : _favorites.isEmpty
-              ? const Center(
+              ? Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.favorite_border, color: AppColors.primary, size: 40),
-                      SizedBox(height: 12),
-                      Text('No favorites yet', style: TextStyle(fontWeight: FontWeight.bold)),
-                      SizedBox(height: 6),
-                      Text('Tap the heart on a meal to save it', style: TextStyle(color: AppColors.textSecondary)),
+                      const Icon(Icons.favorite_border, color: AppColors.primary, size: 40),
+                      const SizedBox(height: 12),
+                      const Text('No favorites yet', style: TextStyle(fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 6),
+                      Text(
+                        BranchUiCopy.emptyFavoritesHint(widget.isRestaurant),
+                        style: const TextStyle(color: AppColors.textSecondary),
+                      ),
                     ],
                   ),
                 )

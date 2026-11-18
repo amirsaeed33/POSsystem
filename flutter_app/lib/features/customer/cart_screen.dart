@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import '../../core/constants/app_colors.dart';
+import '../../core/constants/branch_ui_copy.dart';
 import '../../core/widgets/app_button.dart';
 import '../../models/cart_models.dart';
 import '../../models/checkout_models.dart';
@@ -15,12 +16,14 @@ class CartScreen extends StatefulWidget {
   final CartService cartService;
   final OnlineCatalogService catalogService;
   final int? branchId;
+  final bool isRestaurant;
 
   const CartScreen({
     super.key,
     required this.cartService,
     required this.catalogService,
     this.branchId,
+    this.isRestaurant = true,
   });
 
   @override
@@ -313,6 +316,7 @@ class _CartScreenState extends State<CartScreen> {
               orderId: created.id,
               orderNo: created.displayOrderNo,
               catalogService: widget.catalogService,
+              isRestaurant: widget.isRestaurant,
             ),
           ),
         );
@@ -538,13 +542,13 @@ class _CartScreenState extends State<CartScreen> {
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
               ),
               const SizedBox(height: 8),
-              const Text(
-                'Browse delicious food and add items to your cart!',
-                style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+              Text(
+                BranchUiCopy.emptyCartHint(widget.isRestaurant),
+                style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
               ),
               const SizedBox(height: 24),
               AppButton(
-                text: 'Explore Menu',
+                text: BranchUiCopy.exploreCatalogCta(widget.isRestaurant),
                 width: 160,
                 onPressed: () => Navigator.of(context).pop(),
               ),

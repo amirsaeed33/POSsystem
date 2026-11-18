@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../core/constants/app_colors.dart';
+import '../../core/constants/branch_ui_copy.dart';
 import '../../models/branch_models.dart';
 import '../../models/product_models.dart';
 import '../../models/deal_models.dart';
@@ -302,7 +303,9 @@ class _CustomerHomeTabState extends State<CustomerHomeTab> {
                     child: TextField(
                       onChanged: _onSearchChanged,
                       decoration: InputDecoration(
-                        hintText: 'Search delicious meals, burgers, pizza...',
+                        hintText: BranchUiCopy.searchHint(
+                          widget.currentBranch?.isRestaurant ?? true,
+                        ),
                         prefixIcon: const Icon(Icons.search, color: AppColors.textMuted),
                         fillColor: AppColors.cardBackground,
                         filled: true,

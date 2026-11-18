@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
+import '../../core/constants/branch_ui_copy.dart';
 import '../../models/branch_models.dart';
 import '../../models/product_models.dart';
 import '../../services/online_catalog_service.dart';
@@ -170,10 +171,11 @@ class _CustomerOrderTabState extends State<CustomerOrderTab> {
 
   @override
   Widget build(BuildContext context) {
+    final isRestaurant = widget.currentBranch?.isRestaurant ?? true;
     return Scaffold(
       backgroundColor: AppColors.pageBackground,
       appBar: AppBar(
-        title: const Text('Full Menu'),
+        title: Text(BranchUiCopy.catalogTitle(isRestaurant)),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
@@ -184,7 +186,7 @@ class _CustomerOrderTabState extends State<CustomerOrderTab> {
                   child: TextField(
                     onChanged: _onSearchChanged,
                     decoration: InputDecoration(
-                      hintText: 'Search menu items...',
+                      hintText: BranchUiCopy.catalogSearchHint(isRestaurant),
                       prefixIcon: const Icon(Icons.search, color: AppColors.textMuted),
                       fillColor: AppColors.cardBackground,
                       filled: true,

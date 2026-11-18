@@ -8,12 +8,14 @@ class OrderHistoryTab extends StatefulWidget {
   final OnlineCatalogService catalogService;
   final int? branchId;
   final String? initialPhone;
+  final bool isRestaurant;
 
   const OrderHistoryTab({
     super.key,
     required this.catalogService,
     this.branchId,
     this.initialPhone,
+    this.isRestaurant = true,
   });
 
   @override
@@ -116,6 +118,7 @@ class _OrderHistoryTabState extends State<OrderHistoryTab> {
                                       orderId: o.id,
                                       orderNo: o.displayOrderNo,
                                       catalogService: widget.catalogService,
+                                      isRestaurant: widget.isRestaurant,
                                     ),
                                   ),
                                 );

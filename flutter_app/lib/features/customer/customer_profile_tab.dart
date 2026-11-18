@@ -153,6 +153,7 @@ class CustomerProfileTab extends StatelessWidget {
                       builder: (_) => OrderHistoryTab(
                         catalogService: catalogService,
                         branchId: currentBranch?.id,
+                        isRestaurant: currentBranch?.isRestaurant ?? true,
                       ),
                     ),
                   );

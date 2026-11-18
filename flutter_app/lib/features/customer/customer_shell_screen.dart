@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
+import '../../core/constants/branch_ui_copy.dart';
 import '../../core/widgets/custom_bottom_nav.dart';
 import '../../models/branch_models.dart';
 import '../../services/session_service.dart';
@@ -111,6 +112,7 @@ class _CustomerShellScreenState extends State<CustomerShellScreen> {
           cartService: widget.cartService,
           catalogService: widget.catalogService,
           branchId: _selectedBranch?.id,
+          isRestaurant: _selectedBranch?.isRestaurant ?? true,
         ),
       ),
     );
@@ -179,6 +181,7 @@ class _CustomerShellScreenState extends State<CustomerShellScreen> {
         catalogService: widget.catalogService,
         cartService: widget.cartService,
         branchId: _selectedBranch?.id,
+        isRestaurant: _selectedBranch?.isRestaurant ?? true,
       ),
       CustomerProfileTab(
         sessionService: widget.sessionService,
@@ -189,23 +192,24 @@ class _CustomerShellScreenState extends State<CustomerShellScreen> {
       ),
     ];
 
-    const navItems = [
-      BottomNavItem(
+    final isRestaurant = _selectedBranch?.isRestaurant ?? true;
+    final navItems = [
+      const BottomNavItem(
         label: 'Home',
         icon: Icons.home_outlined,
         activeIcon: Icons.home_rounded,
       ),
       BottomNavItem(
-        label: 'Menu',
-        icon: Icons.restaurant_menu_outlined,
-        activeIcon: Icons.restaurant_menu_rounded,
+        label: BranchUiCopy.catalogTabLabel(isRestaurant),
+        icon: BranchUiCopy.catalogTabIcon(isRestaurant),
+        activeIcon: BranchUiCopy.catalogTabActiveIcon(isRestaurant),
       ),
-      BottomNavItem(
+      const BottomNavItem(
         label: 'Favorites',
         icon: Icons.favorite_border_rounded,
         activeIcon: Icons.favorite_rounded,
       ),
-      BottomNavItem(
+      const BottomNavItem(
         label: 'Profile',
         icon: Icons.person_outline_rounded,
         activeIcon: Icons.person_rounded,
