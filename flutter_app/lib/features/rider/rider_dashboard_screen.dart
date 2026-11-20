@@ -1,21 +1,25 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/theme/staff_theme.dart';
 import '../../models/rider_models.dart';
 import '../../services/session_service.dart';
 import '../../services/rider_service.dart';
-import 'rider_history_screen.dart';
 
-/// Rider home — OSM / map-route inspired delivery board.
+/// Rider home — web-parity: stats, accept / decline / deliver, maps, 25s poll.
 class RiderDashboardScreen extends StatefulWidget {
   final SessionService sessionService;
   final RiderService riderService;
+  final Future<void> Function()? onLogout;
+  final bool embedded;
 
   const RiderDashboardScreen({
     super.key,
     required this.sessionService,
     required this.riderService,
+    this.onLogout,
+    this.embedded = false,
   });
 
   @override
@@ -23,21 +27,39 @@ class RiderDashboardScreen extends StatefulWidget {
 }
 
 class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
+  static const _rejectPresets = [
+    'Bike Breakdown / Flat Tyre',
+    'Customer Address Too Far / Out of Reach',
+    'Emergency / Unable to Deliver',
+    'Order Package Damaged / Issue',
+    'Other Reason',
+  ];
+
   bool _isLoading = true;
+  final Set<int> _busyIds = {};
   List<RiderOrderDto> _orders = [];
   RiderDashboardStatsDto? _stats;
   Timer? _poll;
+  Timer? _clock;
+  DateTime _now = DateTime.now();
+
+  List<RiderOrderDto> get _newOrders => _orders.where((o) => o.isNewOrder).toList();
+  List<RiderOrderDto> get _activeOrders => _orders.where((o) => !o.isNewOrder).toList();
 
   @override
   void initState() {
     super.initState();
     _load();
     _poll = Timer.periodic(const Duration(seconds: 25), (_) => _load(silent: true));
+    _clock = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() => _now = DateTime.now());
+    });
   }
 
   @override
   void dispose() {
     _poll?.cancel();
+    _clock?.cancel();
     super.dispose();
   }
 
@@ -53,31 +75,269 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
     });
   }
 
+  void _toast(String msg, {bool error = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        backgroundColor: error ? Colors.red.shade700 : StaffTheme.riderRoute,
+      ),
+    );
+  }
+
   Future<void> _call(String phone) async {
     if (phone.trim().isEmpty) return;
     final uri = Uri.parse('tel:$phone');
     if (await canLaunchUrl(uri)) await launchUrl(uri);
   }
 
-  Future<void> _accept(RiderOrderDto order) async {
-    final updated = await widget.riderService.acceptOrder(order.id);
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(updated != null ? 'Route accepted — ride safe' : 'Could not accept'),
-        backgroundColor: StaffTheme.riderRoute,
-      ),
-    );
-    _load();
+  Future<void> _openMaps(RiderOrderDto order) async {
+    Uri? uri;
+    if (order.hasCoords) {
+      uri = Uri.parse(
+        'https://www.google.com/maps/dir/?api=1&destination=${order.latitude},${order.longitude}',
+      );
+    } else if (order.deliveryAddress.trim().isNotEmpty) {
+      uri = Uri.parse(
+        'https://www.google.com/maps/dir/?api=1&destination=${Uri.encodeComponent(order.deliveryAddress)}',
+      );
+    }
+    if (uri == null) {
+      _toast('No location available', error: true);
+      return;
+    }
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
   }
 
-  Future<void> _complete(RiderOrderDto order) async {
-    final updated = await widget.riderService.completeDelivery(order.id);
+  Future<void> _copyCoords(RiderOrderDto order) async {
+    if (!order.hasCoords) return;
+    await Clipboard.setData(ClipboardData(text: '${order.latitude},${order.longitude}'));
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(updated != null ? 'Delivered. Great work!' : 'Complete failed')),
+    _toast('Coordinates copied');
+  }
+
+  Future<void> _accept(RiderOrderDto order) async {
+    setState(() => _busyIds.add(order.id));
+    final updated = await widget.riderService.acceptOrder(order.id);
+    if (!mounted) return;
+    setState(() => _busyIds.remove(order.id));
+    _toast(
+      updated != null
+          ? 'Order ${order.orderNo} accepted. Ready for delivery!'
+          : 'Could not accept this order.',
+      error: updated == null,
     );
-    _load();
+    await _load(silent: true);
+  }
+
+  Future<void> _showRejectDialog(RiderOrderDto order) async {
+    var reason = '';
+    final controller = TextEditingController();
+    final confirmed = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setModal) {
+            return Padding(
+              padding: EdgeInsets.only(
+                left: 20,
+                right: 20,
+                top: 16,
+                bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text('Decline assignment', style: StaffTheme.title(size: 18)),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Order ${order.orderNo} will return to admin for reassignment.',
+                    style: StaffTheme.body(size: 13),
+                  ),
+                  const SizedBox(height: 14),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: _rejectPresets.map((preset) {
+                      final selected = reason == preset;
+                      return ChoiceChip(
+                        label: Text(preset, style: TextStyle(fontSize: 12)),
+                        selected: selected,
+                        selectedColor: StaffTheme.riderRoute.withValues(alpha: 0.2),
+                        onSelected: (_) {
+                          setModal(() {
+                            reason = preset;
+                            controller.text = preset;
+                          });
+                        },
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: controller,
+                    maxLines: 2,
+                    decoration: const InputDecoration(
+                      labelText: 'Reason',
+                      hintText: 'Optional custom reason',
+                    ),
+                    onChanged: (v) => reason = v,
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.pop(ctx, false),
+                          child: const Text('Cancel'),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: FilledButton(
+                          style: FilledButton.styleFrom(backgroundColor: Colors.red.shade700),
+                          onPressed: () => Navigator.pop(ctx, true),
+                          child: const Text('Decline'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    if (confirmed != true || !mounted) return;
+    final finalReason = reason.trim().isEmpty ? 'Declined by rider' : reason.trim();
+    setState(() => _busyIds.add(order.id));
+    final updated = await widget.riderService.rejectOrder(order.id, finalReason);
+    if (!mounted) return;
+    setState(() => _busyIds.remove(order.id));
+    _toast(
+      updated != null
+          ? 'Assignment declined and returned to admin.'
+          : 'Could not decline assignment.',
+      error: updated == null,
+    );
+    await _load(silent: true);
+  }
+
+  Future<void> _showCompleteDialog(RiderOrderDto order) async {
+    final notesCtrl = TextEditingController();
+    int? rating;
+
+    final confirmed = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setModal) {
+            return Padding(
+              padding: EdgeInsets.only(
+                left: 20,
+                right: 20,
+                top: 16,
+                bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text('Mark as delivered', style: StaffTheme.title(size: 18)),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Order ${order.orderNo} · Admin will complete payment.',
+                    style: StaffTheme.body(size: 13),
+                  ),
+                  const SizedBox(height: 14),
+                  Text('Delivery rating (optional)', style: StaffTheme.body(size: 12)),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: List.generate(5, (i) {
+                      final star = i + 1;
+                      return IconButton(
+                        onPressed: () => setModal(() => rating = star),
+                        icon: Icon(
+                          rating != null && rating! >= star ? Icons.star : Icons.star_border,
+                          color: const Color(0xFFE0A45A),
+                        ),
+                      );
+                    }),
+                  ),
+                  TextField(
+                    controller: notesCtrl,
+                    maxLines: 2,
+                    decoration: const InputDecoration(
+                      labelText: 'Notes (optional)',
+                      hintText: 'e.g. handed to guard',
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.pop(ctx, false),
+                          child: const Text('Cancel'),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: FilledButton(
+                          style: FilledButton.styleFrom(backgroundColor: StaffTheme.riderWater),
+                          onPressed: () => Navigator.pop(ctx, true),
+                          child: const Text('Delivered'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    if (confirmed != true || !mounted) return;
+    setState(() => _busyIds.add(order.id));
+    final updated = await widget.riderService.completeDelivery(
+      order.id,
+      notes: notesCtrl.text,
+      rating: rating,
+    );
+    if (!mounted) return;
+    setState(() => _busyIds.remove(order.id));
+    _toast(
+      updated != null
+          ? 'Order ${order.orderNo} marked as Delivered.'
+          : 'Could not complete delivery.',
+      error: updated == null,
+    );
+    await _load(silent: true);
+  }
+
+  String _elapsedLabel(RiderOrderDto order) {
+    final mins = _now.difference(order.riderAssignedTime ?? order.orderDate).inMinutes;
+    if (mins < 1) return 'Just now';
+    if (mins < 60) return '${mins}m';
+    final h = mins ~/ 60;
+    final m = mins % 60;
+    return '${h}h ${m}m';
   }
 
   @override
@@ -95,14 +355,14 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
                 slivers: [
                   SliverToBoxAdapter(child: _mapHero(riderName)),
                   SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 28),
                     sliver: SliverList(
                       delegate: SliverChildListDelegate([
                         Row(
                           children: [
                             Expanded(
                               child: StaffMetricTile(
-                                label: 'Active routes',
+                                label: 'Active deliveries',
                                 value: '${_stats?.activeAssignedCount ?? _orders.length}',
                                 icon: Icons.alt_route,
                                 accent: StaffTheme.riderRoute,
@@ -119,30 +379,69 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 18),
-                        Text('Assigned drops', style: StaffTheme.title(color: StaffTheme.riderInk, size: 18)),
                         const SizedBox(height: 10),
-                        if (_orders.isEmpty)
-                          Container(
-                            padding: const EdgeInsets.all(28),
-                            decoration: StaffTheme.softCard(),
-                            child: Column(
-                              children: [
-                                Icon(Icons.map_outlined, size: 42, color: StaffTheme.riderWater.withValues(alpha: 0.7)),
-                                const SizedBox(height: 10),
-                                Text('No active deliveries', style: StaffTheme.title(size: 16)),
-                                Text('New routes will appear here', style: StaffTheme.body(size: 13)),
-                              ],
+                        Row(
+                          children: [
+                            Expanded(
+                              child: StaffMetricTile(
+                                label: 'Collected today',
+                                value:
+                                    'Rs ${(_stats?.todayDeliveredAmount ?? 0).toStringAsFixed(0)}',
+                                icon: Icons.payments_outlined,
+                                accent: const Color(0xFFE0A45A),
+                              ),
                             ),
-                          )
-                        else
-                          ..._orders.map(_routeCard),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: StaffMetricTile(
+                                label: 'Pending amount',
+                                value:
+                                    'Rs ${(_stats?.activePendingAmount ?? 0).toStringAsFixed(0)}',
+                                icon: Icons.hourglass_bottom,
+                                accent: StaffTheme.riderInk,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                        if (_orders.isEmpty)
+                          _emptyState()
+                        else ...[
+                          if (_newOrders.isNotEmpty) ...[
+                            Text('New assignments',
+                                style: StaffTheme.title(color: StaffTheme.riderInk, size: 17)),
+                            const SizedBox(height: 10),
+                            ..._newOrders.map(_routeCard),
+                            const SizedBox(height: 8),
+                          ],
+                          if (_activeOrders.isNotEmpty) ...[
+                            Text('On the way',
+                                style: StaffTheme.title(color: StaffTheme.riderInk, size: 17)),
+                            const SizedBox(height: 10),
+                            ..._activeOrders.map(_routeCard),
+                          ],
+                        ],
                       ]),
                     ),
                   ),
                 ],
               ),
             ),
+    );
+  }
+
+  Widget _emptyState() {
+    return Container(
+      padding: const EdgeInsets.all(28),
+      decoration: StaffTheme.softCard(),
+      child: Column(
+        children: [
+          Icon(Icons.map_outlined, size: 42, color: StaffTheme.riderWater.withValues(alpha: 0.7)),
+          const SizedBox(height: 10),
+          Text('No active deliveries', style: StaffTheme.title(size: 16)),
+          Text('New assignments will appear here', style: StaffTheme.body(size: 13)),
+        ],
+      ),
     );
   }
 
@@ -161,48 +460,39 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
         children: [
           Row(
             children: [
-              Text('RIDER MAP', style: StaffTheme.body(color: Colors.white70, size: 11, weight: FontWeight.w700)),
+              Text(
+                'DELIVERY PORTAL',
+                style: StaffTheme.body(color: Colors.white70, size: 11, weight: FontWeight.w700),
+              ),
               const Spacer(),
-              IconButton(
-                onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => RiderHistoryScreen(
-                      sessionService: widget.sessionService,
-                      riderService: widget.riderService,
-                    ),
-                  ),
+              if (widget.onLogout != null)
+                IconButton(
+                  onPressed: () => widget.onLogout?.call(),
+                  icon: const Icon(Icons.logout, color: Colors.white),
+                  tooltip: 'Logout',
                 ),
-                icon: const Icon(Icons.history, color: Colors.white),
-              ),
-              IconButton(
-                onPressed: () async {
-                  await widget.sessionService.logout();
-                  if (mounted) Navigator.of(context).pop();
-                },
-                icon: const Icon(Icons.logout, color: Colors.white),
-              ),
             ],
           ),
-          Text('Hi, $name', style: StaffTheme.display(color: Colors.white, size: 30)),
+          Text('Hi, $name', style: StaffTheme.display(color: Colors.white, size: 28)),
           const SizedBox(height: 6),
           Text(
-            _stats?.branchName ?? 'OpenStreet-style route board · live assignments',
+            _stats?.branchName ??
+                widget.sessionService.currentUser?.branchName ??
+                'My Dashboard',
             style: StaffTheme.body(color: Colors.white70),
           ),
-          const SizedBox(height: 16),
-          // Decorative "map grid" strip
+          const SizedBox(height: 14),
           Container(
-            height: 64,
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(14),
               border: Border.all(color: Colors.white24),
             ),
-            child: CustomPaint(
-              painter: _MiniMapPainter(),
-              child: const Center(
-                child: Text('Live routes refreshing every 25s', style: TextStyle(color: Colors.white, fontSize: 12)),
-              ),
+            child: Text(
+              'Live assignments · refreshes every 25s',
+              style: StaffTheme.body(color: Colors.white, size: 12),
             ),
           ),
         ],
@@ -211,6 +501,9 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
   }
 
   Widget _routeCard(RiderOrderDto order) {
+    final busy = _busyIds.contains(order.id);
+    final late = order.isLate;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: StaffTheme.softCard(),
@@ -220,20 +513,45 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            color: order.isNewOrder ? const Color(0xFFE8F5F0) : const Color(0xFFEEF4F8),
+            color: order.isNewOrder
+                ? const Color(0xFFE8F5F0)
+                : late
+                    ? const Color(0xFFFFF0E8)
+                    : const Color(0xFFEEF4F8),
             child: Row(
               children: [
-                Icon(Icons.place, size: 18, color: order.isNewOrder ? StaffTheme.riderRoute : StaffTheme.riderWater),
+                Icon(
+                  Icons.place,
+                  size: 18,
+                  color: order.isNewOrder
+                      ? StaffTheme.riderRoute
+                      : late
+                          ? Colors.deepOrange
+                          : StaffTheme.riderWater,
+                ),
                 const SizedBox(width: 6),
-                Text(order.orderNo, style: StaffTheme.title(size: 15)),
-                const Spacer(),
+                Expanded(
+                  child: Text(order.orderNo, style: StaffTheme.title(size: 15)),
+                ),
+                Text(
+                  _elapsedLabel(order),
+                  style: StaffTheme.body(
+                    size: 11,
+                    color: late ? Colors.deepOrange : StaffTheme.riderInk.withValues(alpha: 0.6),
+                    weight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(width: 8),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  child: Text(order.badgeText, style: StaffTheme.body(size: 11, weight: FontWeight.w700)),
+                  child: Text(
+                    order.badgeText,
+                    style: StaffTheme.body(size: 11, weight: FontWeight.w700),
+                  ),
                 ),
               ],
             ),
@@ -246,29 +564,103 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
                 Text(order.customerName, style: StaffTheme.title(size: 16)),
                 const SizedBox(height: 4),
                 Text(order.deliveryAddress, style: StaffTheme.body(size: 13)),
+                if (order.deliveryAreaName != null && order.deliveryAreaName!.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text(order.areaLine, style: StaffTheme.body(size: 12, weight: FontWeight.w600)),
+                ],
+                const SizedBox(height: 6),
+                Text(order.itemsSummary, style: StaffTheme.body(size: 12)),
                 const SizedBox(height: 8),
-                Text(order.priceDisplay, style: StaffTheme.title(color: StaffTheme.riderRoute, size: 16)),
-                const SizedBox(height: 12),
                 Row(
                   children: [
-                    OutlinedButton.icon(
-                      onPressed: () => _call(order.customerPhone),
-                      icon: const Icon(Icons.phone, size: 18),
-                      label: const Text('Call'),
-                      style: OutlinedButton.styleFrom(foregroundColor: StaffTheme.riderInk),
+                    Text(
+                      order.priceDisplay,
+                      style: StaffTheme.title(color: StaffTheme.riderRoute, size: 16),
                     ),
-                    const Spacer(),
-                    FilledButton(
-                      onPressed: () => order.isNewOrder ? _accept(order) : _complete(order),
-                      style: FilledButton.styleFrom(
-                        backgroundColor: order.isNewOrder ? StaffTheme.riderRoute : StaffTheme.riderWater,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    const SizedBox(width: 10),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: StaffTheme.riderPaper,
+                        borderRadius: BorderRadius.circular(8),
                       ),
-                      child: Text(order.isNewOrder ? 'Accept route' : 'Mark delivered'),
+                      child: Text(order.paymentLabel, style: StaffTheme.body(size: 11)),
                     ),
+                    if (order.distanceKm != null) ...[
+                      const Spacer(),
+                      Text(
+                        '${order.distanceKm!.toStringAsFixed(1)} km',
+                        style: StaffTheme.body(size: 12, weight: FontWeight.w700),
+                      ),
+                    ],
                   ],
                 ),
+                const SizedBox(height: 12),
+                if (busy)
+                  const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(8),
+                      child: SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: StaffTheme.riderRoute),
+                      ),
+                    ),
+                  )
+                else if (order.isNewOrder)
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => _showRejectDialog(order),
+                          style: OutlinedButton.styleFrom(foregroundColor: Colors.red.shade700),
+                          child: const Text('Decline'),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: FilledButton(
+                          onPressed: () => _accept(order),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: StaffTheme.riderRoute,
+                            foregroundColor: Colors.white,
+                          ),
+                          child: const Text('Accept'),
+                        ),
+                      ),
+                    ],
+                  )
+                else
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      OutlinedButton.icon(
+                        onPressed: () => _call(order.customerPhone),
+                        icon: const Icon(Icons.phone, size: 18),
+                        label: const Text('Call'),
+                      ),
+                      OutlinedButton.icon(
+                        onPressed: () => _openMaps(order),
+                        icon: const Icon(Icons.directions, size: 18),
+                        label: const Text('Directions'),
+                      ),
+                      if (order.hasCoords)
+                        OutlinedButton.icon(
+                          onPressed: () => _copyCoords(order),
+                          icon: const Icon(Icons.copy, size: 16),
+                          label: const Text('GPS'),
+                        ),
+                      FilledButton(
+                        onPressed: () => _showCompleteDialog(order),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: StaffTheme.riderWater,
+                          foregroundColor: Colors.white,
+                        ),
+                        child: const Text('Delivered'),
+                      ),
+                    ],
+                  ),
               ],
             ),
           ),
@@ -276,32 +668,4 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
       ),
     );
   }
-}
-
-class _MiniMapPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final grid = Paint()
-      ..color = Colors.white.withValues(alpha: 0.12)
-      ..strokeWidth = 1;
-    for (double x = 0; x < size.width; x += 18) {
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), grid);
-    }
-    for (double y = 0; y < size.height; y += 18) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), grid);
-    }
-    final route = Paint()
-      ..color = const Color(0xFFE0A45A)
-      ..strokeWidth = 3
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
-    final path = Path()
-      ..moveTo(16, size.height * 0.7)
-      ..quadraticBezierTo(size.width * 0.35, size.height * 0.2, size.width * 0.7, size.height * 0.55)
-      ..quadraticBezierTo(size.width * 0.85, size.height * 0.7, size.width - 16, size.height * 0.35);
-    canvas.drawPath(path, route);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

@@ -65,6 +65,7 @@ class AuthenticateResultModel {
   }
 }
 
+/// Matches ABP `UserLoginInfoDto` + MAUI role helpers.
 class UserLoginInfoDto {
   final int id;
   final String? name;
@@ -72,8 +73,13 @@ class UserLoginInfoDto {
   final String? userName;
   final String? emailAddress;
   final String? role;
+  final List<String> roles;
   final int? branchId;
   final String? branchName;
+  final bool isDeliveryRider;
+  final bool isWaiterFlag;
+  final int? riderStaffId;
+  final String? designation;
 
   UserLoginInfoDto({
     required this.id,
@@ -82,8 +88,13 @@ class UserLoginInfoDto {
     this.userName,
     this.emailAddress,
     this.role,
+    this.roles = const [],
     this.branchId,
     this.branchName,
+    this.isDeliveryRider = false,
+    this.isWaiterFlag = false,
+    this.riderStaffId,
+    this.designation,
   });
 
   String get displayName =>
@@ -91,19 +102,51 @@ class UserLoginInfoDto {
           ? [name, surname].where((s) => s != null && s.isNotEmpty).join(' ').trim()
           : (userName ?? 'User');
 
-  bool get isWaiter =>
-      role?.toLowerCase().contains('waiter') == true ||
-      userName?.toLowerCase().contains('waiter') == true;
+  String get _designationLower => (designation ?? '').toLowerCase();
 
-  bool get isRider =>
-      role?.toLowerCase().contains('rider') == true ||
-      userName?.toLowerCase().contains('rider') == true;
+  bool get isWaiter {
+    if (isWaiterFlag) return true;
+    if (roles.any((r) => r.toLowerCase().contains('waiter'))) return true;
+    if (role?.toLowerCase().contains('waiter') == true) return true;
+    if (_designationLower.contains('waiter') || _designationLower.contains('server')) {
+      return true;
+    }
+    return userName?.toLowerCase().contains('waiter') == true;
+  }
 
-  bool get isAdmin =>
-      role?.toLowerCase().contains('admin') == true ||
-      userName?.toLowerCase().contains('admin') == true;
+  /// Same rules as web `AuthService.isDeliveryRider()` / MAUI `IsRider`.
+  bool get isRider {
+    if (isDeliveryRider) return true;
+    if (roles.any((r) => r.toLowerCase().contains('rider'))) return true;
+    if (role?.toLowerCase().contains('rider') == true) return true;
+    if (_designationLower.contains('rider') || _designationLower.contains('delivery')) {
+      return true;
+    }
+    return userName?.toLowerCase().contains('rider') == true;
+  }
+
+  bool get isAdmin {
+    bool match(String value) {
+      final v = value.toLowerCase();
+      return v.contains('admin') ||
+          v.contains('manager') ||
+          v.contains('cashier') ||
+          v.contains('owner');
+    }
+
+    if (roles.any(match)) return true;
+    if (role != null && match(role!)) return true;
+    if (_designationLower.isNotEmpty && match(_designationLower)) return true;
+    return userName?.toLowerCase().contains('admin') == true;
+  }
 
   factory UserLoginInfoDto.fromJson(Map<String, dynamic> json) {
+    final rolesList = <String>[];
+    final rawRoles = json['roles'] ?? json['roleNames'];
+    if (rawRoles is List) {
+      rolesList.addAll(rawRoles.map((e) => e.toString()));
+    }
+
     return UserLoginInfoDto(
       id: asInt(json['id']),
       name: asStringOrNull(json['name']),
@@ -111,8 +154,13 @@ class UserLoginInfoDto {
       userName: asStringOrNull(json['userName']),
       emailAddress: asStringOrNull(json['emailAddress']),
       role: asStringOrNull(json['role']),
+      roles: rolesList,
       branchId: asIntOrNull(json['branchId']),
       branchName: asStringOrNull(json['branchName']),
+      isDeliveryRider: asBool(json['isDeliveryRider']),
+      isWaiterFlag: asBool(json['isWaiter']),
+      riderStaffId: asIntOrNull(json['riderStaffId']),
+      designation: asStringOrNull(json['designation']),
     );
   }
 
@@ -123,8 +171,13 @@ class UserLoginInfoDto {
         'userName': userName,
         'emailAddress': emailAddress,
         'role': role,
+        'roles': roles,
         'branchId': branchId,
         'branchName': branchName,
+        'isDeliveryRider': isDeliveryRider,
+        'isWaiter': isWaiterFlag,
+        'riderStaffId': riderStaffId,
+        'designation': designation,
       };
 }
 
@@ -161,4 +214,3 @@ class IsTenantAvailableOutput {
     );
   }
 }
-

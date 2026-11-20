@@ -6,7 +6,7 @@ import '../../services/waiter_service.dart';
 import '../../services/rider_service.dart';
 import '../../services/dashboard_service.dart';
 import '../waiter/waiter_tables_screen.dart';
-import '../rider/rider_dashboard_screen.dart';
+import '../rider/rider_shell_screen.dart';
 import '../admin/admin_dashboard_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -55,7 +55,19 @@ class _LoginScreenState extends State<LoginScreen> {
         setState(() => _isLoading = false);
 
         final api = widget.sessionService.apiClient;
-        if (widget.sessionService.isWaiter) {
+        // Same priority as web/MAUI: rider → waiter → admin → customer
+        final role = widget.sessionService.staffHomeRole;
+        if (role == 'rider') {
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(
+              builder: (_) => RiderShellScreen(
+                sessionService: widget.sessionService,
+                riderService: RiderService(api),
+              ),
+            ),
+            (_) => false,
+          );
+        } else if (role == 'waiter') {
           Navigator.of(context).pushReplacement(
             MaterialPageRoute(
               builder: (_) => WaiterTablesScreen(
@@ -64,16 +76,7 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ),
           );
-        } else if (widget.sessionService.isRider) {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(
-              builder: (_) => RiderDashboardScreen(
-                sessionService: widget.sessionService,
-                riderService: RiderService(api),
-              ),
-            ),
-          );
-        } else if (widget.sessionService.isAdmin) {
+        } else if (role == 'admin') {
           Navigator.of(context).pushReplacement(
             MaterialPageRoute(
               builder: (_) => AdminDashboardScreen(

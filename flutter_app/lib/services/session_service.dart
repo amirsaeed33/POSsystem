@@ -34,6 +34,16 @@ class SessionService extends ChangeNotifier {
   bool get isRider => _currentUser?.isRider ?? false;
   bool get isAdmin => _currentUser?.isAdmin ?? false;
 
+  /// Matches MAUI `ResolveRoleMode`: rider → waiter → admin → customer.
+  String get staffHomeRole {
+    final user = _currentUser;
+    if (user == null) return 'customer';
+    if (user.isRider) return 'rider';
+    if (user.isWaiter) return 'waiter';
+    if (user.isAdmin) return 'admin';
+    return 'customer';
+  }
+
   Future<void> init() async {
     await _storage.init();
     _accessToken = await _storage.getToken();

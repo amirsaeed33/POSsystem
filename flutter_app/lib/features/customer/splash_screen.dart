@@ -8,7 +8,7 @@ import '../../services/rider_service.dart';
 import '../../services/dashboard_service.dart';
 import '../customer/customer_shell_screen.dart';
 import '../waiter/waiter_tables_screen.dart';
-import '../rider/rider_dashboard_screen.dart';
+import '../rider/rider_shell_screen.dart';
 import '../admin/admin_dashboard_screen.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -45,7 +45,18 @@ class _SplashScreenState extends State<SplashScreen> {
     await widget.sessionService.init();
     if (!mounted) return;
 
-    if (widget.sessionService.isWaiter) {
+    // Same priority as web/MAUI: rider → waiter → admin → customer
+    final role = widget.sessionService.staffHomeRole;
+    if (role == 'rider') {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (_) => RiderShellScreen(
+            sessionService: widget.sessionService,
+            riderService: widget.riderService,
+          ),
+        ),
+      );
+    } else if (role == 'waiter') {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
           builder: (_) => WaiterTablesScreen(
@@ -54,16 +65,7 @@ class _SplashScreenState extends State<SplashScreen> {
           ),
         ),
       );
-    } else if (widget.sessionService.isRider) {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (_) => RiderDashboardScreen(
-            sessionService: widget.sessionService,
-            riderService: widget.riderService,
-          ),
-        ),
-      );
-    } else if (widget.sessionService.isAdmin) {
+    } else if (role == 'admin') {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
           builder: (_) => AdminDashboardScreen(
