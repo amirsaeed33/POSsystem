@@ -33,6 +33,15 @@ subprojects {
     }
 }
 
+// Skip broken lintVital tasks from plugins (url_launcher_android CommentDetector crash).
+subprojects {
+    tasks.configureEach {
+        if (name.startsWith("lintVital")) {
+            enabled = false
+        }
+    }
+}
+
 tasks.register<Delete>("clean") {
     delete(rootProject.layout.buildDirectory)
 }
