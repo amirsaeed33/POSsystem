@@ -38,3 +38,28 @@ export interface CreateModifierOptionDto {
     isIncludedInBasePrice?: boolean;
     isDefault?: boolean;
 }
+
+export interface UpdateModifierOptionDto {
+    id: number;
+    name: string;
+    price?: number;
+    isIncludedInBasePrice?: boolean;
+    isDefault?: boolean;
+}
+
+export interface BranchModifierTemplateOptionDto {
+    name: string;
+    /** First/default size: uses product sale price (included). */
+    useSalePrice: boolean;
+    /** Add-on amount when useSalePrice is false. */
+    price: number;
+    isDefault?: boolean;
+}
+
+export interface BranchModifierTemplateDto {
+    branchId: number;
+    groupName: string;
+    isRequired: boolean;
+    allowMultiple: boolean;
+    options: BranchModifierTemplateOptionDto[];
+}

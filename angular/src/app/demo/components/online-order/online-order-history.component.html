@@ -696,7 +696,7 @@
     <div class="store-fab-stack" *ngIf="cartService.totalItemsCount > 0">
         <button
             type="button"
-            class="store-cart-fab"
+            class="store-cart-fab hidden md:inline-flex"
             (click)="openCart()"
             [attr.aria-label]="'View cart, ' + cartService.totalItemsCount + ' items'"
             pTooltip="View cart · PKR {{ cartService.cartSubtotal | number: '1.0-0' }}"

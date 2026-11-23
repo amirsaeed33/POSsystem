@@ -64,4 +64,55 @@ namespace SmartPos.Restaurant.Dto
 
         public bool IsDefault { get; set; } = false;
     }
+
+    public class UpdateModifierOptionDto : EntityDto
+    {
+        [Required]
+        [StringLength(128)]
+        public string Name { get; set; }
+
+        public decimal Price { get; set; } = 0;
+
+        /// <summary>True when option uses product sale price (no +extra).</summary>
+        public bool IsIncludedInBasePrice { get; set; } = false;
+
+        public bool IsDefault { get; set; } = false;
+    }
+
+    /// <summary>Branch-level reusable modifier template (applied to new/empty products).</summary>
+    public class BranchModifierTemplateDto
+    {
+        public int BranchId { get; set; }
+
+        public string GroupName { get; set; } = "Size";
+
+        public bool IsRequired { get; set; } = true;
+
+        public bool AllowMultiple { get; set; } = false;
+
+        public List<BranchModifierTemplateOptionDto> Options { get; set; } = new List<BranchModifierTemplateOptionDto>();
+    }
+
+    public class BranchModifierTemplateOptionDto
+    {
+        [Required]
+        [StringLength(128)]
+        public string Name { get; set; }
+
+        /// <summary>When true, option uses the product sale price (included, no +extra).</summary>
+        public bool UseSalePrice { get; set; }
+
+        /// <summary>Add-on / sale amount when <see cref="UseSalePrice"/> is false.</summary>
+        public decimal Price { get; set; }
+
+        public bool IsDefault { get; set; }
+    }
+
+    public class ApplyModifierTemplateInput
+    {
+        [Required]
+        public int ProductId { get; set; }
+
+        public int? BranchId { get; set; }
+    }
 }

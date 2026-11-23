@@ -75,12 +75,15 @@ namespace SmartPos.Products
             var branch = effectiveBranchId > 0 ? await _branchRepository.FirstOrDefaultAsync(effectiveBranchId) : null;
             var isRestaurant = branch != null && branch.BusinessType == BusinessType.Restaurant;
 
+            if (string.IsNullOrWhiteSpace(input.Barcode))
+            {
+                input.Barcode = isRestaurant
+                    ? $"REST-{Guid.NewGuid():N}".Substring(0, 16).ToUpper()
+                    : $"PRD-{Guid.NewGuid():N}".Substring(0, 16).ToUpper();
+            }
+
             if (isRestaurant)
             {
-                if (string.IsNullOrWhiteSpace(input.Barcode))
-                {
-                    input.Barcode = $"REST-{Guid.NewGuid():N}".Substring(0, 16).ToUpper();
-                }
                 if (!input.BrandId.HasValue || input.BrandId.Value <= 0)
                 {
                     var defaultBrand = (branch != null ? await _brandRepository.FirstOrDefaultAsync(b => b.BranchId == branch.Id) : null)
@@ -238,12 +241,17 @@ namespace SmartPos.Products
 
             var branch = product.BranchId > 0 ? await _branchRepository.FirstOrDefaultAsync(product.BranchId) : null;
             var isRestaurant = branch != null && branch.BusinessType == BusinessType.Restaurant;
+            if (string.IsNullOrWhiteSpace(input.Barcode))
+            {
+                input.Barcode = !string.IsNullOrWhiteSpace(product.Barcode)
+                    ? product.Barcode
+                    : (isRestaurant
+                        ? $"REST-{Guid.NewGuid():N}".Substring(0, 16).ToUpper()
+                        : $"PRD-{Guid.NewGuid():N}".Substring(0, 16).ToUpper());
+            }
+
             if (isRestaurant)
             {
-                if (string.IsNullOrWhiteSpace(input.Barcode))
-                {
-                    input.Barcode = product.Barcode ?? $"REST-{Guid.NewGuid():N}".Substring(0, 16).ToUpper();
-                }
                 if (!input.BrandId.HasValue || input.BrandId.Value <= 0)
                 {
                     input.BrandId = product.BrandId;
@@ -729,10 +737,7 @@ namespace SmartPos.Products
                 throw new UserFriendlyException("Name is required.");
             }
 
-            if (!isRestaurant && barcode.IsNullOrWhiteSpace())
-            {
-                throw new UserFriendlyException("Barcode is required.");
-            }
+            // Barcode is optional in the UI; callers auto-generate when blank.
 
             // Menu items need a selling price; grocery ingredients can be cost-only (price 0).
             if (isGroceryInventory)

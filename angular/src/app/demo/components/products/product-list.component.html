@@ -80,77 +80,61 @@
                         label="Search"
                         (click)="onSearch()"
                     ></button>
+                </div>
+                <div class="flex align-items-center gap-1 flex-order-0 sm:flex-order-1">
                     <button
-                        *ngIf="!isRestaurant"
+                        *ngIf="isDealsTab"
                         pButton
                         pRipple
                         type="button"
-                        icon="pi pi-print"
-                        class="p-button-outlined p-button-secondary"
-                        [label]="selectedProducts.length ? 'Print Barcodes (' + selectedProducts.length + ')' : 'Print All Barcodes'"
-                        pTooltip="Print barcodes for selected products or all products"
+                        icon="pi pi-bolt"
+                        label="Create Deal"
+                        class="p-button-warning font-semibold"
+                        (click)="openCreateDealDialog()"
+                        [disabled]="!canCreate"
+                        pTooltip="Create a combo deal or meal bundle"
                         tooltipPosition="top"
-                        (click)="openBulkBarcodeDialog()"
                     ></button>
-                    <ng-container *ngIf="!isDealsTab">
-                        <button
-                            pButton
-                            pRipple
-                            type="button"
-                            icon="pi pi-file-excel"
-                            class="p-button-outlined p-button-success"
-                            label="Import Excel"
-                            [pTooltip]="!canCreate ? 'You do not have permission to Import' : 'Import products from Excel sheet'"
-                            tooltipPosition="top"
-                            [disabled]="!canCreate"
-                            (click)="fileInput.click()"
-                        ></button>
-                        <button
-                            pButton
-                            pRipple
-                            type="button"
-                            icon="pi pi-download"
-                            class="p-button-text p-button-secondary"
-                            label="Template"
-                            pTooltip="Download Excel Sample Template"
-                            tooltipPosition="top"
-                            (click)="downloadExcelTemplate()"
-                        ></button>
-                        <input
-                            #fileInput
-                            type="file"
-                            accept=".xlsx, .xls"
-                            class="hidden"
-                            (change)="onExcelFileSelected($event)"
-                        />
-                    </ng-container>
+                    <button
+                        *ngIf="!isDealsTab"
+                        pButton
+                        pRipple
+                        type="button"
+                        icon="pi pi-plus"
+                        label="Create"
+                        class="p-button-primary font-semibold"
+                        (click)="openCreateDialog()"
+                        [disabled]="!canCreate"
+                        [pTooltip]="!canCreate ? 'You do not have permission to Create' : ''"
+                        tooltipPosition="top"
+                    ></button>
+                    <button
+                        *ngIf="!isDealsTab || !isRestaurant"
+                        pButton
+                        pRipple
+                        type="button"
+                        icon="pi pi-ellipsis-v"
+                        class="p-button-rounded p-button-text p-button-secondary"
+                        pTooltip="More actions"
+                        tooltipPosition="top"
+                        (click)="openToolbarMoreMenu($event, toolbarMoreMenu)"
+                        aria-label="More actions"
+                    ></button>
+                    <p-menu
+                        #toolbarMoreMenu
+                        [popup]="true"
+                        [model]="toolbarMoreItems"
+                        appendTo="body"
+                        styleClass="product-toolbar-more-menu"
+                    ></p-menu>
+                    <input
+                        #excelFileInput
+                        type="file"
+                        accept=".xlsx, .xls"
+                        class="hidden"
+                        (change)="onExcelFileSelected($event)"
+                    />
                 </div>
-                <button
-                    *ngIf="isDealsTab"
-                    pButton
-                    pRipple
-                    type="button"
-                    icon="pi pi-bolt"
-                    label="Create Deal"
-                    class="p-button-warning w-full sm:w-auto flex-order-0 sm:flex-order-1 font-semibold"
-                    (click)="openCreateDealDialog()"
-                    [disabled]="!canCreate"
-                    pTooltip="Create a combo deal or meal bundle"
-                    tooltipPosition="top"
-                ></button>
-                <button
-                    *ngIf="!isDealsTab"
-                    pButton
-                    pRipple
-                    type="button"
-                    icon="pi pi-plus"
-                    label="Create"
-                    class="p-button-primary w-full sm:w-auto flex-order-0 sm:flex-order-1 font-semibold"
-                    (click)="openCreateDialog()"
-                    [disabled]="!canCreate"
-                    [pTooltip]="!canCreate ? 'You do not have permission to Create' : ''"
-                    tooltipPosition="top"
-                ></button>
             </div>
         </ng-template>
 
@@ -328,6 +312,145 @@
         </div>
     </p-dialog>
 
+    <!-- Branch Modifiers Template (top-level for current branch) -->
+    <p-dialog
+        header="Branch Modifiers Template"
+        [(visible)]="modifierTemplateDialogVisible"
+        [modal]="true"
+        appendTo="body"
+        [style]="{ width: '42rem', maxWidth: '95vw' }"
+        [draggable]="false"
+        [resizable]="false"
+        styleClass="modifier-template-dialog"
+    >
+        <div class="flex flex-column gap-3" *ngIf="!loadingModifierTemplate && modifierTemplate">
+            <div class="surface-50 p-3 border-round">
+                <div class="font-semibold text-900 mb-1">Default sizes for this branch</div>
+                <div class="text-xs text-600">
+                    Saved once per branch. When you click <strong>Modifiers &amp; Add-ons</strong> on a product with no modifiers, this template loads automatically.
+                    The first size uses the product <strong>sale price</strong> (included). Extra sizes use the price you set here as +add-on.
+                </div>
+            </div>
+
+            <div class="grid formgrid">
+                <div class="col-12 md:col-6 field mb-2">
+                    <label class="text-xs font-medium mb-1 block">Group name</label>
+                    <input
+                        pInputText
+                        type="text"
+                        class="w-full p-inputtext-sm"
+                        [(ngModel)]="modifierTemplate.groupName"
+                        placeholder="Size"
+                    />
+                </div>
+                <div class="col-12 md:col-6 field mb-2 flex align-items-end gap-3">
+                    <p-checkbox
+                        [(ngModel)]="modifierTemplate.isRequired"
+                        [binary]="true"
+                        label="Required"
+                        labelStyleClass="text-xs font-medium ml-1"
+                    ></p-checkbox>
+                    <p-checkbox
+                        [(ngModel)]="modifierTemplate.allowMultiple"
+                        [binary]="true"
+                        label="Multi-select"
+                        labelStyleClass="text-xs font-medium ml-1"
+                    ></p-checkbox>
+                </div>
+            </div>
+
+            <div class="flex flex-column gap-2">
+                <div class="flex align-items-center justify-content-between">
+                    <span class="font-semibold text-800 text-sm">Options / sizes</span>
+                    <button
+                        pButton
+                        pRipple
+                        type="button"
+                        icon="pi pi-plus"
+                        label="Add size"
+                        class="p-button-sm p-button-outlined"
+                        (click)="addTemplateOption()"
+                    ></button>
+                </div>
+
+                <div
+                    *ngFor="let opt of modifierTemplate.options; let i = index"
+                    class="surface-card border-1 surface-border border-round p-2 flex flex-wrap gap-2 align-items-end"
+                >
+                    <div class="flex flex-column gap-1 flex-1" style="min-width: 8rem;">
+                        <label class="text-xs text-600">Name</label>
+                        <input
+                            pInputText
+                            type="text"
+                            class="w-full p-inputtext-sm"
+                            [(ngModel)]="opt.name"
+                            [placeholder]="i === 0 ? 'e.g. 2 ml' : 'e.g. 4 ml'"
+                        />
+                    </div>
+                    <div class="flex flex-column gap-1" style="min-width: 8rem;">
+                        <label class="text-xs text-600">{{ i === 0 ? 'Price (default)' : 'Add-on price' }}</label>
+                        <div
+                            *ngIf="i === 0"
+                            class="p-inputtext-sm surface-100 border-round px-2 py-2 text-primary font-semibold text-sm"
+                        >
+                            Product sale price
+                        </div>
+                        <p-inputNumber
+                            *ngIf="i > 0"
+                            [(ngModel)]="opt.price"
+                            [min]="0"
+                            mode="decimal"
+                            [minFractionDigits]="0"
+                            [maxFractionDigits]="2"
+                            styleClass="p-inputtext-sm"
+                            inputStyleClass="w-full"
+                            placeholder="+ extra when selected"
+                        ></p-inputNumber>
+                    </div>
+                    <button
+                        pButton
+                        pRipple
+                        type="button"
+                        icon="pi pi-trash"
+                        class="p-button-text p-button-danger p-button-sm"
+                        [disabled]="modifierTemplate.options.length <= 1"
+                        (click)="removeTemplateOption(i)"
+                    ></button>
+                </div>
+
+                <div *ngIf="!modifierTemplate.options?.length" class="text-sm text-500 text-center py-3">
+                    No sizes yet — click Add size.
+                </div>
+            </div>
+        </div>
+
+        <div *ngIf="loadingModifierTemplate" class="text-center py-5 text-500">
+            <i class="pi pi-spin pi-spinner text-2xl mr-2"></i> Loading template...
+        </div>
+
+        <ng-template pTemplate="footer">
+            <button
+                pButton
+                pRipple
+                type="button"
+                label="Cancel"
+                class="p-button-text"
+                (click)="modifierTemplateDialogVisible = false"
+                [disabled]="savingModifierTemplate"
+            ></button>
+            <button
+                pButton
+                pRipple
+                type="button"
+                label="Save template"
+                icon="pi pi-check"
+                [loading]="savingModifierTemplate"
+                [disabled]="loadingModifierTemplate || !modifierTemplate"
+                (click)="saveModifierTemplate()"
+            ></button>
+        </ng-template>
+    </p-dialog>
+
     <!-- Product Modifiers Management Dialog -->
     <p-dialog
         [header]="'Manage Modifiers & Options - ' + (modifierTargetProduct?.name || '')"
@@ -341,7 +464,7 @@
     >
         <div class="flex flex-column gap-3">
             <div class="surface-50 p-3 border-round">
-                <div class="font-semibold text-900 mb-1">Product Modifiers (Sizes, Crusts, Add-ons, Toppings)</div>
+                <div class="font-semibold text-900 mb-1">Product Modifiers (Sizes, Options, Add-ons)</div>
                 <div class="text-xs text-600">
                     Define custom groups and options that cashiers or waiters can pick when ordering this product in Restaurant Mode.
                 </div>
@@ -388,27 +511,107 @@
                     <div class="flex flex-column gap-2 mb-3">
                         <div
                             *ngFor="let opt of group.options"
-                            class="surface-50 border-round p-2 flex justify-content-between align-items-center text-sm"
+                            class="surface-50 border-round p-2 text-sm"
                         >
-                            <span class="font-medium text-800">{{ opt.name }}</span>
-                            <div class="flex align-items-center gap-2">
-                                <span
-                                    class="text-xs font-semibold"
-                                    [class.text-primary]="(opt.price || 0) > 0 && !isModifierIncludedOption(opt)"
-                                    [class.text-500]="!(opt.price > 0) || isModifierIncludedOption(opt)"
-                                >
-                                    {{ formatModifierOptionPrice(opt) }}
-                                </span>
-                                <button
-                                    pButton
-                                    pRipple
-                                    type="button"
-                                    icon="pi pi-times"
-                                    class="p-button-text p-button-danger p-button-xs p-0"
-                                    style="width: 1.5rem; height: 1.5rem;"
-                                    title="Delete option"
-                                    (click)="deleteModifierOption(opt.id)"
-                                ></button>
+                            <div
+                                *ngIf="editingOptionId !== opt.id"
+                                class="flex justify-content-between align-items-center gap-2"
+                            >
+                                <span class="font-medium text-800">{{ opt.name }}</span>
+                                <div class="flex align-items-center gap-1">
+                                    <span
+                                        class="text-xs font-semibold mr-1"
+                                        [class.text-primary]="(opt.price || 0) > 0 && !isModifierIncludedOption(opt)"
+                                        [class.text-500]="!(opt.price > 0) || isModifierIncludedOption(opt)"
+                                    >
+                                        {{ formatModifierOptionPrice(opt) }}
+                                    </span>
+                                    <button
+                                        pButton
+                                        pRipple
+                                        type="button"
+                                        icon="pi pi-pencil"
+                                        class="p-button-text p-button-secondary p-button-sm p-0"
+                                        style="width: 1.75rem; height: 1.75rem;"
+                                        title="Edit option"
+                                        [disabled]="editingOptionId != null && editingOptionId !== opt.id"
+                                        (click)="startEditModifierOption(opt)"
+                                    ></button>
+                                    <button
+                                        pButton
+                                        pRipple
+                                        type="button"
+                                        icon="pi pi-times"
+                                        class="p-button-text p-button-danger p-button-sm p-0"
+                                        style="width: 1.75rem; height: 1.75rem;"
+                                        title="Delete option"
+                                        [disabled]="editingOptionId != null"
+                                        (click)="deleteModifierOption(opt.id)"
+                                    ></button>
+                                </div>
+                            </div>
+
+                            <div *ngIf="editingOptionId === opt.id" class="modifier-option-row">
+                                <div class="modifier-option-name flex flex-column gap-1">
+                                    <input
+                                        pInputText
+                                        type="text"
+                                        class="p-inputtext-sm w-full"
+                                        [(ngModel)]="editOptionName"
+                                        placeholder="Option name"
+                                    />
+                                </div>
+                                <div class="flex flex-column gap-1 modifier-option-price">
+                                    <p-inputNumber
+                                        [inputId]="'edit-modifier-option-price-' + opt.id"
+                                        placeholder="Empty = sale · 0 = Free · >0 = +extra"
+                                        [(ngModel)]="editOptionPrice"
+                                        [min]="0"
+                                        mode="decimal"
+                                        [minFractionDigits]="0"
+                                        [maxFractionDigits]="2"
+                                        styleClass="p-inputtext-sm"
+                                        inputStyleClass="w-full"
+                                    ></p-inputNumber>
+                                    <small *ngIf="isEditOptionPriceEmpty()" class="text-primary font-semibold">
+                                        Sale {{ modifierTargetProduct?.price | number: '1.2-2' }} (no +)
+                                    </small>
+                                    <small
+                                        *ngIf="!isEditOptionPriceEmpty() && (editOptionPrice || 0) === 0"
+                                        class="text-500"
+                                    >
+                                        Free
+                                    </small>
+                                    <small
+                                        *ngIf="!isEditOptionPriceEmpty() && (editOptionPrice || 0) > 0"
+                                        class="text-primary font-semibold"
+                                    >
+                                        + {{ editOptionPrice | number: '1.2-2' }} when selected
+                                    </small>
+                                </div>
+                                <div class="flex gap-1 align-items-start">
+                                    <button
+                                        pButton
+                                        pRipple
+                                        type="button"
+                                        icon="pi pi-check"
+                                        class="p-button-sm p-button-success"
+                                        [disabled]="!editOptionName?.trim() || savingOptionEdit"
+                                        [loading]="savingOptionEdit"
+                                        title="Save"
+                                        (click)="saveEditModifierOption(opt)"
+                                    ></button>
+                                    <button
+                                        pButton
+                                        pRipple
+                                        type="button"
+                                        icon="pi pi-times"
+                                        class="p-button-sm p-button-text p-button-secondary"
+                                        [disabled]="savingOptionEdit"
+                                        title="Cancel"
+                                        (click)="cancelEditModifierOption()"
+                                    ></button>
+                                </div>
                             </div>
                         </div>
                         <div *ngIf="!group.options?.length" class="text-xs text-500 italic p-1">
@@ -492,8 +695,10 @@
             <!-- Empty Modifiers state -->
             <div *ngIf="!loadingModifiers && !modifierGroups.length" class="text-center py-4 surface-50 border-round">
                 <i class="pi pi-list text-3xl text-400 mb-2 block"></i>
-                <div class="font-medium text-700">No modifier groups configured for this product.</div>
-                <div class="text-xs text-500 mt-1">Use the form below to create groups like "Size" or "Add-ons".</div>
+                <div class="font-medium text-700">No modifier groups for this product.</div>
+                <div class="text-xs text-500 mt-1">
+                    Set a branch <strong>Modifiers Template</strong> on this page, or create a group below (e.g. Size).
+                </div>
             </div>
 
             <!-- Create New Modifier Group Form -->

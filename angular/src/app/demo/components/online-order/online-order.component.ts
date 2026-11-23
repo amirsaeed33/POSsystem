@@ -1,5 +1,11 @@
 import { AppFormatService } from 'src/app/demo/service/app-format.service';
-import { Component, HostListener, OnDestroy, OnInit } from '@angular/core';
+import {
+    Component,
+    ElementRef,
+    HostListener,
+    OnDestroy,
+    OnInit,
+} from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CustomerOrderService } from 'src/app/demo/service/customer-order.service';
 import { DeliveryAreaService, DeliveryAreaDto } from 'src/app/demo/service/delivery-area.service';
@@ -122,6 +128,38 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
     favorites: Set<number> = new Set<number>();
     mobileSearchOpen = false;
 
+    /** Index 0–4 for liquid dock notch / bubble position. */
+    get liquidDockIndex(): number {
+        switch (this.activeMobileTab) {
+            case 'deals':
+                return 1;
+            case 'cart':
+                return 2;
+            case 'favorites':
+                return 3;
+            case 'account':
+                return 4;
+            default:
+                return 0;
+        }
+    }
+
+    /** Spotlight accent color matching the active colored menu icon. */
+    get liquidDockAccent(): string {
+        switch (this.activeMobileTab) {
+            case 'deals':
+                return '#f59e0b';
+            case 'cart':
+                return '#f43f5e';
+            case 'favorites':
+                return '#ec4899';
+            case 'account':
+                return '#a78bfa';
+            default:
+                return '#38bdf8';
+        }
+    }
+
     // Curated Section Carousels & Deals
     dealsList: any[] = [];
     trendingDeals: any[] = [];
@@ -155,6 +193,19 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
 
     // Store Chat Floating Drawer
     storeChatOpen = false;
+
+    /** WhatsApp deep link using branch invoice contact phone (null when unavailable). */
+    get branchWhatsAppHref(): string | null {
+        const phone = this.toWhatsAppNumber(this.branchPhone);
+        if (!phone) {
+            return null;
+        }
+        const store = (this.branchName || 'your store').trim();
+        const text = encodeURIComponent(
+            `Hi ${store}, I would like to chat about an order / product.`
+        );
+        return `https://wa.me/${phone}?text=${text}`;
+    }
 
     /** Active online orders for this device — shown in the menu (no separate track page). */
     activeOrders: MyOnlineOrderRef[] = [];
@@ -314,8 +365,12 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
         private browserTitle: AppBrowserTitleService,
         private seo: AppSeoService,
         private appSound: AppSoundService,
-        private storefrontHost: StorefrontHostService
+        private storefrontHost: StorefrontHostService,
+        private hostEl: ElementRef<HTMLElement>
     ) {}
+
+    private productRevealObserver: IntersectionObserver | null = null;
+    private productRevealRaf = 0;
 
     /** Custom client domain: branch is fixed; no multi-branch picker. */
     get isCustomDomainStorefront(): boolean {
@@ -341,13 +396,22 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
 
     currentHeroSlide = 0;
     private heroSlideTimer: any = null;
+    private heroLeaveTimer: ReturnType<typeof setTimeout> | null = null;
+    private heroAnimBusy = false;
+    /** `next` | `prev` — drives 3D enter/leave direction. */
+    heroSlideDir: 'next' | 'prev' = 'next';
+    /** Previous slide index used for exit animation. */
+    previousHeroSlide = 0;
 
     heroSlides: any[] = [];
 
     private async loadHeroSlides(branchId: number): Promise<void> {
         this.stopHeroSlider();
+        this.clearHeroLeaveTimer();
+        this.heroAnimBusy = false;
         this.heroSlides = [];
         this.currentHeroSlide = 0;
+        this.previousHeroSlide = 0;
 
         if (!branchId || branchId <= 0) {
             return;
@@ -399,10 +463,13 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
 
     startHeroSlider(): void {
         this.stopHeroSlider();
-        // Interval longer than CSS crossfade (~0.85s) so each transition can finish.
+        if (this.heroSlides.length <= 1) {
+            return;
+        }
+        // 3D flip duration (~1s) + linger on the image.
         this.heroSlideTimer = setInterval(() => {
-            this.nextHeroSlide();
-        }, 4500);
+            this.nextHeroSlide(false);
+        }, 5500);
     }
 
     stopHeroSlider(): void {
@@ -412,28 +479,60 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
         }
     }
 
-    nextHeroSlide(): void {
-        if (this.heroSlides.length <= 1) {
-            return;
+    private clearHeroLeaveTimer(): void {
+        if (this.heroLeaveTimer) {
+            clearTimeout(this.heroLeaveTimer);
+            this.heroLeaveTimer = null;
         }
-        this.currentHeroSlide = (this.currentHeroSlide + 1) % this.heroSlides.length;
     }
 
-    prevHeroSlide(): void {
-        if (this.heroSlides.length <= 1) {
+    /** Pause autoplay only on real hover devices — touch can fire mouseenter without leave. */
+    onHeroMouseEnter(): void {
+        if (typeof window !== 'undefined' && window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+            this.stopHeroSlider();
+        }
+    }
+
+    onHeroMouseLeave(): void {
+        if (typeof window !== 'undefined' && window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+            this.startHeroSlider();
+        }
+    }
+
+    nextHeroSlide(restart = true): void {
+        if (this.heroSlides.length <= 1 || this.heroAnimBusy) {
             return;
         }
-        this.currentHeroSlide = (this.currentHeroSlide - 1 + this.heroSlides.length) % this.heroSlides.length;
+        this.setHeroSlide((this.currentHeroSlide + 1) % this.heroSlides.length, 'next');
+        if (restart) {
+            this.startHeroSlider();
+        }
     }
 
     goToHeroSlide(index: number): void {
-        if (!this.heroSlides.length) {
+        if (!this.heroSlides.length || index === this.currentHeroSlide || this.heroAnimBusy) {
             return;
         }
-        this.currentHeroSlide = index;
-        if (this.heroSlides.length > 1) {
-            this.startHeroSlider();
+        this.setHeroSlide(index, index > this.currentHeroSlide ? 'next' : 'prev');
+        this.startHeroSlider();
+    }
+
+    private setHeroSlide(index: number, dir: 'next' | 'prev'): void {
+        if (index === this.currentHeroSlide) {
+            return;
         }
+        this.clearHeroLeaveTimer();
+        this.heroAnimBusy = true;
+        this.heroSlideDir = dir;
+        this.previousHeroSlide = this.currentHeroSlide;
+        this.currentHeroSlide = index;
+
+        // Match CSS 3D transition (~1s), then clear leaving panel.
+        this.heroLeaveTimer = setTimeout(() => {
+            this.previousHeroSlide = this.currentHeroSlide;
+            this.heroAnimBusy = false;
+            this.heroLeaveTimer = null;
+        }, 1050);
     }
 
     ngOnInit(): void {
@@ -998,8 +1097,61 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
 
     ngOnDestroy(): void {
         this.stopHeroSlider();
+        this.clearHeroLeaveTimer();
         this.stopProductMarqueeAutoScroll();
+        this.teardownProductRevealObserver();
         this.browserTitle.clearStorefrontBranchName();
+    }
+
+    /** Observe product cards and animate them as they enter the viewport on scroll. */
+    private scheduleProductRevealObserve(): void {
+        if (typeof requestAnimationFrame === 'undefined') {
+            return;
+        }
+        cancelAnimationFrame(this.productRevealRaf);
+        // Double rAF: wait until Angular has painted *ngFor product cards.
+        this.productRevealRaf = requestAnimationFrame(() => {
+            this.productRevealRaf = requestAnimationFrame(() => {
+                this.ensureProductRevealObserver();
+                const root = this.hostEl?.nativeElement;
+                if (!root || !this.productRevealObserver) {
+                    return;
+                }
+                const nodes = root.querySelectorAll(
+                    '.fp-menu-grid-col.fp-scroll-reveal:not(.is-visible)'
+                );
+                nodes.forEach((node) => this.productRevealObserver!.observe(node));
+            });
+        });
+    }
+
+    private ensureProductRevealObserver(): void {
+        if (this.productRevealObserver || typeof IntersectionObserver === 'undefined') {
+            return;
+        }
+        this.productRevealObserver = new IntersectionObserver(
+            (entries) => {
+                for (const entry of entries) {
+                    if (!entry.isIntersecting) {
+                        continue;
+                    }
+                    entry.target.classList.add('is-visible');
+                    this.productRevealObserver?.unobserve(entry.target);
+                }
+            },
+            {
+                root: null,
+                rootMargin: '0px 0px -6% 0px',
+                threshold: 0.08,
+            }
+        );
+    }
+
+    private teardownProductRevealObserver(): void {
+        cancelAnimationFrame(this.productRevealRaf);
+        this.productRevealRaf = 0;
+        this.productRevealObserver?.disconnect();
+        this.productRevealObserver = null;
     }
 
     @HostListener('window:resize')
@@ -1616,6 +1768,7 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
                     this.openProductModal(target);
                 }
             }
+            this.scheduleProductRevealObserve();
         } catch (error: any) {
             this.messageService.add({
                 severity: 'error',
@@ -1624,6 +1777,7 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
             });
         } finally {
             this.loading = false;
+            this.scheduleProductRevealObserve();
         }
     }
 
@@ -1859,13 +2013,6 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
         const pill = this.selectedPill;
 
         this.filteredProducts = (this.products || []).filter((p) => {
-            // Favorites tab restriction
-            if (this.activeMobileTab === 'favorites') {
-                if (!this.favorites.has(p.id)) {
-                    return false;
-                }
-            }
-
             // Multi-category: product must match at least one selected category
             let matchesCat = true;
             if (selectedCats.length > 0) {
@@ -1911,11 +2058,49 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
 
             return matchesCat && matchesPill && matchesSearch;
         });
+
+        // Saved tab / heart: keep favorites at the top of filtered results too.
+        if (this.activeMobileTab === 'favorites') {
+            this.filteredProducts = this.sortFavoritesFirst(this.filteredProducts);
+        }
+        this.scheduleProductRevealObserve();
+    }
+
+    /** Favorite products first, then the rest (stable order within each group). */
+    private sortFavoritesFirst(list: any[]): any[] {
+        const items = list || [];
+        const favs: any[] = [];
+        const rest: any[] = [];
+        for (const p of items) {
+            if (p?.id != null && this.favorites.has(p.id)) {
+                favs.push(p);
+            } else {
+                rest.push(p);
+            }
+        }
+        return [...favs, ...rest];
+    }
+
+    get favoriteProducts(): any[] {
+        return (this.products || []).filter((p) => p?.id != null && this.favorites.has(p.id));
+    }
+
+    get otherProducts(): any[] {
+        return (this.products || []).filter((p) => !p?.id || !this.favorites.has(p.id));
+    }
+
+    /** Catalog grid source: favorites pinned on top when Saved tab is active. */
+    get displayProducts(): any[] {
+        if (this.activeMobileTab === 'favorites') {
+            return this.sortFavoritesFirst(this.products || []);
+        }
+        return this.products || [];
     }
 
     // 5-Tab Navigation Dock Actions
     onMobileTabSelect(tab: 'home' | 'deals' | 'cart' | 'favorites' | 'account'): void {
         this.activeMobileTab = tab;
+        this.scheduleProductRevealObserve();
         if (tab === 'home') {
             this.selectedCategories = [];
             this.selectedPill = '';
@@ -1932,8 +2117,13 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
         } else if (tab === 'favorites') {
             this.selectedCategories = [];
             this.selectedPill = '';
+            this.searchKeyword = '';
             this.applyFilter();
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            // Jump to product grid so Saved items appear on top immediately.
+            setTimeout(() => {
+                const el = document.getElementById('storeAllProducts') || document.getElementById('storeMenuSection');
+                el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 50);
         } else if (tab === 'account') {
             this.openCustomerProfile();
         }
@@ -2047,11 +2237,14 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
             this.favorites.delete(productId);
         } else {
             this.favorites.add(productId);
+            // Show Saved layout: favorites on top, everything else below.
+            this.activeMobileTab = 'favorites';
+            this.selectedCategories = [];
+            this.selectedPill = '';
+            this.searchKeyword = '';
         }
         this.saveFavorites();
-        if (this.activeMobileTab === 'favorites') {
-            this.applyFilter();
-        }
+        this.applyFilter();
 
         try {
             const result = await this.customerOrderService.toggleFavorite({
@@ -2853,8 +3046,25 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
     updateDetailQuantity(change: number): void {
         const next = this.detailQuantity + change;
         if (next >= 1) {
-            this.detailQuantity = next;
+            this.detailQuantity = Math.min(9999, next);
         }
+    }
+
+    onDetailQuantityTyped(value: number | string | null): void {
+        const n = typeof value === 'number' ? value : parseInt(String(value ?? ''), 10);
+        if (!Number.isFinite(n)) {
+            return;
+        }
+        this.detailQuantity = Math.min(9999, Math.max(1, Math.floor(n)));
+    }
+
+    normalizeDetailQuantity(): void {
+        const n = Number(this.detailQuantity);
+        if (!Number.isFinite(n) || n < 1) {
+            this.detailQuantity = 1;
+            return;
+        }
+        this.detailQuantity = Math.min(9999, Math.max(1, Math.floor(n)));
     }
 
 
@@ -3594,6 +3804,18 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
         } catch {
             // Ignore
         }
+    }
+
+    /** Normalize local/intl phone into WhatsApp `wa.me` digits (PK 03… → 923…). */
+    private toWhatsAppNumber(phone: string): string {
+        let digits = (phone || '').replace(/\D/g, '');
+        if (!digits) {
+            return '';
+        }
+        if (digits.startsWith('0') && digits.length >= 10) {
+            digits = `92${digits.substring(1)}`;
+        }
+        return digits;
     }
 
     goToTracking(orderNo?: string): void {
