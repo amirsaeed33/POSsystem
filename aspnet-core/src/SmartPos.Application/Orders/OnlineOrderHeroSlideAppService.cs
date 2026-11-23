@@ -88,9 +88,14 @@ namespace SmartPos.Orders
                         return new ListResultDto<OnlineOrderHeroSlideDto>(new List<OnlineOrderHeroSlideDto>());
                     }
 
+                    var defaultsFolder = OnlineOrderHeroSlideDefaults.DefaultsFolder;
                     var items = await _slideRepository.GetAll()
                         .AsNoTracking()
                         .Where(x => x.BranchId == branchId && x.IsActive)
+                        // Hide auto-seeded generic food defaults; only custom branch banners show.
+                        .Where(x =>
+                            (x.BgImagePath != null && x.BgImagePath != "" && !x.BgImagePath.Contains(defaultsFolder)) ||
+                            (x.ImagePath != null && x.ImagePath != "" && !x.ImagePath.Contains(defaultsFolder)))
                         .OrderBy(x => x.SortOrder)
                         .ThenBy(x => x.Id)
                         .ToListAsync();

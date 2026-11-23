@@ -78,6 +78,7 @@
                 <th class="white-space-nowrap">Check In</th>
                 <th class="white-space-nowrap">Check Out</th>
                 <th class="white-space-nowrap">Duty</th>
+                <th class="white-space-nowrap text-center">Leave / Absent</th>
                 <th class="text-center" style="width: 4.5rem">Actions</th>
             </tr>
         </ng-template>
@@ -169,6 +170,34 @@
                 </td>
                 <td class="white-space-nowrap font-medium">{{ formatDuty(row) }}</td>
                 <td class="text-center">
+                    <div class="flex gap-1 justify-content-center">
+                        <button
+                            pButton
+                            pRipple
+                            type="button"
+                            icon="pi pi-calendar-plus"
+                            class="p-button-sm p-button-outlined p-button-warning p-button-rounded"
+                            pTooltip="Mark Leave"
+                            tooltipPosition="top"
+                            aria-label="Mark Leave"
+                            [disabled]="!canMarkStatus(row, AttendanceStatus.Leave)"
+                            (click)="openStatusMark(row, AttendanceStatus.Leave)"
+                        ></button>
+                        <button
+                            pButton
+                            pRipple
+                            type="button"
+                            icon="pi pi-user-minus"
+                            class="p-button-sm p-button-outlined p-button-danger p-button-rounded"
+                            pTooltip="Mark Absent"
+                            tooltipPosition="top"
+                            aria-label="Mark Absent"
+                            [disabled]="!canMarkStatus(row, AttendanceStatus.Absent)"
+                            (click)="openStatusMark(row, AttendanceStatus.Absent)"
+                        ></button>
+                    </div>
+                </td>
+                <td class="text-center">
                     <app-row-actions [items]="getRowActions(row)"></app-row-actions>
                 </td>
             </tr>
@@ -176,7 +205,7 @@
 
         <ng-template pTemplate="emptymessage">
             <tr>
-                <td colspan="7" class="text-center p-4">
+                <td colspan="8" class="text-center p-4">
                     <div class="text-500">No employees found</div>
                 </td>
             </tr>
@@ -186,7 +215,7 @@
             <tr>
                 <td colspan="5" class="text-right font-semibold">Total duty</td>
                 <td class="font-semibold white-space-nowrap">{{ totalDutyLabel }}</td>
-                <td></td>
+                <td colspan="2"></td>
             </tr>
         </ng-template>
     </p-table>
@@ -238,6 +267,80 @@
                 (click)="savePunch()"
                 [loading]="punchSaving"
                 [disabled]="punchSaving || !punchTime"
+            ></button>
+        </ng-template>
+    </p-dialog>
+
+    <p-dialog
+        [header]="statusMarkTitle"
+        [(visible)]="statusMarkVisible"
+        [modal]="true"
+        appendTo="body"
+        [draggable]="false"
+        [resizable]="false"
+        [style]="{ width: '28rem' }"
+        [breakpoints]="{ '640px': '95vw' }"
+    >
+        <div class="flex flex-column gap-3" *ngIf="statusMarkRow">
+            <div>
+                <div class="font-semibold text-900">{{ statusMarkRow.staffName }}</div>
+                <div class="text-500 text-sm">{{ formatDate(statusMarkRow.attendanceDate) }}</div>
+            </div>
+
+            <div class="flex flex-column gap-2">
+                <label class="font-medium">Quick remarks</label>
+                <div class="flex flex-wrap gap-2">
+                    <button
+                        *ngFor="let template of statusMarkTemplates"
+                        pButton
+                        pRipple
+                        type="button"
+                        [label]="template"
+                        class="p-button-sm"
+                        [ngClass]="
+                            statusMarkSelectedTemplate === template
+                                ? 'p-button-primary'
+                                : 'p-button-outlined'
+                        "
+                        [disabled]="statusMarkSaving"
+                        (click)="selectRemarkTemplate(template)"
+                    ></button>
+                </div>
+            </div>
+
+            <div class="flex flex-column gap-2">
+                <label class="font-medium" for="statusMarkRemarks">Remarks</label>
+                <textarea
+                    id="statusMarkRemarks"
+                    pInputTextarea
+                    rows="3"
+                    class="w-full"
+                    maxlength="512"
+                    placeholder="Select a template or type remarks"
+                    [(ngModel)]="statusMarkRemarks"
+                    [disabled]="statusMarkSaving"
+                ></textarea>
+            </div>
+        </div>
+        <ng-template pTemplate="footer">
+            <button
+                pButton
+                pRipple
+                type="button"
+                label="Cancel"
+                class="p-button-text"
+                (click)="statusMarkVisible = false"
+                [disabled]="statusMarkSaving"
+            ></button>
+            <button
+                pButton
+                pRipple
+                type="button"
+                label="Save"
+                icon="pi pi-check"
+                (click)="saveStatusMark()"
+                [loading]="statusMarkSaving"
+                [disabled]="statusMarkSaving"
             ></button>
         </ng-template>
     </p-dialog>

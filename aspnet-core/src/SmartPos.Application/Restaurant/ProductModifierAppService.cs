@@ -6,6 +6,7 @@ using Abp.Application.Services;
 using Abp.Application.Services.Dto;
 using Abp.Authorization;
 using Abp.Domain.Repositories;
+using Abp.Domain.Uow;
 using Abp.Runtime.Caching;
 using Abp.UI;
 using Microsoft.EntityFrameworkCore;
@@ -45,14 +46,18 @@ namespace SmartPos.Restaurant
 
             return await cache.GetAsync(cacheKey, async _ =>
             {
-                var groups = await _groupRepository.GetAll()
-                    .AsNoTracking()
-                    .Include(g => g.Options)
-                    .Where(g => g.ProductId == productId)
-                    .OrderBy(g => g.Name)
-                    .ToListAsync();
+                // Online storefront is often anonymous / cross-tenant by branch — same as catalog.
+                using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant, AbpDataFilters.MustHaveTenant))
+                {
+                    var groups = await _groupRepository.GetAll()
+                        .AsNoTracking()
+                        .Include(g => g.Options)
+                        .Where(g => g.ProductId == productId)
+                        .OrderBy(g => g.Name)
+                        .ToListAsync();
 
-                return ObjectMapper.Map<List<ProductModifierGroupDto>>(groups);
+                    return ObjectMapper.Map<List<ProductModifierGroupDto>>(groups);
+                }
             });
         }
 

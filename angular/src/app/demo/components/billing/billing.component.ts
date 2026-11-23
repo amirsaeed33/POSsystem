@@ -118,59 +118,63 @@ export class BillingComponent implements OnInit {
 
     selectMethod(method: PaymentMethodDto): void {
         this.selectedMethod = method;
-        if (this.isWalletMethod(method)) {
-            this.openWalletPay(method);
+    }
+
+    async copyAccountNumber(accountNumber?: string | null): Promise<void> {
+        const value = (accountNumber || '').trim();
+        if (!value) {
+            return;
+        }
+
+        try {
+            if (navigator.clipboard?.writeText) {
+                await navigator.clipboard.writeText(value);
+            } else {
+                const input = document.createElement('textarea');
+                input.value = value;
+                input.setAttribute('readonly', '');
+                input.style.position = 'fixed';
+                input.style.left = '-9999px';
+                document.body.appendChild(input);
+                input.select();
+                document.execCommand('copy');
+                document.body.removeChild(input);
+            }
+
+            this.messageService.add({
+                severity: 'success',
+                summary: 'Copied',
+                detail: 'Account number copied',
+                life: 2500,
+            });
+        } catch {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Copy failed',
+                detail: 'Could not copy account number',
+            });
+        }
+    }
+
+    methodIcon(method: PaymentMethodDto | null): string | null {
+        if (!method) {
+            return null;
+        }
+        switch (method.kind) {
+            case 0:
+                return 'assets/layout/images/payments/easypaisa.svg';
+            case 1:
+                return 'assets/layout/images/payments/jazzcash.svg';
+            case 2:
+                return 'assets/layout/images/payments/nayapay.svg';
+            default:
+                return null;
         }
     }
 
     isWalletMethod(method: PaymentMethodDto | null): boolean {
         // Easypaisa, JazzCash, Nayapay
         return !!method && (method.kind === 0 || method.kind === 1 || method.kind === 2);
-    }
-
-    openWalletPay(method: PaymentMethodDto): void {
-        if (!method) {
-            return;
-        }
-
-        const amountText = (this.selectedAmount || 0).toFixed(2);
-        const details = [
-            `Amount: PKR ${amountText}`,
-            `Account: ${method.accountTitle || ''}`.trim(),
-            `Number: ${method.accountNumber || ''}`.trim(),
-        ]
-            .filter(Boolean)
-            .join('\n');
-
-        void navigator.clipboard?.writeText(details).catch(() => undefined);
-
-        const url = this.resolveWalletUrl(method);
-        window.open(url, '_blank', 'noopener,noreferrer');
-
-        this.messageService.add({
-            severity: 'info',
-            summary: method.kindName,
-            detail: `Amount and account copied. Complete PKR ${amountText} in ${method.kindName}, then upload the receipt here.`,
-            life: 6000,
-        });
-    }
-
-    private resolveWalletUrl(method: PaymentMethodDto): string {
-        const custom = (method.payUrl || '').trim();
-        if (custom) {
-            return /^https?:\/\//i.test(custom) ? custom : `https://${custom}`;
-        }
-
-        switch (method.kind) {
-            case 0:
-                return 'https://easypaisa.com.pk/';
-            case 1:
-                return 'https://www.jazzcash.com.pk/';
-            case 2:
-                return 'https://www.nayapay.com/';
-            default:
-                return 'https://easypaisa.com.pk/';
-        }
     }
 
     async onReceiptSelected(event: Event): Promise<void> {

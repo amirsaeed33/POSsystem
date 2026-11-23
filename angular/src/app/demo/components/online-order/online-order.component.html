@@ -21,7 +21,7 @@
                                 Open
                             </span>
                         </div>
-                        <div class="brand-sub">{{ isRestaurantStore() ? 'Fresh Food & Online Dining Menu' : isSolarStore() ? 'Solar Energy & Power Systems' : 'Online Store & Delivery' }}</div>
+                        <div class="brand-sub">{{ isFragranceStore() ? 'Premium Fragrances & Delivery' : isRestaurantStore() ? 'Fresh Food & Online Dining Menu' : isSolarStore() ? 'Solar Energy & Power Systems' : 'Online Store & Delivery' }}</div>
                     </div>
                 </div>
 
@@ -100,7 +100,7 @@
                         pInputText
                         type="text"
                         class="w-full border-round-3xl border-none font-medium fp-search-input"
-                        placeholder="Search food, deals, items..."
+                        [placeholder]="menuSearchPlaceholder"
                         [(ngModel)]="searchKeyword"
                         (input)="applyFilter()"
                     />
@@ -334,200 +334,86 @@
         </div>
     </p-sidebar>
 
-    <!-- 2. HERO BANNER SECTION (Auto-sliding Carousel with Yellow Theme) -->
+    <!-- 2. HERO BANNER — polished image carousel -->
     <section
         class="fp-hero-banner"
         id="storeHomeSection"
-        *ngIf="!isMenuFiltering"
+        *ngIf="!isMenuFiltering && heroSlides.length"
         (mouseenter)="stopHeroSlider()"
         (mouseleave)="startHeroSlider()"
     >
-        <!-- Targeted Right-Side Food Imagery with Soft Fade on Left Edge -->
-        <div class="fp-hero-bg-container">
-            <div
-                *ngFor="let slide of heroSlides; let idx = index"
-                class="fp-hero-bg-layer"
-                [class.active]="currentHeroSlide === idx"
-                [style.background-image]="'linear-gradient(to right, #121212 0%, rgba(18, 18, 18, 0.4) 30%, rgba(18, 18, 18, 0.1) 100%), linear-gradient(to bottom, rgba(18, 18, 18, 0.25) 0%, rgba(18, 18, 18, 0.45) 100%), url(' + slide.bgImageUrl + ')'"
-            ></div>
-        </div>
-        
-
-        <!-- Carousel Navigation Arrows -->
-        <button
-            type="button"
-            class="fp-hero-nav-arrow prev"
-            (click)="prevHeroSlide()"
-            aria-label="Previous Slide"
-        >
-            <i class="pi pi-chevron-left"></i>
-        </button>
-        <button
-            type="button"
-            class="fp-hero-nav-arrow next"
-            (click)="nextHeroSlide()"
-            aria-label="Next Slide"
-        >
-            <i class="pi pi-chevron-right"></i>
-        </button>
-
-        <div class="fp-hero-inner max-w-7xl mx-auto">
-            <!-- Carousel Slides (stacked for crossfade) -->
-            <div class="fp-hero-slides-stack">
+        <div class="fp-hero-shell">
+            <div class="fp-hero-stage">
                 <div
                     *ngFor="let slide of heroSlides; let idx = index"
-                    class="fp-hero-slide"
+                    class="fp-hero-panel"
                     [class.active]="currentHeroSlide === idx"
                     [attr.aria-hidden]="currentHeroSlide !== idx"
                 >
-                    <div class="grid align-items-center">
-                        <!-- Left Column: Typography, Badges, CTAs -->
-                        <div class="col-12 md:col-9 lg:col-8 xl:col-7 p-2 md:p-3 fp-hero-text-col">
-                            <div class="fp-hero-badge inline-flex align-items-center gap-2">
-                                <span class="badge-fire-icon">{{ slide.badgeIcon }}</span>
-                                <span class="font-extrabold uppercase tracking-wider text-xs">{{ slide.badge }}</span>
-                            </div>
-
-                            <h1 class="fp-hero-title">
-                                {{ slide.titleMain }} <span class="fp-title-gradient">{{ slide.titleHighlight }}</span> {{ slide.titleEnd }}
-                            </h1>
-
-                            <p class="fp-hero-desc">
-                                {{ slide.description }}
-                            </p>
-
-                            <!-- Highlights Row with Yellow Theme Accent -->
-                            <div class="fp-hero-features-row flex flex-wrap gap-2">
-                                <div class="fp-feature-pill highlight-pill">
-                                    <i class="pi pi-tag text-yellow-400"></i>
-                                    <span>{{ slide.offerPill }}</span>
-                                </div>
-                                <div class="fp-feature-pill">
-                                    <i class="pi pi-bolt text-yellow-400"></i>
-                                    <span>30-45 Min Delivery</span>
-                                </div>
-                                <div class="fp-feature-pill">
-                                    <i class="pi pi-star-fill text-yellow-400"></i>
-                                    <span>{{ slide.rating }} Rating</span>
-                                </div>
-                            </div>
-
-                            <div class="fp-hero-cta-group flex flex-wrap align-items-center gap-2">
-                                <button
-                                    type="button"
-                                    class="fp-btn-primary-hero"
-                                    (click)="scrollToSection(slide.primaryTarget, $event)"
-                                >
-                                    <span>{{ slide.primaryBtnText }}</span>
-                                    <i class="pi pi-arrow-right text-sm"></i>
-                                </button>
-
-                                <button
-                                    type="button"
-                                    class="fp-btn-secondary-hero"
-                                    (click)="scrollToSection(slide.secondaryTarget, $event)"
-                                >
-                                    <i class="pi pi-book text-sm text-yellow-400"></i>
-                                    <span>{{ slide.secondaryBtnText }}</span>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
+                    <div
+                        class="fp-hero-blur"
+                        [style.background-image]="'url(' + (slide.bgImageUrl || slide.imageUrl) + ')'"
+                    ></div>
+                    <img
+                        class="fp-hero-photo"
+                        [src]="slide.bgImageUrl || slide.imageUrl"
+                        [alt]="slide.titleMain || 'Promotion'"
+                        loading="eager"
+                    />
+                    <div class="fp-hero-vignette" aria-hidden="true"></div>
                 </div>
-            </div>
 
-            <!-- Slide Pagination Indicator Dots -->
-            <div class="fp-hero-indicators flex align-items-center justify-content-center gap-2">
                 <button
                     type="button"
-                    *ngFor="let s of heroSlides; let idx = index"
-                    class="fp-indicator-dot"
-                    [class.active]="currentHeroSlide === idx"
-                    (click)="goToHeroSlide(idx)"
-                    [attr.aria-label]="'Go to slide ' + (idx + 1)"
-                ></button>
-            </div>
-        </div>
-    </section>
-    <!-- Active orders (shown in menu — tap to open order detail) -->
-    <section
-        class="fp-active-orders-section"
-        *ngIf="branchId && (activeOrders.length || loadingActiveOrders)"
-        id="storeActiveOrders"
-    >
-        <div class="max-w-7xl mx-auto px-3">
-            <div class="fp-active-orders-head">
-                <div>
-                    <div class="fp-active-orders-title">
-                        <span class="fp-active-live-dot"></span>
-                        Your Active Order{{ activeOrders.length === 1 ? '' : 's' }}
-                    </div>
-                    <div class="fp-active-orders-sub">Tap an order to see live status</div>
-                </div>
-                <div class="flex align-items-center gap-2">
-                    <button
-                        type="button"
-                        class="fp-active-refresh"
-                        title="Order history"
-                        (click)="openOrderHistory()"
-                    >
-                        <i class="pi pi-history"></i>
-                    </button>
-                    <button
-                        type="button"
-                        class="fp-active-refresh"
-                        [disabled]="loadingActiveOrders"
-                        (click)="refreshActiveOrders()"
-                        title="Refresh"
-                    >
-                        <i class="pi" [ngClass]="loadingActiveOrders ? 'pi-spin pi-spinner' : 'pi-refresh'"></i>
-                    </button>
-                </div>
-            </div>
-
-            <div class="fp-active-orders-list" *ngIf="activeOrders.length">
-                <button
-                    type="button"
-                    class="fp-active-order-card"
-                    *ngFor="let o of activeOrders"
-                    (click)="openActiveOrder(o)"
+                    class="fp-hero-nav-arrow prev"
+                    (click)="prevHeroSlide()"
+                    aria-label="Previous Slide"
+                    *ngIf="heroSlides.length > 1"
                 >
-                    <div class="fp-active-order-left">
-                        <div class="fp-active-order-no">{{ o.orderNo }}</div>
-                        <div class="fp-active-order-meta">
-                            <span class="fp-active-status">{{ activeOrderStatusLabel(o) }}</span>
-                            <span *ngIf="o.placedAt">{{ o.placedAt | date: 'shortTime' }}</span>
-                        </div>
-                    </div>
-                    <div class="fp-active-order-right">
-                        <div class="fp-active-total" *ngIf="o.totalAmount != null">
-                            PKR {{ o.totalAmount | number: '1.0-0' }}
-                        </div>
-                        <i class="pi pi-chevron-right"></i>
-                    </div>
+                    <i class="pi pi-chevron-left"></i>
                 </button>
+                <button
+                    type="button"
+                    class="fp-hero-nav-arrow next"
+                    (click)="nextHeroSlide()"
+                    aria-label="Next Slide"
+                    *ngIf="heroSlides.length > 1"
+                >
+                    <i class="pi pi-chevron-right"></i>
+                </button>
+
+                <div class="fp-hero-indicators" *ngIf="heroSlides.length > 1">
+                    <button
+                        type="button"
+                        *ngFor="let s of heroSlides; let idx = index"
+                        class="fp-indicator-dot"
+                        [class.active]="currentHeroSlide === idx"
+                        (click)="goToHeroSlide(idx)"
+                        [attr.aria-label]="'Go to slide ' + (idx + 1)"
+                    ></button>
+                </div>
             </div>
         </div>
     </section>
-
     <!-- 3. CATEGORY & FILTER BARS (Sticky / Smooth Horizontal Track) -->
     <section class="fp-categories-nav-section" id="storeMenuSection">
         <div class="max-w-7xl mx-auto">
             <!-- Section Header Title + Search -->
             <div class="flex align-items-center justify-content-between px-3 pt-3 pb-2 flex-wrap gap-3">
                 <div class="flex align-items-center gap-2">
-                    <span class="cat-sec-icon">🍽️</span>
+                    <span class="cat-sec-icon">{{ menuSectionIcon }}</span>
                     <div>
-                        <h2 class="cat-sec-heading">Explore Food Menu</h2>
-                        <span class="cat-sec-sub">Search or select one or more categories</span>
+                        <h2 class="cat-sec-heading">{{ menuSectionTitle }}</h2>
+                        <span class="cat-sec-sub">{{ menuSectionSubtitle }}</span>
                     </div>
                 </div>
-                <div class="fp-menu-search-wrap">
+                <!-- Mobile/tablet only — desktop already has header search -->
+                <div class="fp-menu-search-wrap md:hidden">
                     <i class="pi pi-search fp-menu-search-icon"></i>
                     <input
                         type="search"
                         class="fp-menu-search-input"
-                        placeholder="Search meals, deals, categories…"
+                        [placeholder]="menuSearchPlaceholder"
                         [(ngModel)]="searchKeyword"
                         (ngModelChange)="onMenuSearchChange()"
                         autocomplete="off"
@@ -639,9 +525,19 @@
                     class="col-12 sm:col-6 lg:col-4 p-2"
                 >
                     <div class="fp-deal-bundle-card" (click)="openProductModal(deal)">
-                        <div class="bundle-media-box">
-                            <img [src]="getProductImage(deal, dIdx)" [alt]="deal.name" class="bundle-img" />
-                            <div class="bundle-badge-ribbon">
+                        <div class="bundle-media-box" [class.bundle-media-box--empty]="!hasProductImage(deal)">
+                            <img
+                                *ngIf="hasProductImage(deal)"
+                                [src]="getProductImage(deal, dIdx)"
+                                [alt]="deal.name"
+                                class="bundle-img"
+                                (error)="onProductImageError($event, deal)"
+                            />
+                            <div class="card-name-fallback" *ngIf="!hasProductImage(deal)" aria-hidden="true">
+                                <span class="card-name-initials">{{ getProductNameInitials(deal) }}</span>
+                                <span class="card-name-spell">{{ deal.name }}</span>
+                            </div>
+                            <div class="bundle-badge-ribbon" *ngIf="hasProductImage(deal)">
                                 <span class="ribbon-text">SPECIAL COMBO</span>
                             </div>
                             <span class="bundle-savings-pill">
@@ -864,6 +760,13 @@
             </div>
         </section>
 
+        <!-- Loading catalog -->
+        <div *ngIf="loading && products.length === 0" class="fp-catalog-loading text-center py-8 px-3">
+            <i class="pi pi-spin pi-spinner text-3xl text-primary mb-3 block"></i>
+            <h3 class="text-900 font-bold mb-1">Loading products…</h3>
+            <p class="text-600 mb-0">Fetching the latest items for this branch.</p>
+        </div>
+
         <!-- Empty Products State -->
         <div *ngIf="products.length === 0 && !loading" class="text-center py-8">
             <i class="pi pi-box text-5xl text-400 mb-3 block"></i>
@@ -946,9 +849,18 @@
             <div class="fp-grab-handle block md:hidden"></div>
 
             <!-- Hero Media Banner -->
-            <div class="fp-modal-hero">
-                <img [src]="getProductImage(selectedProduct, 0)" [alt]="selectedProduct.name" class="hero-img" />
-                <div class="hero-shadow"></div>
+            <div class="fp-modal-hero" [class.fp-modal-hero--empty]="!hasProductImage(selectedProduct)">
+                <img
+                    *ngIf="hasProductImage(selectedProduct)"
+                    [src]="getProductImage(selectedProduct, 0)"
+                    [alt]="selectedProduct.name"
+                    class="hero-img"
+                    (error)="onProductImageError($event, selectedProduct)"
+                />
+                <div class="hero-name-fallback" *ngIf="!hasProductImage(selectedProduct)" aria-hidden="true">
+                    <span class="card-name-initials">{{ getProductNameInitials(selectedProduct) }}</span>
+                </div>
+                <div class="hero-shadow" *ngIf="hasProductImage(selectedProduct)"></div>
 
                 <button type="button" class="hero-close-circle" (click)="closeProductModal()">
                     <i class="pi pi-times"></i>
@@ -1455,12 +1367,12 @@
                 />
             </div>
             <div class="field mb-3">
-                <label class="font-bold text-xs text-700">Kitchen / Special Instructions</label>
+                <label class="font-bold text-xs text-700">{{ checkoutNotesLabel }}</label>
                 <textarea
                     pInputTextarea
                     rows="2"
                     [(ngModel)]="notes"
-                    placeholder="e.g. Extra ketchup, ring bell, handle with care..."
+                    [placeholder]="checkoutNotesPlaceholder"
                     class="border-round-xl"
                 ></textarea>
             </div>
@@ -1943,21 +1855,11 @@
                                 (error)="onBranchLogoError()"
                             />
                         </div>
-                        <div>
-                            <div class="fp-footer-brand-name">{{ branchName || 'Online Restaurant' }}</div>
-                            <div class="fp-footer-brand-tag">Fresh &amp; Hot Online Food Delivery</div>
+                        <div class="fp-footer-brand-text">
+                            <div class="fp-footer-brand-name">{{ branchName || 'Online Store' }}</div>
+                            <div class="fp-footer-brand-tag">{{ footerBrandTag }}</div>
                         </div>
-                    </div>
-                    <p class="fp-footer-bio">
-                        Gourmet meals made fresh to order — fast, hygienic, and delivered with care.
-                    </p>
-                    <div class="fp-footer-badges">
-                        <span class="fp-badge-trust"><i class="pi pi-shield"></i>100% Halal</span>
-                        <span class="fp-badge-trust"><i class="pi pi-bolt"></i>Quick Delivery</span>
-                    </div>
-                    <div class="fp-social-links">
-                        <span class="fp-social-label">Follow us</span>
-                        <div class="fp-social-icons">
+                        <div class="fp-social-icons fp-social-icons--end" aria-label="Follow us">
                             <a class="fp-social-btn facebook" [href]="socialFacebookHref" target="_blank" rel="noopener noreferrer" aria-label="Facebook">
                                 <i class="pi pi-facebook"></i>
                             </a>
@@ -1969,48 +1871,55 @@
                             </a>
                         </div>
                     </div>
+                    <p class="fp-footer-bio">{{ footerBrandBio }}</p>
+                    <div class="fp-footer-badges">
+                        <span class="fp-badge-trust" *ngFor="let badge of footerTrustBadges">
+                            <i class="pi" [ngClass]="badge.icon"></i>{{ badge.label }}
+                        </span>
+                    </div>
                 </div>
 
-                <div class="fp-footer-col">
-                    <h4>Quick Navigation</h4>
-                    <ul>
-                        <li><a (click)="scrollToSection('home', $event)">Home</a></li>
-                        <li><a (click)="scrollToSection('menu', $event)">Food Menu</a></li>
-                        <li><a (click)="scrollToSection('deals', $event)">Super Deals</a></li>
-                    </ul>
-                </div>
+                <div class="fp-footer-links">
+                    <div class="fp-footer-nav-cats">
+                        <div class="fp-footer-col fp-footer-col--nav">
+                            <h4>Quick Navigation</h4>
+                            <ul>
+                                <li><a (click)="scrollToSection('home', $event)">Home</a></li>
+                                <li><a (click)="scrollToSection('menu', $event)">{{ menuNavLabel }}</a></li>
+                                <li><a (click)="scrollToSection('deals', $event)">Super Deals</a></li>
+                            </ul>
+                        </div>
 
-                <div class="fp-footer-col">
-                    <h4>Categories</h4>
-                    <ul>
-                        <li *ngFor="let cat of categories.slice(0, 5)">
-                            <a (click)="selectCategory(cat, $event)">{{ cat }}</a>
-                        </li>
-                    </ul>
-                </div>
+                        <div class="fp-footer-col fp-footer-col--cats">
+                            <h4>Categories</h4>
+                            <ul>
+                                <li *ngFor="let cat of categories.slice(0, 5)">
+                                    <a (click)="selectCategory(cat, $event)">{{ cat }}</a>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
 
-                <div class="fp-footer-col fp-footer-contact">
-                    <h4>Branch &amp; Contact</h4>
-                    <ul class="fp-footer-contact-list">
-                        <li *ngIf="branchAddress">
-                            <i class="pi pi-map-marker"></i>
-                            <span>{{ branchAddress }}</span>
-                        </li>
-                        <li *ngIf="branchPhone">
-                            <i class="pi pi-phone"></i>
-                            <span>{{ branchPhone }}</span>
-                        </li>
-                        <li>
-                            <i class="pi pi-clock"></i>
-                            <span>Mon – Sun: 11:00 AM – 02:00 AM</span>
-                        </li>
-                    </ul>
+                    <div class="fp-footer-col fp-footer-contact">
+                        <h4>Branch &amp; Contact</h4>
+                        <ul class="fp-footer-contact-list">
+                            <li *ngIf="branchAddress">
+                                <i class="pi pi-map-marker"></i>
+                                <span>{{ branchAddress }}</span>
+                            </li>
+                            <li *ngIf="branchPhone">
+                                <i class="pi pi-phone"></i>
+                                <span>{{ branchPhone }}</span>
+                            </li>
+                            <li>
+                                <i class="pi pi-clock"></i>
+                                <span>Mon – Sun: 11:00 AM – 02:00 AM</span>
+                            </li>
+                        </ul>
+                    </div>
                 </div>
             </div>
 
-            <div class="fp-footer-copy">
-                © {{ branchName || 'Online Store' }}. All rights reserved. Powered by Al Jannat.
-            </div>
         </div>
     </footer>
 
@@ -2202,15 +2111,20 @@
 
     <!-- Shared product card (menu grids) -->
     <ng-template #foodCardTpl let-product="product" let-imgIdx="imgIdx" let-tagIdx="tagIdx">
-        <div class="fp-food-card grid-mode" (click)="openProductModal(product)">
-            <div class="card-media-box">
+        <div class="fp-food-card grid-mode" [class.fp-food-card--no-image]="!hasProductImage(product)" (click)="openProductModal(product)">
+            <div class="card-media-box" [class.card-media-box--empty]="!hasProductImage(product)">
                 <img
+                    *ngIf="hasProductImage(product)"
                     [src]="getProductImage(product, imgIdx)"
                     [alt]="product.name || 'Product'"
                     class="card-img"
                     (error)="onProductImageError($event, product)"
                 />
-                <div class="card-media-shade" aria-hidden="true"></div>
+                <div class="card-name-fallback" *ngIf="!hasProductImage(product)" aria-hidden="true">
+                    <span class="card-name-initials">{{ getProductNameInitials(product) }}</span>
+                    <span class="card-name-spell">{{ product.name }}</span>
+                </div>
+                <div class="card-media-shade" *ngIf="hasProductImage(product)" aria-hidden="true"></div>
 
                 <button
                     type="button"
@@ -2229,7 +2143,7 @@
 
             <div class="card-body">
                 <h3 class="product-title" [title]="product.name">{{ product.name }}</h3>
-                <p class="product-desc">{{ getProductDescription(product) }}</p>
+                <p class="product-desc" *ngIf="getProductDescription(product) as desc">{{ desc }}</p>
 
                 <div class="card-footer-row">
                     <div class="price-col">

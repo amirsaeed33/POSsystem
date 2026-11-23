@@ -1065,27 +1065,13 @@ namespace SmartPos.Branches
             await CurrentUnitOfWork.SaveChangesAsync();
         }
 
-        private async Task EnsureDefaultHeroSlidesAsync(Branch branch)
+        /// <summary>
+        /// Intentionally no-op: multi-brand tenants (food, solar, etc.) must not get
+        /// generic food hero slides. Upload branch-specific banners in branch settings.
+        /// </summary>
+        private Task EnsureDefaultHeroSlidesAsync(Branch branch)
         {
-            if (branch == null || branch.BusinessType != BusinessType.Restaurant || branch.Id <= 0)
-            {
-                return;
-            }
-
-            var hasAny = await _heroSlideRepository.GetAll()
-                .AnyAsync(x => x.BranchId == branch.Id);
-            if (hasAny)
-            {
-                return;
-            }
-
-            foreach (var bp in OnlineOrderHeroSlideDefaults.GetBlueprints())
-            {
-                await _heroSlideRepository.InsertAsync(
-                    OnlineOrderHeroSlideDefaults.CreateEntity(branch.Id, branch.TenantId, bp));
-            }
-
-            await CurrentUnitOfWork.SaveChangesAsync();
+            return Task.CompletedTask;
         }
     }
 }
