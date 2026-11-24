@@ -41,20 +41,19 @@
    Sweet speech-bubble toasts (glossy green pill + tail)
    ========================================================================== */
 .p-toast {
-    width: auto;
-    max-width: min(92vw, 28rem);
-
     .p-toast-message.sp-sweet-bubble,
     .p-toast-message.p-toast-message-success.sp-sweet-bubble,
     .p-toast-message.p-toast-message-info.sp-sweet-bubble {
         position: relative;
-        margin: 0 0 1.15rem 0;
+        width: fit-content;
+        max-width: min(92vw, 28rem);
+        margin: 0 0 1.15rem auto;
         padding: 0;
         border: none !important;
         border-width: 0 !important;
         border-radius: 999px;
         opacity: 1;
-        overflow: visible;
+        overflow: visible !important;
         background: linear-gradient(180deg, #7ed321 0%, #5cb81a 48%, #4aa314 100%) !important;
         color: #ffffff !important;
         box-shadow:
