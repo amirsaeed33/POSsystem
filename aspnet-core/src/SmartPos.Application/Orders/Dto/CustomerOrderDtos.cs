@@ -122,6 +122,14 @@ namespace SmartPos.Orders.Dto
         public List<string> Categories { get; set; } = new List<string>();
     }
 
+    /// <summary>Online storefront category chip (name + optional uploaded image).</summary>
+    public class OnlineCategoryDto
+    {
+        public string Name { get; set; }
+
+        public string ImagePath { get; set; }
+    }
+
     public class OnlineProductDto
     {
         public int Id { get; set; }

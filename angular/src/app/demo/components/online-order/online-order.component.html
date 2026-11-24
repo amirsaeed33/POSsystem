@@ -369,8 +369,104 @@
             </div>
         </div>
     </section>
-    <!-- Anchor for menu scroll (title lives with the product grid below) -->
-    <div id="storeMenuSection" class="fp-menu-anchor" aria-hidden="true"></div>
+    <!-- 3. CATEGORIES (home menu strip — always available to filter) -->
+    <section
+        class="fp-categories-nav-section"
+        id="storeMenuSection"
+        *ngIf="categories.length"
+    >
+        <div class="max-w-7xl mx-auto">
+            <div class="flex align-items-center justify-content-between px-3 pt-3 pb-2 flex-wrap gap-2">
+                <div class="flex align-items-center gap-2 min-w-0">
+                    <span class="cat-sec-icon">{{ menuSectionIcon }}</span>
+                    <div class="min-w-0">
+                        <h2 class="cat-sec-heading">{{ menuSectionTitle }}</h2>
+                        <span class="cat-sec-sub">Browse by category</span>
+                    </div>
+                </div>
+                <div class="flex align-items-center gap-2 flex-shrink-0">
+                    <button
+                        *ngIf="isMenuFiltering"
+                        pButton
+                        type="button"
+                        label="Clear"
+                        icon="pi pi-times"
+                        class="p-button-text p-button-sm p-button-secondary font-semibold"
+                        (click)="clearFilter()"
+                    ></button>
+                    <span class="fp-cat-count text-xs font-bold text-600" *ngIf="categories.length > 1">
+                        {{ categories.length - 1 }} categories
+                    </span>
+                </div>
+            </div>
+
+            <!-- Desktop / tablet: larger chips with category images -->
+            <div class="fp-category-bar hidden md:flex" *ngIf="categories.length">
+                <div class="fp-category-track" id="fpStoreFilterTrack">
+                    <button
+                        type="button"
+                        *ngFor="let cat of categories"
+                        class="fp-cat-chip"
+                        [class.active]="isCategorySelected(cat)"
+                        [class.has-thumb]="!!getCategoryVisual(cat).image"
+                        (click)="selectCategory(cat, $event)"
+                    >
+                        <span class="fp-cat-chip-thumb" *ngIf="getCategoryVisual(cat).image; else catChipIcon">
+                            <img
+                                [src]="getCategoryVisual(cat).image"
+                                [alt]="cat"
+                                loading="lazy"
+                                (error)="onCategoryThumbError($event, cat)"
+                            />
+                        </span>
+                        <ng-template #catChipIcon>
+                            <i [class]="getCategoryVisual(cat).icon" class="fp-cat-chip-icon"></i>
+                        </ng-template>
+                        <span class="fp-cat-chip-label">{{ cat }}</span>
+                        <i
+                            class="pi pi-check text-xs ml-1"
+                            *ngIf="cat !== 'All' && isCategorySelected(cat)"
+                        ></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Mobile: larger circular category avatars (server images) -->
+            <div class="fp-mobile-filter-container md:hidden" *ngIf="categories.length">
+                <div class="fp-circle-category-track" id="fpMobileCircleTrack">
+                    <button
+                        type="button"
+                        *ngFor="let cat of categories"
+                        class="fp-circle-cat-item"
+                        [class.active]="isCategorySelected(cat)"
+                        (click)="selectCategory(cat, $event)"
+                    >
+                        <div class="circle-avatar-box">
+                            <img
+                                *ngIf="getCategoryVisual(cat).image"
+                                [src]="getCategoryVisual(cat).image"
+                                [alt]="cat"
+                                class="circle-cat-img"
+                                loading="lazy"
+                                (error)="onCategoryThumbError($event, cat)"
+                            />
+                            <div
+                                *ngIf="!getCategoryVisual(cat).image"
+                                class="circle-cat-icon-fallback"
+                                [style.background-color]="getCategoryVisual(cat).color"
+                            >
+                                <i [class]="getCategoryVisual(cat).icon"></i>
+                            </div>
+                            <span class="active-check-badge" *ngIf="isCategorySelected(cat)">
+                                <i class="pi pi-check text-xs"></i>
+                            </span>
+                        </div>
+                        <span class="circle-cat-name">{{ cat }}</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
 
     <!-- 4. DEDICATED DEALS & SPECIAL OFFERS SECTION -->
     <section class="fp-deals-showcase-section" id="storeDealsSection" *ngIf="!isMenuFiltering && dealsList.length > 0">

@@ -568,15 +568,20 @@ namespace SmartPos.Orders
         }
 
         [AbpAllowAnonymous]
-        public async Task<List<string>> GetOnlineCategoriesAsync(int? branchId)
+        public async Task<List<OnlineCategoryDto>> GetOnlineCategoriesAsync(int? branchId)
         {
             using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant, AbpDataFilters.MustHaveTenant))
             {
                 var targetBranchId = branchId ?? 0;
                 var categories = await _categoryRepository.GetAll()
+                    .AsNoTracking()
                     .Where(c => (targetBranchId <= 0 || c.BranchId == targetBranchId || c.BranchId == 0) && c.IsActive && !c.IsDeleted)
                     .OrderBy(c => c.Name)
-                    .Select(c => c.Name)
+                    .Select(c => new OnlineCategoryDto
+                    {
+                        Name = c.Name,
+                        ImagePath = c.ImagePath
+                    })
                     .ToListAsync();
                 return categories;
             }

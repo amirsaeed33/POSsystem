@@ -88,7 +88,10 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
     products: any[] = [];
     filteredProducts: any[] = [];
     categories: string[] = [];
+    /** Category names from store header (legacy string list). */
     backendCategories: string[] = [];
+    /** Name → uploaded category image URL from GetOnlineCategories. */
+    categoryImageByName: Record<string, string> = {};
     /** Empty = All categories. Multiple chips can be active at once. */
     selectedCategories: string[] = [];
 
@@ -1398,7 +1401,9 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
                 if (info.latitude != null) this.branchLatitude = Number(info.latitude);
                 if (info.longitude != null) this.branchLongitude = Number(info.longitude);
                 if (info.categories && Array.isArray(info.categories) && info.categories.length > 0) {
-                    this.backendCategories = info.categories;
+                    this.backendCategories = info.categories
+                        .map((c: any) => (typeof c === 'string' ? c : c?.name || c?.Name || '').toString().trim())
+                        .filter((n: string) => !!n);
                     this.extractCategories();
                     this.applyFilter();
                 }
@@ -1743,13 +1748,14 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
             const promises: Promise<any>[] = [
                 this.customerOrderService.getOnlineCatalog(bId || undefined),
             ];
-            if (bId && (!this.backendCategories || this.backendCategories.length === 0)) {
+            // Always load categories with images when a branch is set.
+            if (bId) {
                 promises.push(this.customerOrderService.getOnlineCategories(bId).catch(() => []));
             }
             const results = await Promise.all(promises);
             this.products = results[0] || [];
-            if (results.length > 1 && Array.isArray(results[1]) && results[1].length > 0) {
-                this.backendCategories = results[1];
+            if (results.length > 1 && Array.isArray(results[1])) {
+                this.applyOnlineCategoryCatalog(results[1]);
             }
 
             if (this.products && this.products.length > 0 && this.products[0].currencyFormat) {
@@ -1781,6 +1787,35 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
         }
     }
 
+    /** Map GetOnlineCategories DTOs → names + image URLs. */
+    private applyOnlineCategoryCatalog(list: any[]): void {
+        const imageMap: Record<string, string> = { ...this.categoryImageByName };
+        const names: string[] = [];
+        for (const raw of list || []) {
+            if (typeof raw === 'string') {
+                const n = raw.trim();
+                if (n) {
+                    names.push(n);
+                }
+                continue;
+            }
+            const name = (raw?.name ?? raw?.Name ?? '').toString().trim();
+            if (!name) {
+                continue;
+            }
+            names.push(name);
+            const path = (raw?.imagePath ?? raw?.ImagePath ?? '').toString().trim();
+            const url = this.customerOrderService.getCategoryImageUrl(path);
+            if (url) {
+                imageMap[name.toLowerCase()] = url;
+            }
+        }
+        this.categoryImageByName = imageMap;
+        if (names.length) {
+            this.backendCategories = names;
+        }
+    }
+
     extractCategories(): void {
         const productCats = new Set<string>();
         (this.products || []).forEach((p) => {
@@ -1806,6 +1841,25 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
             regularCats = Array.from(set).filter(
                 (c) => c.toLowerCase() !== 'all' && !c.toLowerCase().includes('deal')
             );
+        }
+
+        // Prefer backend order when images/catalog list is available.
+        if (this.backendCategories?.length) {
+            const productSet = new Set(fromProducts.map((c) => c.toLowerCase()));
+            const ordered = this.backendCategories.filter((c) => {
+                const lower = (c || '').toLowerCase();
+                if (!c || lower === 'all' || lower.includes('deal')) {
+                    return false;
+                }
+                // If products loaded, only show categories that have items.
+                if (fromProducts.length > 0) {
+                    return productSet.has(lower);
+                }
+                return true;
+            });
+            if (ordered.length) {
+                regularCats = ordered;
+            }
         }
 
         const hasDeals = (this.products || []).some(
@@ -2308,10 +2362,34 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
     }
 
     // Circular Category Visual Resolver
+    /** Drop broken category image so icon fallback shows. */
+    onCategoryThumbError(event: Event, cat: string): void {
+        const key = (cat || '').toLowerCase().trim();
+        if (key && this.categoryImageByName[key]) {
+            const next = { ...this.categoryImageByName };
+            delete next[key];
+            this.categoryImageByName = next;
+        }
+        const img = event?.target as HTMLImageElement | null;
+        if (img) {
+            img.style.display = 'none';
+        }
+    }
+
     getCategoryVisual(cat: string): { icon: string; image?: string; color: string; label: string } {
-        const c = cat.toLowerCase();
+        const c = (cat || '').toLowerCase().trim();
+        const uploaded = this.categoryImageByName[c];
         if (c === 'all') {
             return { icon: 'pi pi-compass', color: '#e23744', label: 'All' };
+        }
+        // Prefer branch-uploaded category image from the server.
+        if (uploaded) {
+            return {
+                icon: 'pi pi-tag',
+                color: '#be185d',
+                label: cat,
+                image: uploaded,
+            };
         }
         if (c.includes('deal') || c.includes('🔥')) {
             return {
@@ -2425,11 +2503,26 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
                 image: 'https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&w=150&q=80',
             };
         }
+        if (
+            c.includes('fragrance') ||
+            c.includes('perfume') ||
+            c.includes('attar') ||
+            c.includes('oud') ||
+            c.includes('scent') ||
+            c.includes('mist') ||
+            c.includes('body spray')
+        ) {
+            return {
+                icon: 'pi pi-star-fill',
+                color: '#be185d',
+                label: cat,
+                image: 'https://images.unsplash.com/photo-1541643600914-78b084683601?auto=format&fit=crop&w=150&q=80',
+            };
+        }
         return {
             icon: 'pi pi-tag',
             color: '#e23744',
             label: cat,
-            image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=150&q=80',
         };
     }
 

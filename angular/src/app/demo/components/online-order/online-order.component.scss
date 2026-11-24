@@ -1668,6 +1668,15 @@
 .fp-categories-nav-section {
   background: var(--surface-0, #ffffff);
   border-bottom: 1px solid var(--surface-border, #e2e8f0);
+  scroll-margin-top: 90px;
+
+  .fp-cat-count {
+    background: #f1f5f9;
+    color: #475569;
+    padding: 0.28rem 0.65rem;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
 
   .cat-sec-icon {
     font-size: 1.75rem;
@@ -1749,12 +1758,12 @@
 
 .fp-category-bar {
   background: #f3f3f3;
-  border-radius: 12px;
-  padding: 8px 12px;
+  border-radius: 16px;
+  padding: 12px 14px;
   display: flex;
   align-items: center;
   overflow: hidden;
-  margin: 0 0.75rem 0.75rem;
+  margin: 0 0.75rem 0.85rem;
   position: relative;
 
   // Fade edge hint that more categories slide horizontally
@@ -1764,10 +1773,10 @@
     top: 0;
     right: 0;
     bottom: 0;
-    width: 36px;
+    width: 40px;
     pointer-events: none;
     background: linear-gradient(to right, transparent, #f3f3f3 85%);
-    border-radius: 0 12px 12px 0;
+    border-radius: 0 16px 16px 0;
   }
 
   .fp-scroll-arrow {
@@ -1777,7 +1786,7 @@
   .fp-category-track {
     display: flex;
     align-items: center;
-    gap: 7px;
+    gap: 10px;
     flex-wrap: nowrap;
     width: 100%;
     overflow-x: auto;
@@ -1804,50 +1813,91 @@
 
     .fp-cat-chip {
       background: #ffffff;
-      border-radius: 8px;
-      padding: 7px 14px;
+      border-radius: 999px;
+      padding: 0.45rem 1rem 0.45rem 0.45rem;
       font-family: 'Montserrat', sans-serif;
-      font-weight: 600;
-      font-size: 13px;
+      font-weight: 700;
+      font-size: 0.92rem;
       color: #222222;
-      border: none;
+      border: 1.5px solid transparent;
       cursor: pointer;
       white-space: nowrap;
       flex-shrink: 0;
-      transition: background-color 0.2s ease, color 0.2s ease;
+      transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
       display: inline-flex;
       align-items: center;
-      gap: 0.25rem;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+      gap: 0.55rem;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+      min-height: 3.15rem;
 
-      i {
-        font-size: 0.7rem !important;
+      &:not(.has-thumb) {
+        padding-left: 0.95rem;
+      }
+
+      .fp-cat-chip-thumb {
+        width: 2.35rem;
+        height: 2.35rem;
+        border-radius: 50%;
+        overflow: hidden;
+        flex-shrink: 0;
+        background: #f1f5f9;
+        box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.06);
+
+        img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          display: block;
+        }
+      }
+
+      .fp-cat-chip-icon {
+        font-size: 0.95rem !important;
+        color: #64748b;
+      }
+
+      .fp-cat-chip-label {
+        line-height: 1.2;
+      }
+
+      &:hover {
+        transform: translateY(-1px);
+        border-color: rgba(253, 219, 0, 0.55);
       }
 
       &:hover,
       &.active {
         background: var(--yellow, #fddb00);
         color: #000000;
+
+        .fp-cat-chip-icon {
+          color: #000000;
+        }
+      }
+
+      &.active {
+        border-color: rgba(15, 23, 42, 0.12);
+        box-shadow: 0 4px 14px rgba(253, 219, 0, 0.35);
       }
     }
   }
 }
 
-/* Mobile Circular Track */
+/* Mobile Circular Track — larger avatars + server images */
 .fp-mobile-filter-container {
-  padding: 0.35rem 0.75rem 0.55rem;
+  padding: 0.45rem 0.85rem 0.75rem;
 
   .fp-circle-category-track {
     display: flex;
     align-items: flex-start;
-    gap: 0.55rem;
+    gap: 0.85rem;
     flex-wrap: nowrap;
     overflow-x: auto;
     overflow-y: hidden;
     -webkit-overflow-scrolling: touch;
     scroll-behavior: smooth;
     scrollbar-width: none;
-    padding-bottom: 0.4rem;
+    padding: 0.25rem 0.15rem 0.55rem;
 
     &::-webkit-scrollbar {
       display: none;
@@ -1862,26 +1912,28 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 0.25rem;
+      gap: 0.4rem;
       cursor: pointer;
       flex-shrink: 0;
-      width: 48px;
+      width: 76px;
       text-align: center;
 
       .circle-avatar-box {
-        width: 40px;
-        height: 40px;
+        width: 68px;
+        height: 68px;
         border-radius: 50%;
         overflow: hidden;
-        border: 1.5px solid transparent;
+        border: 2.5px solid #e2e8f0;
         background: var(--surface-100, #f1f5f9);
         position: relative;
-        transition: transform 0.2s ease, border-color 0.2s ease;
+        transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+        box-shadow: 0 4px 12px rgba(15, 23, 42, 0.1);
 
         .circle-cat-img {
           width: 100%;
           height: 100%;
           object-fit: cover;
+          display: block;
         }
 
         .circle-cat-icon-fallback {
@@ -1891,41 +1943,42 @@
           align-items: center;
           justify-content: center;
           color: #ffffff;
-          font-size: 0.9rem;
+          font-size: 1.35rem;
         }
 
         .active-check-badge {
           position: absolute;
-          bottom: -1px;
-          right: -1px;
+          bottom: 1px;
+          right: 1px;
           background: #e23744;
           color: #ffffff;
-          width: 14px;
-          height: 14px;
+          width: 18px;
+          height: 18px;
           border-radius: 50%;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 0.5rem;
-          border: 1.5px solid #ffffff;
+          font-size: 0.55rem;
+          border: 2px solid #ffffff;
         }
       }
 
       .circle-cat-name {
-        font-size: 0.58rem;
+        font-size: 0.72rem;
         font-weight: 700;
         color: #475569;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
-        max-width: 48px;
+        max-width: 76px;
+        line-height: 1.2;
       }
 
       &.active {
         .circle-avatar-box {
           border-color: #e23744;
-          transform: scale(1.04);
-          box-shadow: 0 3px 8px rgba(226, 55, 68, 0.28);
+          transform: scale(1.05);
+          box-shadow: 0 6px 16px rgba(226, 55, 68, 0.3);
         }
         .circle-cat-name {
           color: #e23744;
