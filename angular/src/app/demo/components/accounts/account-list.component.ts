@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { Table } from 'primeng/table';
 import { ConfirmationService, MessageService } from 'primeng/api';
+import { sweetToast } from 'src/app/demo/utils/sweet-toast';
 import { BusinessAccountDto } from 'src/app/demo/api/business-account';
 import { BusinessAccountService } from 'src/app/demo/service/business-account.service';
 
@@ -100,9 +101,7 @@ export class AccountListComponent implements OnInit {
                     .delete(account.id)
                     .then(() => {
                         this.messageService.add({
-                            severity: 'success',
-                            summary: 'Success',
-                            detail: 'Account deleted successfully',
+                            ...sweetToast('account', 'delete', account.name),
                         });
                         this.loadAccounts();
                     })

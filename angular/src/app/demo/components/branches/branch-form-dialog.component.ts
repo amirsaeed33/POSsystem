@@ -7,6 +7,7 @@ import {
     SimpleChanges,
 } from '@angular/core';
 import { MessageService } from 'primeng/api';
+import { sweetToast } from 'src/app/demo/utils/sweet-toast';
 import {
     BranchDto,
     BranchStatuses,
@@ -331,17 +332,21 @@ export class BranchFormDialogComponent implements OnChanges {
 
         request
             .then(async (saved) => {
-                this.messageService.add({
-                    severity: 'success',
-                    summary: requestingActivation
-                        ? 'Activation email sent'
-                        : 'Success',
-                    detail: requestingActivation
-                        ? 'Seed data copied and activation email sent. Branch stays pending until the link is opened.'
-                        : this.branchId
-                          ? 'Branch updated successfully'
-                          : 'Branch created successfully. Awaiting host approval to seed catalog.',
-                });
+                if (requestingActivation) {
+                    this.messageService.add({
+                        severity: 'success',
+                        summary: 'Activation email sent',
+                        detail: 'Seed data copied and activation email sent. Branch stays pending until the link is opened.',
+                    });
+                } else {
+                    this.messageService.add({
+                        ...sweetToast(
+                            'branch',
+                            this.branchId ? 'update' : 'create',
+                            this.branch.name
+                        ),
+                    });
+                }
                 if (
                     saved?.id &&
                     this.branchContext.getBranchId() === saved.id

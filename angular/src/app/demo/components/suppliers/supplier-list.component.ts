@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { Table } from 'primeng/table';
 import { ConfirmationService, MessageService } from 'primeng/api';
+import { sweetToast } from 'src/app/demo/utils/sweet-toast';
 import { SupplierDto } from 'src/app/demo/api/supplier';
 import { SupplierService } from 'src/app/demo/service/supplier.service';
 
@@ -133,9 +134,7 @@ export class SupplierListComponent implements OnInit {
                     .delete(supplier.id)
                     .then(() => {
                         this.messageService.add({
-                            severity: 'success',
-                            summary: 'Success',
-                            detail: 'Supplier deleted successfully',
+                            ...sweetToast('supplier', 'delete', supplier.name),
                         });
                         this.loadSuppliers();
                     })

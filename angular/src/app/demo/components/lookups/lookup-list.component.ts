@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { Table } from 'primeng/table';
 import { ConfirmationService, MessageService } from 'primeng/api';
+import { sweetToast } from 'src/app/demo/utils/sweet-toast';
 import { LookUpDto, LookUpTypes } from 'src/app/demo/api/lookup';
 import { LookUpService } from 'src/app/demo/service/lookup.service';
 import { RowActionItem } from 'src/app/shared/components/row-actions/row-actions.component';
@@ -93,9 +94,7 @@ export class LookUpListComponent implements OnInit {
                     .delete(item.id)
                     .then(() => {
                         this.messageService.add({
-                            severity: 'success',
-                            summary: 'Success',
-                            detail: 'Lookup deleted successfully',
+                            ...sweetToast('lookup', 'delete', item.name),
                         });
                         this.loadTypeOptions().then(() => this.loadItems());
                     })

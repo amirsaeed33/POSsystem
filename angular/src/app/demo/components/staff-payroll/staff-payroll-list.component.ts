@@ -1,5 +1,6 @@
 import { Component, Input, OnDestroy, OnInit } from '@angular/core';
 import { ConfirmationService, MessageService } from 'primeng/api';
+import { sweetToast } from 'src/app/demo/utils/sweet-toast';
 import { Table } from 'primeng/table';
 import { Subscription } from 'rxjs';
 import { BusinessAccountDto } from 'src/app/demo/api/business-account';
@@ -283,9 +284,11 @@ export class StaffPayrollListComponent implements OnInit, OnDestroy {
                     .delete(record.id)
                     .then(() => {
                         this.messageService.add({
-                            severity: 'success',
-                            summary: 'Success',
-                            detail: 'Payroll deleted',
+                            ...sweetToast(
+                                'payroll',
+                                'delete',
+                                record.staffName
+                            ),
                         });
                         this.loadRecords();
                     })

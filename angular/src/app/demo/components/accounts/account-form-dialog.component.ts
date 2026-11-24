@@ -8,6 +8,7 @@ import {
     SimpleChanges,
 } from '@angular/core';
 import { MessageService } from 'primeng/api';
+import { sweetToast } from 'src/app/demo/utils/sweet-toast';
 import {
     BusinessAccountDto,
     CreateBusinessAccountDto,
@@ -109,11 +110,11 @@ export class AccountFormDialogComponent implements OnInit, OnChanges {
         request
             .then(() => {
                 this.messageService.add({
-                    severity: 'success',
-                    summary: 'Success',
-                    detail: this.accountId
-                        ? 'Account updated successfully'
-                        : 'Account created successfully',
+                    ...sweetToast(
+                        'account',
+                        this.accountId ? 'update' : 'create',
+                        name
+                    ),
                 });
                 this.saved.emit();
                 this.onHide();

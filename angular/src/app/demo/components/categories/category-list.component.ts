@@ -1,6 +1,7 @@
 import { Component, Input, OnInit } from '@angular/core';
 import { Table } from 'primeng/table';
 import { ConfirmationService, MessageService } from 'primeng/api';
+import { sweetToast } from 'src/app/demo/utils/sweet-toast';
 import { CategoryDto } from 'src/app/demo/api/category';
 import { CategoryService } from 'src/app/demo/service/category.service';
 import { RowActionItem } from 'src/app/shared/components/row-actions/row-actions.component';
@@ -103,9 +104,7 @@ export class CategoryListComponent implements OnInit {
                     .delete(category.id)
                     .then(() => {
                         this.messageService.add({
-                            severity: 'success',
-                            summary: 'Success',
-                            detail: 'Category deleted successfully',
+                            ...sweetToast('category', 'delete', category.name),
                         });
                         this.loadCategories();
                     })

@@ -20,6 +20,7 @@ import { BranchContextService } from 'src/app/demo/service/branch-context.servic
 import { CategoryService } from 'src/app/demo/service/category.service';
 import { DealService } from 'src/app/demo/service/deal.service';
 import { CreateDealDto, UpdateDealDto, DealDto } from 'src/app/demo/api/deal';
+import { sweetToast } from 'src/app/demo/utils/sweet-toast';
 
 export interface DealAddedItem {
     product: ProductDto;
@@ -431,9 +432,7 @@ export class ProductListComponent implements OnInit {
             this.cancelEditModifierOption();
             await this.loadModifiers(this.modifierTargetProduct.id);
             this.messageService.add({
-                severity: 'success',
-                summary: 'Updated',
-                detail: 'Option updated',
+                ...sweetToast('modifier', 'update', name),
             });
         } catch (err: any) {
             this.messageService.add({
@@ -738,9 +737,7 @@ export class ProductListComponent implements OnInit {
             this.newOptionPrice[groupId] = null;
             await this.loadModifiers(this.modifierTargetProduct.id);
             this.messageService.add({
-                severity: 'success',
-                summary: 'Added',
-                detail: 'Option added',
+                ...sweetToast('modifier', 'create', name),
             });
         } catch (err: any) {
             this.messageService.add({
@@ -759,9 +756,7 @@ export class ProductListComponent implements OnInit {
             await this.productModifierService.deleteOption(optionId);
             await this.loadModifiers(this.modifierTargetProduct.id);
             this.messageService.add({
-                severity: 'info',
-                summary: 'Deleted',
-                detail: 'Option removed',
+                ...sweetToast('modifier', 'delete'),
             });
         } catch (err: any) {
             this.messageService.add({
@@ -949,9 +944,7 @@ export class ProductListComponent implements OnInit {
                     .delete(product.id)
                     .then(() => {
                         this.messageService.add({
-                            severity: 'success',
-                            summary: 'Success',
-                            detail: 'Product deleted successfully',
+                            ...sweetToast('product', 'delete', product.name),
                         });
                         this.loadProducts();
                     })
@@ -1556,9 +1549,11 @@ export class ProductListComponent implements OnInit {
 
                 await this.dealService.update(payload);
                 this.messageService.add({
-                    severity: 'success',
-                    summary: 'Deal Updated',
-                    detail: `Deal "${this.dealName}" updated successfully with ${selectedItems.length} product(s).`,
+                    ...sweetToast(
+                        'deal',
+                        'update',
+                        this.dealName.trim()
+                    ),
                 });
             } else {
                 const payload: CreateDealDto = {
@@ -1574,9 +1569,11 @@ export class ProductListComponent implements OnInit {
 
                 await this.dealService.create(payload);
                 this.messageService.add({
-                    severity: 'success',
-                    summary: 'Deal Created',
-                    detail: `Deal "${this.dealName}" saved successfully with ${selectedItems.length} product(s).`,
+                    ...sweetToast(
+                        'deal',
+                        'create',
+                        this.dealName.trim()
+                    ),
                 });
             }
 

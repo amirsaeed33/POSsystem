@@ -18,6 +18,7 @@ import {
     validateEntityName,
 } from 'src/app/shared/utils/name-validation';
 import { MessageService } from 'primeng/api';
+import { sweetToast } from 'src/app/demo/utils/sweet-toast';
 
 @Component({
     selector: 'app-category-form-dialog',
@@ -172,11 +173,11 @@ export class CategoryFormDialogComponent implements OnChanges {
         request
             .then(() => {
                 this.messageService.add({
-                    severity: 'success',
-                    summary: 'Success',
-                    detail: this.categoryId
-                        ? 'Category updated successfully'
-                        : 'Category created successfully',
+                    ...sweetToast(
+                        'category',
+                        this.categoryId ? 'update' : 'create',
+                        name
+                    ),
                 });
                 this.saved.emit();
                 this.onHide();

@@ -7,6 +7,7 @@ import {
     SimpleChanges,
 } from '@angular/core';
 import { MessageService } from 'primeng/api';
+import { sweetToast } from 'src/app/demo/utils/sweet-toast';
 import { CreateTenantDto, TenantDto } from 'src/app/demo/api/tenant';
 import { TenantService } from 'src/app/demo/service/tenant.service';
 
@@ -108,11 +109,11 @@ export class TenantFormDialogComponent implements OnChanges {
         request
             .then(() => {
                 this.messageService.add({
-                    severity: 'success',
-                    summary: 'Success',
-                    detail: this.tenantId
-                        ? 'Tenant updated successfully'
-                        : 'Tenant created successfully',
+                    ...sweetToast(
+                        'tenant',
+                        this.tenantId ? 'update' : 'create',
+                        name
+                    ),
                 });
                 this.saved.emit();
                 this.onHide();

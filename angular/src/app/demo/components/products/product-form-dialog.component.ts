@@ -21,6 +21,7 @@ import { BranchContextService } from 'src/app/demo/service/branch-context.servic
 import { PermissionService } from 'src/app/demo/service/permission.service';
 import { PermissionNames } from 'src/app/demo/api/permission-names';
 import { ProductModifierService } from 'src/app/demo/service/product-modifier.service';
+import { sweetToast } from 'src/app/demo/utils/sweet-toast';
 
 export interface ProductSpecItem {
     key: string;
@@ -339,13 +340,15 @@ export class ProductFormDialogComponent implements OnChanges {
                 }
 
                 this.messageService.add({
-                    severity: 'success',
-                    summary: 'Success',
-                    detail: wasCreate
-                        ? createAnother
-                          ? 'Product created — ready for the next one'
-                          : 'Product created successfully'
-                        : 'Product updated successfully',
+                    ...sweetToast(
+                        'product',
+                        wasCreate
+                            ? createAnother
+                              ? 'createAnother'
+                              : 'create'
+                            : 'update',
+                        name
+                    ),
                 });
                 this.saved.emit();
                 if (createAnother) {

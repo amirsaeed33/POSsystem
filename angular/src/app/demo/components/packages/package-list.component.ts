@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { ConfirmationService, MessageService } from 'primeng/api';
+import { sweetToast } from 'src/app/demo/utils/sweet-toast';
 import { PackageDto } from 'src/app/demo/api/package';
 import { PermissionNames } from 'src/app/demo/api/permission-names';
 import { BranchContextService } from 'src/app/demo/service/branch-context.service';
@@ -189,9 +190,7 @@ export class PackageListComponent implements OnInit {
         try {
             await this.packageService.delete(pkg.id);
             this.messageService.add({
-                severity: 'success',
-                summary: 'Deleted',
-                detail: 'Package deleted.',
+                ...sweetToast('package', 'delete', pkg.name),
             });
             await this.load();
         } catch (err: any) {

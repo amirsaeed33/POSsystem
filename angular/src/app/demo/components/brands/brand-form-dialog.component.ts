@@ -10,6 +10,7 @@ import {
 import { BrandDto } from 'src/app/demo/api/brand';
 import { BrandService } from 'src/app/demo/service/brand.service';
 import { MessageService } from 'primeng/api';
+import { sweetToast } from 'src/app/demo/utils/sweet-toast';
 
 @Component({
     selector: 'app-brand-form-dialog',
@@ -96,11 +97,11 @@ export class BrandFormDialogComponent implements OnChanges {
         request
             .then(() => {
                 this.messageService.add({
-                    severity: 'success',
-                    summary: 'Success',
-                    detail: this.brandId
-                        ? 'Brand updated successfully'
-                        : 'Brand created successfully',
+                    ...sweetToast(
+                        'brand',
+                        this.brandId ? 'update' : 'create',
+                        name
+                    ),
                 });
                 this.saved.emit();
                 this.onHide();

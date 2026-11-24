@@ -7,6 +7,7 @@ import {
     SimpleChanges,
 } from '@angular/core';
 import { MessageService } from 'primeng/api';
+import { sweetToast } from 'src/app/demo/utils/sweet-toast';
 import { StaffDto } from 'src/app/demo/api/staff';
 import {
     PayrollPaymentStatus,
@@ -151,11 +152,10 @@ export class StaffPayrollFormDialogComponent implements OnChanges {
         request
             .then(() => {
                 this.messageService.add({
-                    severity: 'success',
-                    summary: 'Success',
-                    detail: this.payrollId
-                        ? 'Payroll updated successfully'
-                        : 'Payroll created successfully',
+                    ...sweetToast(
+                        'payroll',
+                        this.payrollId ? 'update' : 'create'
+                    ),
                 });
                 this.saved.emit();
                 this.onHide();

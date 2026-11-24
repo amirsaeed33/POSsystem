@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { ConfirmationService, MessageService } from 'primeng/api';
+import { sweetToast } from 'src/app/demo/utils/sweet-toast';
 import { DeveloperDto } from 'src/app/demo/api/developer';
 import { PermissionNames } from 'src/app/demo/api/permission-names';
 import { DeveloperService } from 'src/app/demo/service/developer.service';
@@ -264,9 +265,7 @@ export class DeveloperListComponent implements OnInit {
         try {
             await this.developerService.delete(dev.id);
             this.messageService.add({
-                severity: 'success',
-                summary: 'Deleted',
-                detail: 'Developer removed.',
+                ...sweetToast('developer', 'delete', dev.name),
             });
             await this.load();
         } catch (err: any) {

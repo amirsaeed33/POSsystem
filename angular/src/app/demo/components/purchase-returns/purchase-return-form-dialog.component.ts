@@ -8,6 +8,7 @@ import {
     SimpleChanges,
 } from '@angular/core';
 import { MessageService } from 'primeng/api';
+import { sweetToast } from 'src/app/demo/utils/sweet-toast';
 import { PurchaseDto } from 'src/app/demo/api/purchase';
 import { PurchaseReturnableDto } from 'src/app/demo/api/purchase-return';
 import { PurchaseReturnService } from 'src/app/demo/service/purchase-return.service';
@@ -147,9 +148,7 @@ export class PurchaseReturnFormDialogComponent implements OnChanges {
             })
             .then(() => {
                 this.messageService.add({
-                    severity: 'success',
-                    summary: 'Success',
-                    detail: 'Purchase return created successfully',
+                    ...sweetToast('purchaseReturn', 'create'),
                 });
                 this.saved.emit();
                 this.onHide();

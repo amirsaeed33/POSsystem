@@ -2,6 +2,7 @@ import { AppFormatService } from 'src/app/demo/service/app-format.service';
 import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { ConfirmationService, MessageService } from 'primeng/api';
+import { sweetToast } from 'src/app/demo/utils/sweet-toast';
 import { BranchDto, BranchStatuses } from 'src/app/demo/api/branch';
 import { LookUpDto, LookUpTypes } from 'src/app/demo/api/lookup';
 import { PermissionNames } from 'src/app/demo/api/permission-names';
@@ -350,9 +351,7 @@ export class BranchListComponent implements OnInit {
                     .delete(branch.id)
                     .then(() => {
                         this.messageService.add({
-                            severity: 'success',
-                            summary: 'Success',
-                            detail: 'Branch deleted successfully',
+                            ...sweetToast('branch', 'delete', branch.name),
                         });
                         this.loadBranches();
                     })

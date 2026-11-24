@@ -9,6 +9,7 @@ import {
 import { SupplierDto } from 'src/app/demo/api/supplier';
 import { SupplierService } from 'src/app/demo/service/supplier.service';
 import { MessageService } from 'primeng/api';
+import { sweetToast } from 'src/app/demo/utils/sweet-toast';
 
 @Component({
     selector: 'app-supplier-form-dialog',
@@ -82,11 +83,11 @@ export class SupplierFormDialogComponent implements OnChanges {
         request
             .then(() => {
                 this.messageService.add({
-                    severity: 'success',
-                    summary: 'Success',
-                    detail: this.supplierId
-                        ? 'Supplier updated successfully'
-                        : 'Supplier created successfully',
+                    ...sweetToast(
+                        'supplier',
+                        this.supplierId ? 'update' : 'create',
+                        name
+                    ),
                 });
                 this.saved.emit();
                 this.onHide();

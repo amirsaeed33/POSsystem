@@ -2,6 +2,7 @@ import { AppFormatService } from 'src/app/demo/service/app-format.service';
 import { Component, OnInit } from '@angular/core';
 import { Table } from 'primeng/table';
 import { ConfirmationService, MessageService } from 'primeng/api';
+import { sweetToast } from 'src/app/demo/utils/sweet-toast';
 import {
     StockAdjustmentDto,
     StockAdjustmentReasons,
@@ -155,9 +156,7 @@ export class StockAdjustmentListComponent implements OnInit {
                     .delete(item.id)
                     .then(() => {
                         this.messageService.add({
-                            severity: 'success',
-                            summary: 'Success',
-                            detail: 'Stock adjustment deleted successfully',
+                            ...sweetToast('stockAdjustment', 'delete'),
                         });
                         this.loadAdjustments();
                     })

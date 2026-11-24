@@ -8,6 +8,7 @@ import {
 } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MessageService } from 'primeng/api';
+import { sweetToast } from 'src/app/demo/utils/sweet-toast';
 import {
     GetRoleForEditOutput,
     PermissionDto,
@@ -160,11 +161,11 @@ export class RoleFormDialogComponent implements OnChanges {
         request
             .then(() => {
                 this.messageService.add({
-                    severity: 'success',
-                    summary: 'Success',
-                    detail: this.isEdit
-                        ? 'Role updated successfully'
-                        : 'Role created successfully',
+                    ...sweetToast(
+                        'role',
+                        this.isEdit ? 'update' : 'create',
+                        formValue.displayName || formValue.name
+                    ),
                 });
                 this.saved.emit();
                 this.onHide();

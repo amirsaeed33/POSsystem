@@ -7,6 +7,7 @@ import {
     SimpleChanges,
 } from '@angular/core';
 import { MessageService } from 'primeng/api';
+import { sweetToast } from 'src/app/demo/utils/sweet-toast';
 import { StaffDto } from 'src/app/demo/api/staff';
 import {
     AttendanceStatus,
@@ -154,11 +155,10 @@ export class StaffAttendanceFormDialogComponent implements OnChanges {
         request
             .then(() => {
                 this.messageService.add({
-                    severity: 'success',
-                    summary: 'Success',
-                    detail: this.attendanceId
-                        ? 'Attendance updated successfully'
-                        : 'Attendance created successfully',
+                    ...sweetToast(
+                        'attendance',
+                        this.attendanceId ? 'update' : 'create'
+                    ),
                 });
                 this.saved.emit();
                 this.onHide();
