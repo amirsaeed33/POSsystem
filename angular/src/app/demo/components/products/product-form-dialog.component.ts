@@ -20,7 +20,6 @@ import { BranchService } from 'src/app/demo/service/branch.service';
 import { BranchContextService } from 'src/app/demo/service/branch-context.service';
 import { PermissionService } from 'src/app/demo/service/permission.service';
 import { PermissionNames } from 'src/app/demo/api/permission-names';
-import { ProductModifierService } from 'src/app/demo/service/product-modifier.service';
 import { sweetToast } from 'src/app/demo/utils/sweet-toast';
 
 export interface ProductSpecItem {
@@ -76,7 +75,6 @@ export class ProductFormDialogComponent implements OnChanges {
         private branchService: BranchService,
         private branchContext: BranchContextService,
         private permissionService: PermissionService,
-        private productModifierService: ProductModifierService,
         private messageService: MessageService
     ) {}
 
@@ -326,19 +324,7 @@ export class ProductFormDialogComponent implements OnChanges {
 
         const wasCreate = !this.productId;
         request
-            .then(async (savedProduct) => {
-                // New product: apply branch modifiers template (default size = sale price).
-                if (wasCreate && savedProduct?.id) {
-                    try {
-                        await this.productModifierService.applyBranchTemplate(
-                            savedProduct.id,
-                            currentBranchId
-                        );
-                    } catch {
-                        // Template optional — product still created.
-                    }
-                }
-
+            .then(() => {
                 this.messageService.add({
                     ...sweetToast(
                         'product',

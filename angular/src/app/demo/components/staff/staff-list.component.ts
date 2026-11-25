@@ -1,6 +1,7 @@
-import { Component, Input, OnInit } from '@angular/core';
+import { Component, Input, OnDestroy, OnInit } from '@angular/core';
 import { Table } from 'primeng/table';
 import { ConfirmationService, MessageService } from 'primeng/api';
+import { Subscription } from 'rxjs';
 import { sweetToast } from 'src/app/demo/utils/sweet-toast';
 import { StaffDto } from 'src/app/demo/api/staff';
 import { StaffService } from 'src/app/demo/service/staff.service';
@@ -10,6 +11,7 @@ import {
 } from 'src/app/demo/api/staff-payroll';
 import { StaffPayrollService } from 'src/app/demo/service/staff-payroll.service';
 import { AppFormatService } from 'src/app/demo/service/app-format.service';
+import { BranchContextService } from 'src/app/demo/service/branch-context.service';
 import { RowActionItem } from 'src/app/shared/components/row-actions/row-actions.component';
 
 @Component({
@@ -24,7 +26,7 @@ import { RowActionItem } from 'src/app/shared/components/row-actions/row-actions
         `,
     ],
 })
-export class StaffListComponent implements OnInit {
+export class StaffListComponent implements OnInit, OnDestroy {
     /** When true, omit outer card wrapper (used inside Staff hub tabs). */
     @Input() embedded = false;
 
@@ -33,6 +35,7 @@ export class StaffListComponent implements OnInit {
     totalRecords = 0;
     keyword = '';
     statusFilter: boolean | null = null;
+    private branchSub?: Subscription;
 
     getRowActions(staff: StaffDto): RowActionItem[] {
         return [
@@ -115,6 +118,7 @@ export class StaffListComponent implements OnInit {
     constructor(
         private staffService: StaffService,
         private staffPayrollService: StaffPayrollService,
+        private branchContext: BranchContextService,
         public formatService: AppFormatService,
         private messageService: MessageService,
         private confirmationService: ConfirmationService
@@ -122,14 +126,25 @@ export class StaffListComponent implements OnInit {
 
     ngOnInit(): void {
         this.loadStaff();
+        this.branchSub = this.branchContext.currentBranch$.subscribe((branch) => {
+            if (branch) {
+                this.loadStaff();
+            }
+        });
+    }
+
+    ngOnDestroy(): void {
+        this.branchSub?.unsubscribe();
     }
 
     loadStaff(): void {
         this.loading = true;
+        const branchId = this.branchContext.getBranchId() ?? undefined;
         this.staffService
             .getAll({
                 keyword: this.keyword?.trim() || undefined,
                 isActive: this.statusFilter,
+                branchId,
                 skipCount: 0,
                 maxResultCount: 1000,
             })

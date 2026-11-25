@@ -67,6 +67,8 @@ export class ProductListComponent implements OnInit {
     modifierDialogVisible = false;
     modifierTargetProduct: ProductDto | null = null;
     loadingModifiers = false;
+    askCreateDefaultModifiers = false;
+    applyingDefaultModifiers = false;
     modifierGroups: ProductModifierGroupDto[] = [];
     newGroupName = '';
     newGroupIsRequired = false;
@@ -469,37 +471,65 @@ export class ProductListComponent implements OnInit {
     async openModifierDialog(product: ProductDto): Promise<void> {
         this.modifierTargetProduct = product;
         this.modifierDialogVisible = true;
+        this.askCreateDefaultModifiers = false;
+        this.applyingDefaultModifiers = false;
         this.newGroupName = '';
         this.newGroupIsRequired = false;
         this.newGroupAllowMultiple = true;
         this.cancelEditModifierOption();
         await this.loadModifiers(product.id);
 
-        // Empty product → apply branch template (default size = sale price).
-        if (!(this.modifierGroups || []).length) {
-            const branchId = this.branchContext.getBranchId();
-            try {
-                const applied = await this.productModifierService.applyBranchTemplate(
-                    product.id,
-                    branchId
-                );
-                if (applied?.length) {
-                    this.modifierGroups = applied;
-                    for (const group of this.modifierGroups) {
-                        this.newOptionPrice[group.id] = null;
-                        this.newOptionName[group.id] = '';
-                    }
-                    this.messageService.add({
-                        severity: 'info',
-                        summary: 'Template applied',
-                        detail: 'Branch modifier template loaded. Default size uses sale price.',
-                        life: 2800,
-                    });
-                }
-            } catch {
-                // No template / apply failed — leave empty for manual create.
-            }
+        // Empty product → ask inside this dialog before creating defaults.
+        this.askCreateDefaultModifiers = !(this.modifierGroups || []).length;
+    }
+
+    async acceptCreateDefaultModifiers(): Promise<void> {
+        const product = this.modifierTargetProduct;
+        if (!product?.id || this.applyingDefaultModifiers) {
+            return;
         }
+
+        this.applyingDefaultModifiers = true;
+        const branchId = this.branchContext.getBranchId();
+        try {
+            const applied = await this.productModifierService.applyBranchTemplate(
+                product.id,
+                branchId
+            );
+            this.askCreateDefaultModifiers = false;
+            if (applied?.length) {
+                this.modifierGroups = applied;
+                for (const group of this.modifierGroups) {
+                    this.newOptionPrice[group.id] = null;
+                    this.newOptionName[group.id] = '';
+                }
+                this.messageService.add({
+                    severity: 'success',
+                    summary: 'Default modifiers created',
+                    detail: 'Branch modifier template applied. Default size uses sale price.',
+                    life: 2800,
+                });
+            } else {
+                this.messageService.add({
+                    severity: 'info',
+                    summary: 'No template',
+                    detail: 'No branch modifier template found. You can add modifiers manually.',
+                    life: 2800,
+                });
+            }
+        } catch (err: any) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: err?.message || 'Failed to create default modifiers',
+            });
+        } finally {
+            this.applyingDefaultModifiers = false;
+        }
+    }
+
+    declineCreateDefaultModifiers(): void {
+        this.askCreateDefaultModifiers = false;
     }
 
     async loadModifiers(productId: number): Promise<void> {

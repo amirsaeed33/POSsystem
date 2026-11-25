@@ -87,9 +87,11 @@ export class StaffFormDialogComponent implements OnChanges {
         }
 
         this.saving = true;
+        const currentBranchId =
+            this.branchContext.getBranchId() ?? this.staff.branchId ?? null;
         const payload = {
             name,
-            branchId: this.staff.branchId ?? null,
+            branchId: currentBranchId,
             employeeCode: this.staff.employeeCode?.trim() || undefined,
             phone: this.staff.phone?.trim() || undefined,
             email: this.staff.email?.trim() || undefined,

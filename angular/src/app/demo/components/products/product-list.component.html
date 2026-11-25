@@ -327,7 +327,7 @@
             <div class="surface-50 p-3 border-round">
                 <div class="font-semibold text-900 mb-1">Default sizes for this branch</div>
                 <div class="text-xs text-600">
-                    Saved once per branch. When you click <strong>Modifiers &amp; Add-ons</strong> on a product with no modifiers, this template loads automatically.
+                    Saved once per branch. When you open <strong>Modifiers &amp; Add-ons</strong> on a product with no modifiers, you will be asked whether to create these defaults.
                     The first size uses the product <strong>sale price</strong> (included). Extra sizes use the price you set here as +add-on.
                 </div>
             </div>
@@ -692,8 +692,48 @@
                 </div>
             </div>
 
+            <!-- Ask inside dialog: create default modifiers? -->
+            <div
+                *ngIf="!loadingModifiers && askCreateDefaultModifiers && !modifierGroups.length"
+                class="p-3 border-round border-1 border-primary-100 bg-primary-50"
+            >
+                <div class="flex align-items-start gap-2 mb-3">
+                    <i class="pi pi-question-circle text-primary text-xl mt-1"></i>
+                    <div>
+                        <div class="font-semibold text-900 mb-1">Create default modifiers?</div>
+                        <div class="text-sm text-700">
+                            Do you want to create default modifiers for this product from the branch template?
+                        </div>
+                    </div>
+                </div>
+                <div class="flex flex-wrap gap-2 justify-content-end">
+                    <button
+                        pButton
+                        pRipple
+                        type="button"
+                        label="No, leave empty"
+                        class="p-button-text p-button-sm"
+                        [disabled]="applyingDefaultModifiers"
+                        (click)="declineCreateDefaultModifiers()"
+                    ></button>
+                    <button
+                        pButton
+                        pRipple
+                        type="button"
+                        label="Yes, create"
+                        icon="pi pi-check"
+                        class="p-button-sm"
+                        [loading]="applyingDefaultModifiers"
+                        (click)="acceptCreateDefaultModifiers()"
+                    ></button>
+                </div>
+            </div>
+
             <!-- Empty Modifiers state -->
-            <div *ngIf="!loadingModifiers && !modifierGroups.length" class="text-center py-4 surface-50 border-round">
+            <div
+                *ngIf="!loadingModifiers && !askCreateDefaultModifiers && !modifierGroups.length"
+                class="text-center py-4 surface-50 border-round"
+            >
                 <i class="pi pi-list text-3xl text-400 mb-2 block"></i>
                 <div class="font-medium text-700">No modifier groups for this product.</div>
                 <div class="text-xs text-500 mt-1">
