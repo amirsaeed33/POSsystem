@@ -499,11 +499,11 @@ export class ProductFormDialogComponent implements OnChanges {
             .then((product) => {
                 this.product = { ...product, imageBase64: undefined };
                 this.specItems = this.parseSpecs(product.specifications);
-                // Tenant-level (all locations) keeps assignment empty.
-                this.selectedBranchIds =
-                    product.isShared || !product.branchIds?.length
-                        ? []
-                        : [...product.branchIds];
+                this.selectedBranchIds = product.branchIds?.length
+                    ? [...product.branchIds]
+                    : product.branchId
+                      ? [product.branchId]
+                      : [];
                 this.imagePreview = this.productService.getImageUrl(product.imagePath);
             })
             .catch((error) => {

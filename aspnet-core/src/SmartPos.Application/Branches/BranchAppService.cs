@@ -14,6 +14,7 @@ using Abp.UI;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using SmartPos.Authorization;
+using SmartPos.Authorization.Roles;
 using SmartPos.Authorization.Users;
 using SmartPos.Branches.Dto;
 using SmartPos.Emailing;
@@ -402,7 +403,7 @@ namespace SmartPos.Branches
 
                 IQueryable<Branch> query = Repository.GetAll().Where(x => x.IsActive);
 
-                if (!await PermissionChecker.IsGrantedAsync(PermissionNames.Pages_Branches))
+                if (!await CanSwitchTenantLocationsAsync())
                 {
                     if (!AbpSession.UserId.HasValue)
                     {
@@ -687,6 +688,23 @@ namespace SmartPos.Branches
             dto.TenantId = entity.TenantId;
             dto.StatusId = entity.StatusId;
             return dto;
+        }
+
+        private async Task<bool> CanSwitchTenantLocationsAsync()
+        {
+            if (await PermissionChecker.IsGrantedAsync(PermissionNames.Pages_Branches))
+            {
+                return true;
+            }
+
+            if (!AbpSession.UserId.HasValue)
+            {
+                return false;
+            }
+
+            var user = await UserManager.GetUserByIdAsync(AbpSession.UserId.Value);
+            return user != null
+                && await UserManager.IsInRoleAsync(user, StaticRoleNames.Tenants.Admin);
         }
 
         private async Task<bool> CanBrowseAllLocationsAsync()
@@ -988,48 +1006,44 @@ namespace SmartPos.Branches
 
         private async Task SeedSharedProductsAsync(int branchId)
         {
-            // Tenant-level products with no BranchStock rows are already visible everywhere.
-            // Seed products that were assigned to every other active branch (legacy "all locations").
-            var otherBranchIds = await Repository.GetAll()
-                .Where(x => x.IsActive && x.Id != branchId)
+            // Products stay branch-scoped. Do not copy / share catalog items onto a new branch.
+            // Keep a BranchStock row only for the product's owning branch when it was
+            // previously auto-shared to every location (legacy seed / "all locations").
+            _ = branchId;
+
+            var activeBranchIds = await Repository.GetAll()
+                .Where(x => x.IsActive)
                 .Select(x => x.Id)
                 .ToListAsync();
 
-            if (!otherBranchIds.Any())
+            if (activeBranchIds.Count <= 1)
             {
                 return;
             }
 
             var products = await _productRepository.GetAll()
-                .Select(x => new
-                {
-                    x.Id,
-                    x.Price,
-                    x.WholesalePrice,
-                    x.CostPrice
-                })
+                .Where(x => x.BranchId > 0)
+                .Select(x => new { x.Id, x.BranchId })
                 .ToListAsync();
 
             foreach (var product in products)
             {
                 var assigned = await _branchStockManager.GetAssignedBranchIdsAsync(product.Id);
-                if (!assigned.Any())
+                if (assigned.Count <= 1)
                 {
                     continue;
                 }
 
-                if (!otherBranchIds.All(id => assigned.Contains(id)))
+                // Only unwind fully-shared assignments (every active branch).
+                if (!activeBranchIds.All(id => assigned.Contains(id)))
                 {
                     continue;
                 }
 
-                await _branchStockManager.UpsertStockAndPricesAsync(
-                    branchId,
-                    product.Id,
-                    0,
-                    product.Price,
-                    product.WholesalePrice,
-                    product.CostPrice);
+                foreach (var extraBranchId in assigned.Where(id => id != product.BranchId))
+                {
+                    await _branchStockManager.RemoveAssignmentAsync(extraBranchId, product.Id);
+                }
             }
         }
 

@@ -68,13 +68,12 @@ namespace SmartPos.Products.Dto
         public string Specifications { get; set; }
 
         /// <summary>
-        /// True when the product is tenant-level (available at every location).
-        /// Computed from BranchStock assignments (empty or all active branches).
+        /// True when the product is explicitly assigned to more than one branch.
         /// </summary>
         public bool IsShared { get; set; }
 
         /// <summary>
-        /// Assigned branch ids (from BranchStock rows). Empty when tenant-level (all locations).
+        /// Assigned branch ids (from BranchStock rows, or owning BranchId when unassigned).
         /// </summary>
         public List<int> BranchIds { get; set; }
 

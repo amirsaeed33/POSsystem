@@ -7,8 +7,9 @@ namespace SmartPos.Inventory
     {
         /// <summary>
         /// Products visible to a branch:
-        /// - tenant-level (no BranchStock rows yet), or
-        /// - assigned via a BranchStock row for that branch.
+        /// - assigned via a BranchStock row for that branch, or
+        /// - owned by that branch (Product.BranchId) when no BranchStock rows exist yet.
+        /// Products are never treated as tenant-wide / visible on every branch by default.
         /// </summary>
         public static IQueryable<Product> WhereVisibleToBranch(
             this IQueryable<Product> products,
@@ -16,10 +17,9 @@ namespace SmartPos.Inventory
             int branchId)
         {
             return products.Where(p =>
-                p.BranchId == branchId
-                || p.BranchId == 0
-                || branchStocks.Any(bs => bs.BranchId == branchId && bs.ProductId == p.Id)
-                || !branchStocks.Any(bs => bs.ProductId == p.Id));
+                branchStocks.Any(bs => bs.ProductId == p.Id)
+                    ? branchStocks.Any(bs => bs.BranchId == branchId && bs.ProductId == p.Id)
+                    : p.BranchId == branchId);
         }
     }
 }

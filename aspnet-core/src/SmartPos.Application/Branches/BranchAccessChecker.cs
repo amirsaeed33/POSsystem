@@ -8,6 +8,7 @@ using Abp.Runtime.Session;
 using Abp.UI;
 using Microsoft.EntityFrameworkCore;
 using SmartPos.Authorization;
+using SmartPos.Authorization.Roles;
 using SmartPos.Authorization.Users;
 
 namespace SmartPos.Branches
@@ -63,7 +64,7 @@ namespace SmartPos.Branches
                 return false;
             }
 
-            if (await _permissionChecker.IsGrantedAsync(PermissionNames.Pages_Branches))
+            if (await CanSwitchTenantLocationsAsync())
             {
                 return true;
             }
@@ -102,7 +103,7 @@ namespace SmartPos.Branches
                     "This location is not approved yet. Please wait for host administrator approval before using the system.");
             }
 
-            if (await _permissionChecker.IsGrantedAsync(PermissionNames.Pages_Branches))
+            if (await CanSwitchTenantLocationsAsync())
             {
                 return;
             }
@@ -124,9 +125,9 @@ namespace SmartPos.Branches
             var user = await _userManager.GetUserByIdAsync(_abpSession.UserId.Value);
             var headerBranchId = _branchContext.BranchId;
 
-            // Location staff (no Pages.Branches): always locked to assigned branch.
+            // Location staff (not admin / no Pages.Branches): always locked to assigned branch.
             var canSwitchLocations =
-                await _permissionChecker.IsGrantedAsync(PermissionNames.Pages_Branches)
+                await CanSwitchTenantLocationsAsync()
                 || await IsHostLocationAdminAsync();
 
             if (!canSwitchLocations)
@@ -190,6 +191,23 @@ namespace SmartPos.Branches
 
             return await _branchRepository.GetAll()
                 .FirstOrDefaultAsync(x => x.Id == branchId && x.IsActive);
+        }
+
+        private async Task<bool> CanSwitchTenantLocationsAsync()
+        {
+            if (await _permissionChecker.IsGrantedAsync(PermissionNames.Pages_Branches))
+            {
+                return true;
+            }
+
+            if (!_abpSession.UserId.HasValue)
+            {
+                return false;
+            }
+
+            var user = await _userManager.GetUserByIdAsync(_abpSession.UserId.Value);
+            return user != null
+                && await _userManager.IsInRoleAsync(user, StaticRoleNames.Tenants.Admin);
         }
 
         private async Task<bool> IsHostLocationAdminAsync()

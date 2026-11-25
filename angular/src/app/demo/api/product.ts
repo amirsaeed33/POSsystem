@@ -42,7 +42,7 @@ export interface ProductDto {
     branchName?: string;
     imagePath?: string;
     imageBase64?: string;
-    /** Computed: true when tenant-level (all locations). */
+    /** Computed: true when assigned to more than one branch. */
     isShared?: boolean;
     branchIds?: number[];
     specifications?: string;
@@ -69,7 +69,7 @@ export interface CreateProductDto {
     unitId: number;
     branchId?: number;
     imageBase64?: string;
-    /** Empty = tenant-level (all locations). */
+    /** Empty = current / owning branch only. */
     branchIds?: number[];
     specifications?: string;
     cardTag?: string;

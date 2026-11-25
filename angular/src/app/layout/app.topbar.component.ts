@@ -43,6 +43,8 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
     changingBranch = false;
     branchLogoFailed = false;
     isFullscreen = false;
+    changeBranchDialogVisible = false;
+    loadingBranchesForSwitch = false;
 
     get printerConfigVisible(): boolean {
         return this.layoutService.printerConfigVisible;
@@ -163,20 +165,29 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
         );
     }
 
+    get isTenantAdmin(): boolean {
+        if ((this.userRole || '').toLowerCase() === 'admin') {
+            return true;
+        }
+        const roles = this.userInfo?.roleNames || [];
+        return roles.some((r) => (r || '').toLowerCase() === 'admin');
+    }
+
     get canSwitchLocations(): boolean {
         return (
             this.isHostAdmin ||
+            this.isTenantAdmin ||
             this.permissionService.isGranted(PermissionNames.Branches)
         );
     }
 
-    /** Topbar branch dropdown — only when switch is allowed and there are 2+ branches. */
+    /** Topbar branch dropdown for admins (switch when 2+ locations exist). */
     get showBranchSwitcher(): boolean {
         return (
             !this.isWaiter &&
             !this.isDeliveryRider &&
             this.canSwitchLocations &&
-            (this.branches?.length || 0) > 1
+            (this.branches?.length || 0) >= 1
         );
     }
 
@@ -613,9 +624,7 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
                 }
 
                 if (this.isHostAdmin && this.currentBranch) {
-                    if (this.syncLocationBusinessContext(this.currentBranch)) {
-                        location.reload();
-                    }
+                    this.syncLocationBusinessContext(this.currentBranch);
                 }
             })
             .catch(() => {
@@ -623,6 +632,31 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
                     this.setUserInfo(cachedUserInfo);
                 }
             });
+    }
+
+    async openChangeBranchDialog(): Promise<void> {
+        if (!this.canSwitchLocations || this.isWaiter || this.isDeliveryRider) {
+            return;
+        }
+
+        this.changeBranchDialogVisible = true;
+        this.loadingBranchesForSwitch = true;
+        try {
+            const branches = await this.branchContext.reload(
+                this.currentBranch?.id ?? this.branchContext.getBranchId()
+            );
+            this.branches = branches || this.branchContext.getAllowedBranches();
+            this.currentBranch = this.branchContext.getCurrentBranch();
+        } catch (error: any) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Branches',
+                detail: error?.message || 'Failed to load branches',
+                life: 5000,
+            });
+        } finally {
+            this.loadingBranchesForSwitch = false;
+        }
     }
 
     onChangeBranch(branch: BranchDto): void {
@@ -639,46 +673,42 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
         this.branchLogoFailed = false;
         this.branchContext.setCurrentBranch(branch);
         this.currentBranch = branch;
+        this.changeBranchDialogVisible = false;
 
-        if (this.isHostAdmin && this.syncLocationBusinessContext(branch)) {
-            location.reload();
-            return;
+        // Host admin may move across companies — update tenant cookie only when
+        // the selected branch has a real tenant id. Never clear the current tenant
+        // (that was forcing a re-login after branch switch).
+        if (this.isHostAdmin) {
+            this.syncLocationBusinessContext(branch);
         }
 
-        this.changingBranch = false;
-        this.remountCurrentRoute();
+        // Soft full reload applies SmartPos.BranchId everywhere and clears stale UI.
+        // Auth token + tenant cookie stay in storage — no logout/login needed.
+        location.reload();
     }
 
     /**
-     * Align Abp.TenantId with the selected location (internal plumbing for host).
-     * Returns true when the cookie changed (caller should reload).
+     * Align Abp.TenantId with the selected location (host admin only).
+     * Returns true when the cookie changed.
      */
     private syncLocationBusinessContext(branch: BranchDto): boolean {
         const nextTenantId = branch.tenantId ?? null;
+        if (nextTenantId == null || nextTenantId <= 0) {
+            return false;
+        }
+
         const currentTenantId = this.tenantContext.getTenantId();
         if (nextTenantId === currentTenantId) {
             return false;
         }
 
-        if (nextTenantId != null) {
-            this.tenantContext.setTenantId(nextTenantId);
-            this.tenantContext.setTenantInfo({
-                id: nextTenantId,
-                tenancyName: branch.tenancyName || '',
-                name: branch.tenancyName || '',
-            });
-        } else {
-            this.tenantContext.setTenantId(undefined);
-            this.tenantContext.setTenantInfo(null);
-        }
+        this.tenantContext.setTenantId(nextTenantId);
+        this.tenantContext.setTenantInfo({
+            id: nextTenantId,
+            tenancyName: branch.tenancyName || '',
+            name: branch.tenancyName || '',
+        });
         return true;
-    }
-
-    private remountCurrentRoute(): void {
-        const url = this.router.url;
-        this.router
-            .navigateByUrl('/notfound', { skipLocationChange: true })
-            .then(() => this.router.navigateByUrl(url));
     }
 
     setUserInfo(user: UserLoginInfoDto): void {
