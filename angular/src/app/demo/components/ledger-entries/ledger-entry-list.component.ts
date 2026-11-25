@@ -2,6 +2,7 @@ import { AppFormatService } from 'src/app/demo/service/app-format.service';
 import { Component, OnInit } from '@angular/core';
 import { Table } from 'primeng/table';
 import { ConfirmationService, MessageService } from 'primeng/api';
+import { sweetToast } from 'src/app/demo/utils/sweet-toast';
 import { LedgerEntryDto } from 'src/app/demo/api/ledger-entry';
 import { BusinessAccountDto } from 'src/app/demo/api/business-account';
 import { LedgerEntryService } from 'src/app/demo/service/ledger-entry.service';
@@ -97,9 +98,11 @@ export class LedgerEntryListComponent implements OnInit {
                     .delete(entry.id)
                     .then(() => {
                         this.messageService.add({
-                            severity: 'success',
-                            summary: 'Success',
-                            detail: 'Ledger entry deleted successfully',
+                            ...sweetToast(
+                                'ledger',
+                                'delete',
+                                entry.description
+                            ),
                         });
                         this.loadEntries();
                     })

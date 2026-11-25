@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MessageService } from 'primeng/api';
+import { sweetToast } from 'src/app/demo/utils/sweet-toast';
 
 import {
     BranchDto,
@@ -258,15 +259,21 @@ export class BranchEditComponent implements OnInit {
             })
             .then((saved) => {
 
-                this.messageService.add({
-                    severity: 'success',
-                    summary: requestingActivation
-                        ? 'Activation email sent'
-                        : 'Success',
-                    detail: requestingActivation
-                        ? 'An activation link was emailed. The branch stays pending until the link is opened.'
-                        : 'Branch updated successfully',
-                });
+                if (requestingActivation) {
+                    this.messageService.add({
+                        severity: 'success',
+                        summary: 'Activation email sent',
+                        detail: 'An activation link was emailed. The branch stays pending until the link is opened.',
+                    });
+                } else {
+                    this.messageService.add({
+                        ...sweetToast(
+                            'branch',
+                            'update',
+                            this.branch.name
+                        ),
+                    });
+                }
 
 
                 if (

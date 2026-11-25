@@ -58,7 +58,7 @@ namespace SmartPos.Orders
         [AbpAllowAnonymous]
         Task<StorefrontByHostDto> GetStorefrontByHostAsync(string host = null);
 
-        Task<List<string>> GetOnlineCategoriesAsync(int? branchId);
+        Task<List<OnlineCategoryDto>> GetOnlineCategoriesAsync(int? branchId);
 
         Task<CustomerOrderDto> OverrideDeliveryFeeAsync(OverrideDeliveryFeeInput input);
 

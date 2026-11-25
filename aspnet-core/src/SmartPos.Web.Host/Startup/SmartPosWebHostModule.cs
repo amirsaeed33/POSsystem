@@ -54,6 +54,8 @@ namespace SmartPos.Web.Host.Startup
                 EnsurePackageBillingAmounts();
             }
 
+            EnsureBranchModifierTemplateColumn();
+
             var runDbSeed = string.Equals(
                 _appConfiguration["App:RunDbSeed"],
                 "true",
@@ -276,6 +278,31 @@ END
             catch
             {
                 // Columns are created by EF migrations when migrate-on-boot is enabled.
+            }
+        }
+
+        /// <summary>
+        /// Branch-level product modifier template JSON (applied when products have no modifiers).
+        /// </summary>
+        private void EnsureBranchModifierTemplateColumn()
+        {
+            try
+            {
+                using (var uowManager = IocManager.ResolveAsDisposable<IUnitOfWorkManager>())
+                using (var uow = uowManager.Object.Begin())
+                {
+                    var context = uowManager.Object.Current.GetDbContext<SmartPosDbContext>(MultiTenancySides.Host);
+                    context.Database.ExecuteSqlRaw(@"
+IF OBJECT_ID(N'dbo.AppBranches', N'U') IS NOT NULL
+AND COL_LENGTH(N'dbo.AppBranches', N'ModifierTemplateJson') IS NULL
+    ALTER TABLE [dbo].[AppBranches] ADD [ModifierTemplateJson] nvarchar(max) NULL;
+");
+                    uow.Complete();
+                }
+            }
+            catch
+            {
+                // Column is created by EF migrations when migrate-on-boot is enabled.
             }
         }
     }

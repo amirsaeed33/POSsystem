@@ -14,6 +14,7 @@ import {
     validateEntityName,
 } from 'src/app/shared/utils/name-validation';
 import { MessageService } from 'primeng/api';
+import { sweetToast } from 'src/app/demo/utils/sweet-toast';
 
 @Component({
     selector: 'app-unit-form-dialog',
@@ -105,11 +106,11 @@ export class UnitFormDialogComponent implements OnChanges {
         request
             .then(() => {
                 this.messageService.add({
-                    severity: 'success',
-                    summary: 'Success',
-                    detail: this.unitId
-                        ? 'Unit updated successfully'
-                        : 'Unit created successfully',
+                    ...sweetToast(
+                        'unit',
+                        this.unitId ? 'update' : 'create',
+                        name
+                    ),
                 });
                 this.saved.emit();
                 this.onHide();

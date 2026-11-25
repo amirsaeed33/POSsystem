@@ -306,6 +306,8 @@
                                             <Image Source="{Binding ImageUrl, Converter={StaticResource CachedUriImageSourceConverter}}"
                                                    IsVisible="{Binding HasImage}"
                                                    Aspect="AspectFill"
+                                                   WidthRequest="160"
+                                                   HeightRequest="112"
                                                    HorizontalOptions="Fill"
                                                    VerticalOptions="Fill" />
                                             <Border BackgroundColor="#1C1410"

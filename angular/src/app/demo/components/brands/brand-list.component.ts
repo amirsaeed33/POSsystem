@@ -1,6 +1,7 @@
 import { Component, Input, OnInit } from '@angular/core';
 import { Table } from 'primeng/table';
 import { ConfirmationService, MessageService } from 'primeng/api';
+import { sweetToast } from 'src/app/demo/utils/sweet-toast';
 import { BrandDto } from 'src/app/demo/api/brand';
 import { BrandService } from 'src/app/demo/service/brand.service';
 import { RowActionItem } from 'src/app/shared/components/row-actions/row-actions.component';
@@ -89,9 +90,7 @@ export class BrandListComponent implements OnInit {
                     .delete(brand.id)
                     .then(() => {
                         this.messageService.add({
-                            severity: 'success',
-                            summary: 'Success',
-                            detail: 'Brand deleted successfully',
+                            ...sweetToast('brand', 'delete', brand.name),
                         });
                         this.loadBrands();
                     })

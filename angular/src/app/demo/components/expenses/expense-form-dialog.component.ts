@@ -7,6 +7,7 @@ import {
     SimpleChanges,
 } from '@angular/core';
 import { MessageService } from 'primeng/api';
+import { sweetToast } from 'src/app/demo/utils/sweet-toast';
 import { CreateExpenseDto } from 'src/app/demo/api/expense';
 import { BusinessAccountDto } from 'src/app/demo/api/business-account';
 import { ExpenseService } from 'src/app/demo/service/expense.service';
@@ -113,11 +114,11 @@ export class ExpenseFormDialogComponent implements OnChanges {
         request
             .then(() => {
                 this.messageService.add({
-                    severity: 'success',
-                    summary: 'Success',
-                    detail: this.expenseId
-                        ? 'Expense updated successfully'
-                        : 'Expense created successfully',
+                    ...sweetToast(
+                        'expense',
+                        this.expenseId ? 'update' : 'create',
+                        this.expense.description
+                    ),
                 });
                 this.saved.emit();
                 this.onHide();

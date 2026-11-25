@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { Table } from 'primeng/table';
 import { ConfirmationService, MessageService } from 'primeng/api';
+import { sweetToast } from 'src/app/demo/utils/sweet-toast';
 import { EmailTemplateDto } from 'src/app/demo/api/email-template';
 import { EmailTemplateService } from 'src/app/demo/service/email-template.service';
 import { RowActionItem } from 'src/app/shared/components/row-actions/row-actions.component';
@@ -112,9 +113,11 @@ export class EmailTemplateListComponent implements OnInit {
                     .delete(template.id)
                     .then(() => {
                         this.messageService.add({
-                            severity: 'success',
-                            summary: 'Success',
-                            detail: 'Email template deleted successfully',
+                            ...sweetToast(
+                                'emailTemplate',
+                                'delete',
+                                template.name
+                            ),
                         });
                         this.loadTemplates();
                     })

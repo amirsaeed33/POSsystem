@@ -16,6 +16,7 @@ import { MultiSelectModule } from 'primeng/multiselect';
 import { CheckboxModule } from 'primeng/checkbox';
 import { InputSwitchModule } from 'primeng/inputswitch';
 import { TabViewModule } from 'primeng/tabview';
+import { MenuModule } from 'primeng/menu';
 import { ProductsRoutingModule } from './products-routing.module';
 import { ProductListComponent } from './product-list.component';
 import { ProductFormDialogComponent } from './product-form-dialog.component';
@@ -43,6 +44,7 @@ import { AppRowActionsComponent } from 'src/app/shared/components/row-actions/ro
         CheckboxModule,
         InputSwitchModule,
         TabViewModule,
+        MenuModule,
         StyleClassModule,
         AppRowActionsComponent,
     ],

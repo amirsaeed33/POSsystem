@@ -12,6 +12,7 @@ public partial class WaiterTablesViewModel : BaseViewModel
     private readonly SessionService _session;
     private readonly AuthService _auth;
     private readonly CartService _cart;
+    private readonly StaffDataCache _staffCache;
 
     private List<RestaurantTableDto> _allTables = new();
     private IDispatcherTimer? _clock;
@@ -146,8 +147,14 @@ public partial class WaiterTablesViewModel : BaseViewModel
         set => IsMyTablesOnly = value;
     }
 
-    public WaiterTablesViewModel(RestaurantService restaurant, SessionService session, AuthService auth, CartService cart)
+    public WaiterTablesViewModel(
+        RestaurantService restaurant,
+        SessionService session,
+        AuthService auth,
+        CartService cart,
+        StaffDataCache staffCache)
     {
+        _staffCache = staffCache;
         _restaurant = restaurant;
         _session = session;
         _auth = auth;
@@ -179,7 +186,7 @@ public partial class WaiterTablesViewModel : BaseViewModel
                 ? "GULBERG III FLAGSHIP  •  FLOOR OPS"
                 : $"{BranchName.ToUpperInvariant()}  •  FLOOR OPS";
             StartClock();
-            await RefreshTablesAsync();
+            await LoadTablesAsync(forceRefresh: false);
         }
         finally
         {
@@ -236,7 +243,9 @@ public partial class WaiterTablesViewModel : BaseViewModel
     }
 
     [RelayCommand]
-    private async Task RefreshTablesAsync()
+    private Task RefreshTablesAsync() => LoadTablesAsync(forceRefresh: true);
+
+    private async Task LoadTablesAsync(bool forceRefresh)
     {
         if (_session.BranchId is not int branchId)
         {
@@ -244,57 +253,100 @@ public partial class WaiterTablesViewModel : BaseViewModel
             return;
         }
 
+        if (!forceRefresh &&
+            _staffCache.TryGetTables(branchId, out var cached) &&
+            cached is { Count: > 0 })
+        {
+            ApplyTablesPayload(cached, skipHeavyPrefetch: true);
+            OnClockTick(this, EventArgs.Empty);
+            _ = SoftRefreshTablesInBackgroundAsync(branchId);
+            return;
+        }
+
         await RunBusyAsync(async () =>
         {
             var all = await _restaurant.GetTablesAsync(branchId);
-            _allTables = all.Where(t => t.IsActive).ToList();
-            var waiterName = _session.User?.DisplayName ?? string.Empty;
-
-            foreach (var table in _allTables)
-            {
-                if (string.IsNullOrWhiteSpace(table.WaiterName))
-                {
-                    table.AssignedWaiterLabel = "Unassigned";
-                }
-                else if (string.Equals(table.WaiterName, waiterName, StringComparison.OrdinalIgnoreCase))
-                {
-                    table.AssignedWaiterLabel = $"{table.WaiterName} (You)";
-                }
-                else
-                {
-                    table.AssignedWaiterLabel = table.WaiterName!;
-                }
-            }
-
-            FreeCount = _allTables.Count(t => t.IsFree).ToString();
-            BusyCount = _allTables.Count(t => t.IsOccupied).ToString();
-            BilledCount = _allTables.Count(t => t.IsBilled).ToString();
-            OnPropertyChanged(nameof(AvailableCount));
-            OnPropertyChanged(nameof(OccupiedCount));
-
-            var previousId = SelectedTable?.Id;
-            Tables.Clear();
-            foreach (var table in _allTables)
-            {
-                Tables.Add(table);
-            }
-
-            ApplyFilters();
-
-            var stillSelected = previousId is int id
-                ? _allTables.FirstOrDefault(t => t.Id == id)
-                : SelectedTable;
-            ApplySelection(stillSelected ?? FilteredTables.FirstOrDefault());
-
-            await FillMissingStartTimesAsync(_allTables);
-            await PrefetchRunningBillsAsync(_allTables.Where(t => !t.IsFree).ToList());
+            _staffCache.SetTables(branchId, all);
+            ApplyTablesPayload(all, skipHeavyPrefetch: false);
             OnClockTick(this, EventArgs.Empty);
         });
     }
 
+    private async Task SoftRefreshTablesInBackgroundAsync(int branchId)
+    {
+        try
+        {
+            var all = await _restaurant.GetTablesAsync(branchId);
+            _staffCache.SetTables(branchId, all);
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                ApplyTablesPayload(all, skipHeavyPrefetch: true);
+                OnClockTick(this, EventArgs.Empty);
+            });
+            await FillMissingStartTimesAsync(_allTables);
+            await PrefetchRunningBillsAsync(_allTables.Where(t => !t.IsFree).ToList());
+        }
+        catch
+        {
+            // Keep showing the cached floor map.
+        }
+    }
+
+    private void ApplyTablesPayload(IReadOnlyList<RestaurantTableDto> all, bool skipHeavyPrefetch)
+    {
+        _allTables = all.Where(t => t.IsActive).ToList();
+        var waiterName = _session.User?.DisplayName ?? string.Empty;
+
+        foreach (var table in _allTables)
+        {
+            if (string.IsNullOrWhiteSpace(table.WaiterName))
+            {
+                table.AssignedWaiterLabel = "Unassigned";
+            }
+            else if (string.Equals(table.WaiterName, waiterName, StringComparison.OrdinalIgnoreCase))
+            {
+                table.AssignedWaiterLabel = $"{table.WaiterName} (You)";
+            }
+            else
+            {
+                table.AssignedWaiterLabel = table.WaiterName!;
+            }
+        }
+
+        FreeCount = _allTables.Count(t => t.IsFree).ToString();
+        BusyCount = _allTables.Count(t => t.IsOccupied).ToString();
+        BilledCount = _allTables.Count(t => t.IsBilled).ToString();
+        OnPropertyChanged(nameof(AvailableCount));
+        OnPropertyChanged(nameof(OccupiedCount));
+
+        var previousId = SelectedTable?.Id;
+        ReplaceCollection(Tables, _allTables);
+        ApplyFilters();
+
+        var stillSelected = previousId is int id
+            ? _allTables.FirstOrDefault(t => t.Id == id)
+            : SelectedTable;
+        ApplySelection(stillSelected ?? FilteredTables.FirstOrDefault());
+
+        if (!skipHeavyPrefetch)
+        {
+            _ = FillMissingStartTimesAsync(_allTables);
+            _ = PrefetchRunningBillsAsync(_allTables.Where(t => !t.IsFree).ToList());
+        }
+    }
+
+    private static void ReplaceCollection<T>(ObservableCollection<T> target, IEnumerable<T> source)
+    {
+        target.Clear();
+        foreach (var item in source)
+        {
+            target.Add(item);
+        }
+    }
+
     // Alias for older RefreshCommand name used elsewhere in the page lifecycle docs.
     [RelayCommand]
-    private Task RefreshAsync() => RefreshTablesAsync();
+    private Task RefreshAsync() => LoadTablesAsync(forceRefresh: true);
 
     private void ApplyFilters()
     {
@@ -778,6 +830,8 @@ public partial class WaiterTablesViewModel : BaseViewModel
             _cart.LoadFromOrder(order);
             WaiterOrderSession.CurrentOrder = order;
             WaiterOrderSession.CurrentTable = table;
+            _staffCache.InvalidateTables(branchId);
+            _staffCache.InvalidateActiveOrders(branchId);
             IsKotDrawerOpen = false;
             await Shell.Current.GoToAsync("//waiter/order");
         }

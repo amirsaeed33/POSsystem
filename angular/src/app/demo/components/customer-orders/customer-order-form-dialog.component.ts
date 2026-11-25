@@ -7,6 +7,7 @@ import {
     SimpleChanges,
 } from '@angular/core';
 import { MessageService } from 'primeng/api';
+import { sweetToast } from 'src/app/demo/utils/sweet-toast';
 import {
     CreateCustomerOrderDto,
     CreateCustomerOrderLineDto,
@@ -326,9 +327,7 @@ export class CustomerOrderFormDialogComponent implements OnChanges {
             })
             .then(() => {
                 this.messageService.add({
-                    severity: 'success',
-                    summary: 'Success',
-                    detail: 'Customer order created successfully',
+                    ...sweetToast('customerOrder', 'create'),
                 });
                 this.saved.emit();
                 this.onHide();

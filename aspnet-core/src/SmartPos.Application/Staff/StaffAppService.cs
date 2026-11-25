@@ -29,6 +29,7 @@ namespace SmartPos.Staffs
         private readonly RoleManager _roleManager;
         private readonly IPasswordHasher<User> _passwordHasher;
         private readonly IBranchContext _branchContext;
+        private readonly IBranchAccessChecker _branchAccessChecker;
         private readonly IRepository<User, long> _userRepository;
         private readonly IRepository<Branch> _branchRepository;
         private readonly SavedAddressManager _savedAddresses;
@@ -40,6 +41,7 @@ namespace SmartPos.Staffs
             RoleManager roleManager,
             IPasswordHasher<User> passwordHasher,
             IBranchContext branchContext,
+            IBranchAccessChecker branchAccessChecker,
             IRepository<User, long> userRepository,
             IRepository<Branch> branchRepository,
             SavedAddressManager savedAddresses)
@@ -50,6 +52,7 @@ namespace SmartPos.Staffs
             _roleManager = roleManager;
             _passwordHasher = passwordHasher;
             _branchContext = branchContext;
+            _branchAccessChecker = branchAccessChecker;
             _userRepository = userRepository;
             _branchRepository = branchRepository;
             _savedAddresses = savedAddresses;
@@ -65,11 +68,9 @@ namespace SmartPos.Staffs
                 entity.TenantId = AbpSession.TenantId;
             }
 
-            var activeBranchId = ResolveBranchId();
-            if (activeBranchId.HasValue)
-            {
-                entity.BranchId = activeBranchId.Value;
-            }
+            // Staff is always branch-scoped to the active location.
+            var activeBranchId = await _branchAccessChecker.RequireEffectiveBranchIdAsync();
+            entity.BranchId = activeBranchId;
 
             await Repository.InsertAsync(entity);
             await CurrentUnitOfWork.SaveChangesAsync();
@@ -94,15 +95,20 @@ namespace SmartPos.Staffs
             CheckUpdatePermission();
 
             var entity = await GetEntityByIdAsync(input.Id);
+            await EnsureStaffVisibleForCurrentBranchAsync(entity);
+
             var previousDesignation = entity.Designation;
             var previousSalary = entity.BasicSalary;
             var previousName = entity.Name;
             var userId = entity.UserId;
             var loginPassword = entity.LoginPassword;
+            var owningBranchId = entity.BranchId;
 
             MapToEntity(input, entity);
             entity.UserId = userId;
             entity.LoginPassword = loginPassword;
+            // Keep staff on their owning branch — do not share across locations.
+            entity.BranchId = owningBranchId;
 
             await Repository.UpdateAsync(entity);
             await CurrentUnitOfWork.SaveChangesAsync();
@@ -145,6 +151,7 @@ namespace SmartPos.Staffs
             CheckDeletePermission();
 
             var entity = await Repository.GetAsync(input.Id);
+            await EnsureStaffVisibleForCurrentBranchAsync(entity);
 
             await _staffHistoryWriter.WriteAsync(
                 entity.Id,
@@ -160,6 +167,8 @@ namespace SmartPos.Staffs
             CheckUpdatePermission();
 
             var staff = await Repository.GetAsync(input.StaffId);
+            await EnsureStaffVisibleForCurrentBranchAsync(staff);
+
             if (staff.UserId.HasValue)
             {
                 throw new UserFriendlyException($"A login account already exists for {input.Email} staff member.");
@@ -281,6 +290,8 @@ namespace SmartPos.Staffs
             CheckUpdatePermission();
 
             var staff = await Repository.GetAsync(input.StaffId);
+            await EnsureStaffVisibleForCurrentBranchAsync(staff);
+
             if (!staff.UserId.HasValue)
             {
                 throw new UserFriendlyException("No login account exists for this staff member.");
@@ -306,6 +317,10 @@ namespace SmartPos.Staffs
 
         protected override IQueryable<Staff> CreateFilteredQuery(PagedStaffResultRequestDto input)
         {
+            var branchId = input.BranchId.HasValue && input.BranchId.Value > 0
+                ? input.BranchId
+                : ResolveBranchId();
+
             return Repository.GetAll()
                 .Include(x => x.Branch)
                 .WhereIf(!input.Keyword.IsNullOrWhiteSpace(),
@@ -315,7 +330,7 @@ namespace SmartPos.Staffs
                          || (x.EmployeeCode != null && x.EmployeeCode.Contains(input.Keyword))
                          || (x.Designation != null && x.Designation.Contains(input.Keyword)))
                 .WhereIf(input.IsActive.HasValue, x => x.IsActive == input.IsActive.Value)
-                .WhereIf(input.BranchId.HasValue, x => x.BranchId == input.BranchId.Value);
+                .WhereIf(branchId.HasValue, x => x.BranchId == branchId.Value);
         }
 
         protected override async Task<Staff> GetEntityByIdAsync(int id)
@@ -329,7 +344,27 @@ namespace SmartPos.Staffs
                 throw new UserFriendlyException("Staff not found");
             }
 
+            await EnsureStaffVisibleForCurrentBranchAsync(entity);
             return entity;
+        }
+
+        private async Task EnsureStaffVisibleForCurrentBranchAsync(Staff staff)
+        {
+            if (staff == null)
+            {
+                throw new UserFriendlyException("Staff not found");
+            }
+
+            var branchId = await _branchAccessChecker.GetEffectiveBranchIdAsync();
+            if (!branchId.HasValue)
+            {
+                throw new UserFriendlyException("No branch is assigned. Please contact your administrator.");
+            }
+
+            if (!staff.BranchId.HasValue || staff.BranchId.Value != branchId.Value)
+            {
+                throw new UserFriendlyException("Staff is not available for this branch.");
+            }
         }
 
         protected override StaffDto MapToEntityDto(Staff entity)

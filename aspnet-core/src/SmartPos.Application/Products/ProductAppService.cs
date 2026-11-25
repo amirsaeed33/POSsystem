@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Abp.Application.Services;
 using Abp.Application.Services.Dto;
@@ -35,6 +36,7 @@ namespace SmartPos.Products
         private readonly IPermissionChecker _permissionChecker;
         private readonly ISmartPosReadCacheInvalidator _readCacheInvalidator;
         private int? _effectiveBranchIdForQuery;
+        private static int _sharedAssignmentRepairDone;
 
         public ProductAppService(
             IRepository<Product> repository,
@@ -75,12 +77,15 @@ namespace SmartPos.Products
             var branch = effectiveBranchId > 0 ? await _branchRepository.FirstOrDefaultAsync(effectiveBranchId) : null;
             var isRestaurant = branch != null && branch.BusinessType == BusinessType.Restaurant;
 
+            if (string.IsNullOrWhiteSpace(input.Barcode))
+            {
+                input.Barcode = isRestaurant
+                    ? $"REST-{Guid.NewGuid():N}".Substring(0, 16).ToUpper()
+                    : $"PRD-{Guid.NewGuid():N}".Substring(0, 16).ToUpper();
+            }
+
             if (isRestaurant)
             {
-                if (string.IsNullOrWhiteSpace(input.Barcode))
-                {
-                    input.Barcode = $"REST-{Guid.NewGuid():N}".Substring(0, 16).ToUpper();
-                }
                 if (!input.BrandId.HasValue || input.BrandId.Value <= 0)
                 {
                     var defaultBrand = (branch != null ? await _brandRepository.FirstOrDefaultAsync(b => b.BranchId == branch.Id) : null)
@@ -151,7 +156,7 @@ namespace SmartPos.Products
                 .Where(x => x > 0)
                 .Distinct()
                 .ToList();
-            // Empty branch selection = tenant-level (no BranchStock rows → visible everywhere).
+            // Empty branch selection = current branch only (products stay branch-scoped).
             var targetBranchIds = await ResolveTargetBranchIdsForCreateAsync(
                 canManageBranches,
                 selectedBranchIds);
@@ -238,12 +243,17 @@ namespace SmartPos.Products
 
             var branch = product.BranchId > 0 ? await _branchRepository.FirstOrDefaultAsync(product.BranchId) : null;
             var isRestaurant = branch != null && branch.BusinessType == BusinessType.Restaurant;
+            if (string.IsNullOrWhiteSpace(input.Barcode))
+            {
+                input.Barcode = !string.IsNullOrWhiteSpace(product.Barcode)
+                    ? product.Barcode
+                    : (isRestaurant
+                        ? $"REST-{Guid.NewGuid():N}".Substring(0, 16).ToUpper()
+                        : $"PRD-{Guid.NewGuid():N}".Substring(0, 16).ToUpper());
+            }
+
             if (isRestaurant)
             {
-                if (string.IsNullOrWhiteSpace(input.Barcode))
-                {
-                    input.Barcode = product.Barcode ?? $"REST-{Guid.NewGuid():N}".Substring(0, 16).ToUpper();
-                }
                 if (!input.BrandId.HasValue || input.BrandId.Value <= 0)
                 {
                     input.BrandId = product.BrandId;
@@ -329,7 +339,8 @@ namespace SmartPos.Products
 
             var branchId = await _branchAccessChecker.RequireEffectiveBranchIdAsync();
             var assignedBranchIds = await _branchStockManager.GetAssignedBranchIdsAsync(product.Id);
-            if (!assignedBranchIds.Any() || assignedBranchIds.Contains(branchId))
+            if (assignedBranchIds.Contains(branchId)
+                || (!assignedBranchIds.Any() && product.BranchId == branchId))
             {
                 await _branchStockManager.SetPricesAsync(
                     branchId,
@@ -410,6 +421,11 @@ namespace SmartPos.Products
 
         public override async Task<PagedResultDto<ProductDto>> GetAllAsync(PagedProductResultRequestDto input)
         {
+            if (Interlocked.Exchange(ref _sharedAssignmentRepairDone, 1) == 0)
+            {
+                await RepairFullySharedProductAssignmentsAsync();
+            }
+
             _effectiveBranchIdForQuery = await _branchAccessChecker.GetEffectiveBranchIdAsync();
             try
             {
@@ -488,7 +504,8 @@ namespace SmartPos.Products
             }
 
             var assignedBranchIds = await _branchStockManager.GetAssignedBranchIdsAsync(product.Id);
-            if (!assignedBranchIds.Any() || assignedBranchIds.Contains(branchId.Value))
+            if (assignedBranchIds.Contains(branchId.Value)
+                || (!assignedBranchIds.Any() && product.BranchId == branchId.Value))
             {
                 return;
             }
@@ -536,22 +553,18 @@ namespace SmartPos.Products
             var selected = (branchIds ?? new List<int>()).Where(x => x > 0).Distinct().ToList();
             var current = await _branchStockManager.GetAssignedBranchIdsAsync(product.Id);
 
-            // Empty selection = tenant-level: ensure stock rows exist for every active branch.
+            // Empty selection = keep product on its owning / current branch only.
             if (!selected.Any())
             {
-                var allBranchIds = await GetActiveBranchIdsAsync();
-                foreach (var branchId in allBranchIds.Except(current))
+                var ownBranchId = product.BranchId > 0
+                    ? product.BranchId
+                    : (await _branchAccessChecker.GetEffectiveBranchIdAsync() ?? 0);
+                if (ownBranchId <= 0)
                 {
-                    await _branchStockManager.UpsertStockAndPricesAsync(
-                        branchId,
-                        product.Id,
-                        0,
-                        product.Price,
-                        product.WholesalePrice,
-                        product.CostPrice);
+                    return;
                 }
 
-                return;
+                selected = new List<int> { ownBranchId };
             }
 
             await EnsureBranchesExistAndAccessibleAsync(selected);
@@ -649,7 +662,6 @@ namespace SmartPos.Products
                 return;
             }
 
-            var activeBranchIds = await GetActiveBranchIdsAsync();
             var productIds = items.Select(x => x.Id).ToList();
             var assignments = await _branchStockRepository.GetAll()
                 .Where(x => productIds.Contains(x.ProductId))
@@ -666,13 +678,54 @@ namespace SmartPos.Products
                     ? branchIds
                     : new List<int>();
 
-                // No rows, or rows for every active branch ⇒ tenant-level (all locations).
-                var isTenantLevel = !assigned.Any()
-                    || (activeBranchIds.Count > 0
-                        && activeBranchIds.All(id => assigned.Contains(id)));
+                if (!assigned.Any() && item.BranchId > 0)
+                {
+                    assigned = new List<int> { item.BranchId };
+                }
 
-                item.IsShared = isTenantLevel;
-                item.BranchIds = isTenantLevel ? new List<int>() : assigned;
+                // Shared only when explicitly assigned to more than one branch.
+                item.IsShared = assigned.Count > 1;
+                item.BranchIds = assigned;
+            }
+        }
+
+        /// <summary>
+        /// One-time repair: products previously auto-shared to every active branch
+        /// are reduced back to their owning BranchId only.
+        /// </summary>
+        private async Task RepairFullySharedProductAssignmentsAsync()
+        {
+            var activeBranchIds = await GetActiveBranchIdsAsync();
+            if (activeBranchIds.Count <= 1)
+            {
+                return;
+            }
+
+            var products = await Repository.GetAll()
+                .Where(x => x.BranchId > 0)
+                .Select(x => new { x.Id, x.BranchId })
+                .ToListAsync();
+
+            var repaired = false;
+            foreach (var product in products)
+            {
+                var assigned = await _branchStockManager.GetAssignedBranchIdsAsync(product.Id);
+                if (assigned.Count <= 1 || !activeBranchIds.All(id => assigned.Contains(id)))
+                {
+                    continue;
+                }
+
+                foreach (var extraBranchId in assigned.Where(id => id != product.BranchId))
+                {
+                    await _branchStockManager.RemoveAssignmentAsync(extraBranchId, product.Id);
+                    repaired = true;
+                }
+            }
+
+            if (repaired)
+            {
+                await CurrentUnitOfWork.SaveChangesAsync();
+                await _readCacheInvalidator.ClearCatalogAsync();
             }
         }
 
@@ -729,10 +782,7 @@ namespace SmartPos.Products
                 throw new UserFriendlyException("Name is required.");
             }
 
-            if (!isRestaurant && barcode.IsNullOrWhiteSpace())
-            {
-                throw new UserFriendlyException("Barcode is required.");
-            }
+            // Barcode is optional in the UI; callers auto-generate when blank.
 
             // Menu items need a selling price; grocery ingredients can be cost-only (price 0).
             if (isGroceryInventory)

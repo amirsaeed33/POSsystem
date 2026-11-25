@@ -29,7 +29,13 @@
                 <button type="button" class="run-filter kit-car" [class.active]="filter === 'car'" (click)="setFilter('car')">
                     Car <span class="run-filter-count">{{ carCount }}</span>
                 </button>
-                <button type="button" class="run-filter kit-online" [class.active]="filter === 'online'" (click)="setFilter('online')">
+                <button
+                    *ngIf="canLoadOnlineOrders"
+                    type="button"
+                    class="run-filter kit-online"
+                    [class.active]="filter === 'online'"
+                    (click)="setFilter('online')"
+                >
                     Online <span class="run-filter-count">{{ onlineCount }}</span>
                 </button>
             </div>

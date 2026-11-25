@@ -7,6 +7,7 @@ import {
     SimpleChanges,
 } from '@angular/core';
 import { MessageService } from 'primeng/api';
+import { sweetToast } from 'src/app/demo/utils/sweet-toast';
 import {
     CreateLedgerEntryDto,
     LedgerEntryDto,
@@ -138,11 +139,11 @@ export class LedgerEntryFormDialogComponent implements OnChanges {
         request
             .then(() => {
                 this.messageService.add({
-                    severity: 'success',
-                    summary: 'Success',
-                    detail: this.entryId
-                        ? 'Ledger entry updated successfully'
-                        : 'Ledger entry created successfully',
+                    ...sweetToast(
+                        'ledger',
+                        this.entryId ? 'update' : 'create',
+                        this.entry.description
+                    ),
                 });
                 this.saved.emit();
                 this.onHide();

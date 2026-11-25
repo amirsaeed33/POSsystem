@@ -63,6 +63,12 @@ export interface CustomerOrderDto {
     lines?: CustomerOrderLineDto[];
 }
 
+/** Online storefront category with optional uploaded image. */
+export interface OnlineCategoryDto {
+    name: string;
+    imagePath?: string;
+}
+
 export interface RateCustomerOrderInput {
     orderNo: string;
     rating: number;

@@ -2,6 +2,7 @@ import { AppFormatService } from 'src/app/demo/service/app-format.service';
 import { Component, OnInit } from '@angular/core';
 import { Table } from 'primeng/table';
 import { ConfirmationService, MessageService } from 'primeng/api';
+import { sweetToast } from 'src/app/demo/utils/sweet-toast';
 import { PurchaseReturnDto } from 'src/app/demo/api/purchase-return';
 import { PurchaseReturnService } from 'src/app/demo/service/purchase-return.service';
 import { RowActionItem } from 'src/app/shared/components/row-actions/row-actions.component';
@@ -128,9 +129,7 @@ export class PurchaseReturnListComponent implements OnInit {
                     .delete(item.id)
                     .then(() => {
                         this.messageService.add({
-                            severity: 'success',
-                            summary: 'Success',
-                            detail: 'Purchase return deleted successfully',
+                            ...sweetToast('purchaseReturn', 'delete'),
                         });
                         this.loadReturns();
                     })

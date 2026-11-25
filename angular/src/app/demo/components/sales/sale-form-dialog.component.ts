@@ -8,6 +8,7 @@ import {
     SimpleChanges,
 } from '@angular/core';
 import { MessageService } from 'primeng/api';
+import { sweetToast } from 'src/app/demo/utils/sweet-toast';
 import {
     CreateSaleDto,
     CreateSaleLineDto,
@@ -305,17 +306,18 @@ export class SaleFormDialogComponent implements OnChanges {
                 })),
             })
             .then((created) => {
-                const detail =
+                const toast = sweetToast('sale', 'create');
+                const summary =
                     change > 0
-                        ? `Sale saved. Return ${change.toFixed(2)} change to the customer.`
+                        ? `Sweet! Sale sealed — return ${change.toFixed(2)} change.`
                         : this.remainingDue > 0
-                          ? `Sale saved. Remaining ${this.remainingDue.toFixed(2)} posted on credit.`
-                          : 'Sale created successfully';
+                          ? `Sweet! Sale sealed — ${this.remainingDue.toFixed(2)} on credit.`
+                          : toast.summary;
 
                 this.messageService.add({
-                    severity: 'success',
-                    summary: 'Success',
-                    detail,
+                    ...toast,
+                    summary,
+                    detail: '',
                 });
                 this.paymentDialogVisible = false;
                 this.saved.emit();

@@ -21,7 +21,7 @@
                                 Open
                             </span>
                         </div>
-                        <div class="brand-sub">{{ isRestaurantStore() ? 'Fresh Food & Online Dining Menu' : isSolarStore() ? 'Solar Energy & Power Systems' : 'Online Store & Delivery' }}</div>
+                        <div class="brand-sub">{{ isFragranceStore() ? 'Premium Fragrances & Delivery' : isRestaurantStore() ? 'Fresh Food & Online Dining Menu' : isSolarStore() ? 'Solar Energy & Power Systems' : 'Online Store & Delivery' }}</div>
                     </div>
                 </div>
 
@@ -100,14 +100,15 @@
                         pInputText
                         type="text"
                         class="w-full border-round-3xl border-none font-medium fp-search-input"
-                        placeholder="Search food, deals, items..."
+                        [placeholder]="menuSearchPlaceholder"
                         [(ngModel)]="searchKeyword"
                         (input)="applyFilter()"
                     />
                     <i
-                        class="pi pi-times cursor-pointer text-400"
+                        class="pi pi-times cursor-pointer text-400 fp-search-clear"
                         *ngIf="searchKeyword"
                         (click)="searchKeyword = ''; applyFilter()"
+                        aria-label="Clear search"
                     ></i>
                 </span>
             </div>
@@ -149,34 +150,25 @@
                 </div>
                 <div class="fp-mobile-header-info min-w-0 flex-grow-1">
                     <div class="flex align-items-center gap-1 cursor-pointer" (click)="onBrandClick($event)">
-                        <span class="mobile-store-title text-900 font-extrabold">{{ branchName || 'Online Store' }}</span>
-                        <span class="fp-live-pill-mini">
+                        <span class="mobile-store-title">{{ branchName || 'Online Store' }}</span>
+                        <span class="fp-live-pill-mini" aria-hidden="true">
                             <span class="pulse-dot"></span>
                         </span>
                     </div>
-                    <!-- City / Branch selector — only when multiple branches exist -->
-                    <div
+                    <button
                         *ngIf="canSwitchOnlineBranch"
-                        class="fp-mobile-city-selector cursor-pointer"
-                        (click)="$event.stopPropagation(); mobileBranchModal = true"
-                        role="button"
-                        aria-label="Change city or branch"
-                    >
-                        <i class="pi pi-map-marker text-red-500 text-xs"></i>
-                        <span class="city-name-text">{{ branchName ? (branchName + ', PK') : 'Select Branch / City' }}</span>
-                        <i class="pi pi-chevron-down text-500 text-xs"></i>
-                    </div>
-                    <div
-                        *ngIf="!canSwitchOnlineBranch && branchName"
+                        type="button"
                         class="fp-mobile-city-selector"
+                        (click)="$event.stopPropagation(); mobileBranchModal = true"
+                        aria-label="Change branch"
                     >
-                        <i class="pi pi-map-marker text-red-500 text-xs"></i>
-                        <span class="city-name-text">{{ branchName }}</span>
-                    </div>
+                        <span class="city-name-text">Change branch</span>
+                        <i class="pi pi-chevron-down"></i>
+                    </button>
                 </div>
             </div>
 
-            <!-- Right: Search, Profile, Burger -->
+            <!-- Right: Search + Burger (profile is on bottom dock) -->
             <div class="fp-mobile-top-actions flex align-items-center flex-shrink-0">
                 <button
                     type="button"
@@ -186,21 +178,6 @@
                     aria-label="Search"
                 >
                     <i class="pi pi-search"></i>
-                </button>
-
-                <button
-                    type="button"
-                    class="fp-customer-avatar-btn fp-customer-avatar-btn--mobile"
-                    (click)="openCustomerProfile()"
-                    [attr.aria-label]="hasCustomerProfile ? 'Open my profile' : 'Create customer profile'"
-                >
-                    <img
-                        *ngIf="profilePhotoUrl"
-                        [src]="profilePhotoUrl"
-                        alt=""
-                        (error)="onProfilePhotoError()"
-                    />
-                    <span *ngIf="!profilePhotoUrl">{{ customerProfileInitials }}</span>
                 </button>
 
                 <button
@@ -228,9 +205,10 @@
                     (input)="applyFilter()"
                 />
                 <i
-                    class="pi pi-times cursor-pointer text-400 p-2"
+                    class="pi pi-times cursor-pointer text-400 fp-search-clear"
                     *ngIf="searchKeyword"
                     (click)="searchKeyword = ''; applyFilter()"
+                    aria-label="Clear search"
                 ></i>
             </span>
         </div>
@@ -334,236 +312,127 @@
         </div>
     </p-sidebar>
 
-    <!-- 2. HERO BANNER SECTION (Auto-sliding Carousel with Yellow Theme) -->
+    <!-- 2. HERO BANNER — polished image carousel -->
     <section
         class="fp-hero-banner"
         id="storeHomeSection"
-        *ngIf="!isMenuFiltering"
-        (mouseenter)="stopHeroSlider()"
-        (mouseleave)="startHeroSlider()"
+        *ngIf="!isMenuFiltering && heroSlides.length"
+        (mouseenter)="onHeroMouseEnter()"
+        (mouseleave)="onHeroMouseLeave()"
     >
-        <!-- Targeted Right-Side Food Imagery with Soft Fade on Left Edge -->
-        <div class="fp-hero-bg-container">
-            <div
-                *ngFor="let slide of heroSlides; let idx = index"
-                class="fp-hero-bg-layer"
-                [class.active]="currentHeroSlide === idx"
-                [style.background-image]="'linear-gradient(to right, #121212 0%, rgba(18, 18, 18, 0.4) 30%, rgba(18, 18, 18, 0.1) 100%), linear-gradient(to bottom, rgba(18, 18, 18, 0.25) 0%, rgba(18, 18, 18, 0.45) 100%), url(' + slide.bgImageUrl + ')'"
-            ></div>
-        </div>
-        
-
-        <!-- Carousel Navigation Arrows -->
-        <button
-            type="button"
-            class="fp-hero-nav-arrow prev"
-            (click)="prevHeroSlide()"
-            aria-label="Previous Slide"
-        >
-            <i class="pi pi-chevron-left"></i>
-        </button>
-        <button
-            type="button"
-            class="fp-hero-nav-arrow next"
-            (click)="nextHeroSlide()"
-            aria-label="Next Slide"
-        >
-            <i class="pi pi-chevron-right"></i>
-        </button>
-
-        <div class="fp-hero-inner max-w-7xl mx-auto">
-            <!-- Carousel Slides (stacked for crossfade) -->
-            <div class="fp-hero-slides-stack">
+        <div class="fp-hero-shell">
+            <div class="fp-hero-stage" [attr.data-dir]="heroSlideDir">
                 <div
                     *ngFor="let slide of heroSlides; let idx = index"
-                    class="fp-hero-slide"
+                    class="fp-hero-panel"
                     [class.active]="currentHeroSlide === idx"
+                    [class.is-leaving]="previousHeroSlide === idx && currentHeroSlide !== idx"
                     [attr.aria-hidden]="currentHeroSlide !== idx"
                 >
-                    <div class="grid align-items-center">
-                        <!-- Left Column: Typography, Badges, CTAs -->
-                        <div class="col-12 md:col-9 lg:col-8 xl:col-7 p-2 md:p-3 fp-hero-text-col">
-                            <div class="fp-hero-badge inline-flex align-items-center gap-2">
-                                <span class="badge-fire-icon">{{ slide.badgeIcon }}</span>
-                                <span class="font-extrabold uppercase tracking-wider text-xs">{{ slide.badge }}</span>
-                            </div>
-
-                            <h1 class="fp-hero-title">
-                                {{ slide.titleMain }} <span class="fp-title-gradient">{{ slide.titleHighlight }}</span> {{ slide.titleEnd }}
-                            </h1>
-
-                            <p class="fp-hero-desc">
-                                {{ slide.description }}
-                            </p>
-
-                            <!-- Highlights Row with Yellow Theme Accent -->
-                            <div class="fp-hero-features-row flex flex-wrap gap-2">
-                                <div class="fp-feature-pill highlight-pill">
-                                    <i class="pi pi-tag text-yellow-400"></i>
-                                    <span>{{ slide.offerPill }}</span>
-                                </div>
-                                <div class="fp-feature-pill">
-                                    <i class="pi pi-bolt text-yellow-400"></i>
-                                    <span>30-45 Min Delivery</span>
-                                </div>
-                                <div class="fp-feature-pill">
-                                    <i class="pi pi-star-fill text-yellow-400"></i>
-                                    <span>{{ slide.rating }} Rating</span>
-                                </div>
-                            </div>
-
-                            <div class="fp-hero-cta-group flex flex-wrap align-items-center gap-2">
-                                <button
-                                    type="button"
-                                    class="fp-btn-primary-hero"
-                                    (click)="scrollToSection(slide.primaryTarget, $event)"
-                                >
-                                    <span>{{ slide.primaryBtnText }}</span>
-                                    <i class="pi pi-arrow-right text-sm"></i>
-                                </button>
-
-                                <button
-                                    type="button"
-                                    class="fp-btn-secondary-hero"
-                                    (click)="scrollToSection(slide.secondaryTarget, $event)"
-                                >
-                                    <i class="pi pi-book text-sm text-yellow-400"></i>
-                                    <span>{{ slide.secondaryBtnText }}</span>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Slide Pagination Indicator Dots -->
-            <div class="fp-hero-indicators flex align-items-center justify-content-center gap-2">
-                <button
-                    type="button"
-                    *ngFor="let s of heroSlides; let idx = index"
-                    class="fp-indicator-dot"
-                    [class.active]="currentHeroSlide === idx"
-                    (click)="goToHeroSlide(idx)"
-                    [attr.aria-label]="'Go to slide ' + (idx + 1)"
-                ></button>
-            </div>
-        </div>
-    </section>
-    <!-- Active orders (shown in menu — tap to open order detail) -->
-    <section
-        class="fp-active-orders-section"
-        *ngIf="branchId && (activeOrders.length || loadingActiveOrders)"
-        id="storeActiveOrders"
-    >
-        <div class="max-w-7xl mx-auto px-3">
-            <div class="fp-active-orders-head">
-                <div>
-                    <div class="fp-active-orders-title">
-                        <span class="fp-active-live-dot"></span>
-                        Your Active Order{{ activeOrders.length === 1 ? '' : 's' }}
-                    </div>
-                    <div class="fp-active-orders-sub">Tap an order to see live status</div>
-                </div>
-                <div class="flex align-items-center gap-2">
-                    <button
-                        type="button"
-                        class="fp-active-refresh"
-                        title="Order history"
-                        (click)="openOrderHistory()"
-                    >
-                        <i class="pi pi-history"></i>
-                    </button>
-                    <button
-                        type="button"
-                        class="fp-active-refresh"
-                        [disabled]="loadingActiveOrders"
-                        (click)="refreshActiveOrders()"
-                        title="Refresh"
-                    >
-                        <i class="pi" [ngClass]="loadingActiveOrders ? 'pi-spin pi-spinner' : 'pi-refresh'"></i>
-                    </button>
-                </div>
-            </div>
-
-            <div class="fp-active-orders-list" *ngIf="activeOrders.length">
-                <button
-                    type="button"
-                    class="fp-active-order-card"
-                    *ngFor="let o of activeOrders"
-                    (click)="openActiveOrder(o)"
-                >
-                    <div class="fp-active-order-left">
-                        <div class="fp-active-order-no">{{ o.orderNo }}</div>
-                        <div class="fp-active-order-meta">
-                            <span class="fp-active-status">{{ activeOrderStatusLabel(o) }}</span>
-                            <span *ngIf="o.placedAt">{{ o.placedAt | date: 'shortTime' }}</span>
-                        </div>
-                    </div>
-                    <div class="fp-active-order-right">
-                        <div class="fp-active-total" *ngIf="o.totalAmount != null">
-                            PKR {{ o.totalAmount | number: '1.0-0' }}
-                        </div>
-                        <i class="pi pi-chevron-right"></i>
-                    </div>
-                </button>
-            </div>
-        </div>
-    </section>
-
-    <!-- 3. CATEGORY & FILTER BARS (Sticky / Smooth Horizontal Track) -->
-    <section class="fp-categories-nav-section" id="storeMenuSection">
-        <div class="max-w-7xl mx-auto">
-            <!-- Section Header Title + Search -->
-            <div class="flex align-items-center justify-content-between px-3 pt-3 pb-2 flex-wrap gap-3">
-                <div class="flex align-items-center gap-2">
-                    <span class="cat-sec-icon">🍽️</span>
-                    <div>
-                        <h2 class="cat-sec-heading">Explore Food Menu</h2>
-                        <span class="cat-sec-sub">Search or select one or more categories</span>
-                    </div>
-                </div>
-                <div class="fp-menu-search-wrap">
-                    <i class="pi pi-search fp-menu-search-icon"></i>
-                    <input
-                        type="search"
-                        class="fp-menu-search-input"
-                        placeholder="Search meals, deals, categories…"
-                        [(ngModel)]="searchKeyword"
-                        (ngModelChange)="onMenuSearchChange()"
-                        autocomplete="off"
+                    <div
+                        class="fp-hero-blur"
+                        [style.background-image]="'url(' + (slide.bgImageUrl || slide.imageUrl) + ')'"
+                    ></div>
+                    <img
+                        class="fp-hero-photo"
+                        [src]="slide.bgImageUrl || slide.imageUrl"
+                        [alt]="slide.titleMain || 'Promotion'"
+                        loading="eager"
                     />
+                    <div class="fp-hero-vignette" aria-hidden="true"></div>
+                </div>
+
+                <!-- Soft floating petals over fragrance hero banners -->
+                <div class="fp-hero-petals" *ngIf="isFragranceStore()" aria-hidden="true">
+                    <span class="fp-petal fp-petal--1"></span>
+                    <span class="fp-petal fp-petal--2"></span>
+                    <span class="fp-petal fp-petal--3"></span>
+                    <span class="fp-petal fp-petal--4"></span>
+                    <span class="fp-petal fp-petal--5"></span>
+                    <span class="fp-petal fp-petal--6"></span>
+                    <span class="fp-petal fp-petal--7"></span>
+                    <span class="fp-petal fp-petal--8"></span>
+                    <span class="fp-petal fp-petal--9"></span>
+                    <span class="fp-petal fp-petal--10"></span>
+                </div>
+
+                <div class="fp-hero-indicators" *ngIf="heroSlides.length > 1">
                     <button
                         type="button"
-                        class="fp-menu-search-clear"
-                        *ngIf="searchKeyword"
-                        (click)="searchKeyword = ''; onMenuSearchChange()"
-                        aria-label="Clear search"
-                    >
-                        <i class="pi pi-times"></i>
-                    </button>
+                        *ngFor="let s of heroSlides; let idx = index"
+                        class="fp-indicator-dot"
+                        [class.active]="currentHeroSlide === idx"
+                        (click)="goToHeroSlide(idx)"
+                        [attr.aria-label]="'Go to slide ' + (idx + 1)"
+                    ></button>
+                </div>
+            </div>
+        </div>
+    </section>
+    <!-- 3. CATEGORIES (home menu strip — always available to filter) -->
+    <section
+        class="fp-categories-nav-section"
+        id="storeMenuSection"
+        *ngIf="categories.length"
+    >
+        <div class="max-w-7xl mx-auto">
+            <div class="flex align-items-center justify-content-between px-3 pt-3 pb-2 flex-wrap gap-2">
+                <div class="flex align-items-center gap-2 min-w-0">
+                    <span class="cat-sec-icon">{{ menuSectionIcon }}</span>
+                    <div class="min-w-0">
+                        <h2 class="cat-sec-heading">{{ menuSectionTitle }}</h2>
+                        <span class="cat-sec-sub">Browse by category</span>
+                    </div>
+                </div>
+                <div class="flex align-items-center gap-2 flex-shrink-0">
+                    <button
+                        *ngIf="isMenuFiltering"
+                        pButton
+                        type="button"
+                        label="Clear"
+                        icon="pi pi-times"
+                        class="p-button-text p-button-sm p-button-secondary font-semibold"
+                        (click)="clearFilter()"
+                    ></button>
+                    <span class="fp-cat-count text-xs font-bold text-600" *ngIf="categories.length > 1">
+                        {{ categories.length - 1 }} categories
+                    </span>
                 </div>
             </div>
 
-            <!-- DESKTOP CATEGORY TRACK (Horizontal Chips — multi-select) -->
-            <div class="fp-category-bar hidden md:flex">
+            <!-- Desktop / tablet: larger chips with category images -->
+            <div class="fp-category-bar hidden md:flex" *ngIf="categories.length">
                 <div class="fp-category-track" id="fpStoreFilterTrack">
                     <button
                         type="button"
                         *ngFor="let cat of categories"
                         class="fp-cat-chip"
                         [class.active]="isCategorySelected(cat)"
+                        [class.has-thumb]="!!getCategoryVisual(cat).image"
                         (click)="selectCategory(cat, $event)"
                     >
-                        <i [class]="getCategoryVisual(cat).icon" class="mr-1 text-xs"></i>
-                        <span>{{ cat }}</span>
-                        <i class="pi pi-check text-xs ml-1" *ngIf="cat !== 'All' && isCategorySelected(cat)"></i>
+                        <span class="fp-cat-chip-thumb" *ngIf="getCategoryVisual(cat).image; else catChipIcon">
+                            <img
+                                [src]="getCategoryVisual(cat).image"
+                                [alt]="cat"
+                                loading="lazy"
+                                (error)="onCategoryThumbError($event, cat)"
+                            />
+                        </span>
+                        <ng-template #catChipIcon>
+                            <i [class]="getCategoryVisual(cat).icon" class="fp-cat-chip-icon"></i>
+                        </ng-template>
+                        <span class="fp-cat-chip-label">{{ cat }}</span>
+                        <i
+                            class="pi pi-check text-xs ml-1"
+                            *ngIf="cat !== 'All' && isCategorySelected(cat)"
+                        ></i>
                     </button>
                 </div>
             </div>
 
-            <!-- MOBILE CIRCULAR CATEGORY & PILL BADGES (< 768px) -->
-            <div class="fp-mobile-filter-container md:hidden">
-                <!-- Circular Category Icons Track (multi-select) -->
+            <!-- Mobile: larger circular category avatars (server images) -->
+            <div class="fp-mobile-filter-container md:hidden" *ngIf="categories.length">
                 <div class="fp-circle-category-track" id="fpMobileCircleTrack">
                     <button
                         type="button"
@@ -579,8 +448,13 @@
                                 [alt]="cat"
                                 class="circle-cat-img"
                                 loading="lazy"
+                                (error)="onCategoryThumbError($event, cat)"
                             />
-                            <div *ngIf="!getCategoryVisual(cat).image" class="circle-cat-icon-fallback" [style.background-color]="getCategoryVisual(cat).color">
+                            <div
+                                *ngIf="!getCategoryVisual(cat).image"
+                                class="circle-cat-icon-fallback"
+                                [style.background-color]="getCategoryVisual(cat).color"
+                            >
                                 <i [class]="getCategoryVisual(cat).icon"></i>
                             </div>
                             <span class="active-check-badge" *ngIf="isCategorySelected(cat)">
@@ -588,19 +462,6 @@
                             </span>
                         </div>
                         <span class="circle-cat-name">{{ cat }}</span>
-                    </button>
-                </div>
-
-                <!-- Capsule Filter Pills Track -->
-                <div class="fp-pill-badge-track" id="fpMobilePillTrack">
-                    <button
-                        type="button"
-                        *ngFor="let pill of pillFilters"
-                        class="fp-pill-badge"
-                        [class.active]="selectedPill === pill"
-                        (click)="selectPill(pill)"
-                    >
-                        <span>{{ pill }}</span>
                     </button>
                 </div>
             </div>
@@ -639,9 +500,19 @@
                     class="col-12 sm:col-6 lg:col-4 p-2"
                 >
                     <div class="fp-deal-bundle-card" (click)="openProductModal(deal)">
-                        <div class="bundle-media-box">
-                            <img [src]="getProductImage(deal, dIdx)" [alt]="deal.name" class="bundle-img" />
-                            <div class="bundle-badge-ribbon">
+                        <div class="bundle-media-box" [class.bundle-media-box--empty]="!hasProductImage(deal)">
+                            <img
+                                *ngIf="hasProductImage(deal)"
+                                [src]="getProductImage(deal, dIdx)"
+                                [alt]="deal.name"
+                                class="bundle-img"
+                                (error)="onProductImageError($event, deal)"
+                            />
+                            <div class="card-name-fallback" *ngIf="!hasProductImage(deal)" aria-hidden="true">
+                                <span class="card-name-initials">{{ getProductNameInitials(deal) }}</span>
+                                <span class="card-name-spell">{{ deal.name }}</span>
+                            </div>
+                            <div class="bundle-badge-ribbon" *ngIf="hasProductImage(deal)">
                                 <span class="ribbon-text">SPECIAL COMBO</span>
                             </div>
                             <span class="bundle-savings-pill">
@@ -699,170 +570,92 @@
         </div>
     </section>
 
-    <!-- 5. MAIN MENU CATALOG BODY: CATEGORY SECTIONS GRID -->
-    <main class="max-w-7xl mx-auto pb-8" *ngIf="!isMenuFiltering">
-        <!-- Section 1: 🔥 Hot Deals & Trending Items -->
-        <section class="fp-store-section" id="storeTrendingSection" *ngIf="trendingDeals.length > 0">
-            <div class="section-header-row">
-                <div class="section-title">
-                    <span>🔥 Hot Trending Items</span>
-                    <span class="badge surface-200 text-700 text-xs px-2 py-1 border-round-3xl font-bold">
-                        Special Picks
-                    </span>
+    <!-- 5. ALL PRODUCTS GRID (no horizontal scroll) -->
+    <main class="max-w-7xl mx-auto p-2 sm:p-4 pb-8 fp-all-products" id="storeAllProducts" *ngIf="!isMenuFiltering">
+        <div class="fp-all-products-head" *ngIf="products.length > 0">
+            <div class="fp-all-products-title-row">
+                <span class="cat-sec-icon">{{ menuSectionIcon }}</span>
+                <div class="min-w-0">
+                    <h2 class="fp-all-products-title">
+                        {{ activeMobileTab === 'favorites' ? 'Saved & More' : menuSectionTitle }}
+                    </h2>
+                    <p class="fp-all-products-sub">
+                        {{
+                            activeMobileTab === 'favorites'
+                                ? 'Your favorites on top — everything else below'
+                                : menuSectionSubtitle
+                        }}
+                    </p>
                 </div>
-                <div class="section-controls flex align-items-center">
-                    <div class="fp-marquee-nav" aria-label="Scroll deals">
-                        <button type="button" (click)="scrollCarousel('trackTrending', 'left')" aria-label="Scroll left">
-                            <i class="pi pi-chevron-left"></i>
-                        </button>
-                        <button type="button" (click)="scrollCarousel('trackTrending', 'right')" aria-label="Scroll right">
-                            <i class="pi pi-chevron-right"></i>
-                        </button>
-                    </div>
-                    <button
-                        pButton
-                        type="button"
-                        label="See All"
-                        icon="pi pi-chevron-right"
-                        iconPos="right"
-                        class="p-button-text p-button-sm text-primary font-bold mr-2 p-0"
-                        (click)="selectCategory('🔥 Deals', $event)"
-                    ></button>
-                </div>
+                <span class="fp-all-products-count">{{ products.length }} items</span>
             </div>
+        </div>
 
-            <div
-                class="fp-products-marquee"
-                id="trackTrending"
-                [class.is-dragging]="productMarqueeDragging"
-                (pointerdown)="onProductMarqueePointerDown($event)"
-                (pointermove)="onProductMarqueePointerMove($event)"
-                (pointerup)="onProductMarqueePointerUp($event)"
-                (pointercancel)="onProductMarqueePointerUp($event)"
-                (pointerleave)="onProductMarqueePointerUp($event)"
-            >
-                <div class="fp-products-track">
+        <!-- Saved tab: favorites block, then the rest -->
+        <ng-container *ngIf="activeMobileTab === 'favorites' && products.length > 0">
+            <div class="fp-fav-block" *ngIf="favoriteProducts.length > 0">
+                <div class="fp-fav-block-label">
+                    <i class="pi pi-heart-fill"></i>
+                    <span>Favorites</span>
+                    <span class="fp-fav-block-count">{{ favoriteProducts.length }}</span>
+                </div>
+                <div class="fp-menu-grid">
                     <div
-                        *ngFor="let product of productMarqueeItems(trendingDeals); let idx = index"
-                        class="fp-products-marquee-item"
+                        *ngFor="let product of favoriteProducts; let idx = index"
+                        class="fp-menu-grid-col fp-scroll-reveal"
+                        [style.--fp-reveal-i]="idx % 6"
                     >
                         <ng-container
-                            *ngTemplateOutlet="foodCardTpl; context: { product: product, imgIdx: idx % trendingDeals.length, tagIdx: idx % trendingDeals.length }"
+                            *ngTemplateOutlet="foodCardTpl; context: { product: product, imgIdx: idx, tagIdx: idx }"
                         ></ng-container>
                     </div>
                 </div>
             </div>
-        </section>
 
-        <!-- Section 2: ✨ Best Sellers & Popular Picks -->
-        <section class="fp-store-section" id="storePopularSection" *ngIf="popularItems.length > 0">
-            <div class="section-header-row">
-                <div class="section-title">
-                    <span>✨ Best Sellers & Popular</span>
-                    <span class="badge surface-200 text-700 text-xs px-2 py-1 border-round-3xl font-bold">
-                        Top Rated
-                    </span>
-                </div>
-                <div class="section-controls flex align-items-center">
-                    <div class="fp-marquee-nav" aria-label="Scroll popular items">
-                        <button type="button" (click)="scrollCarousel('trackPopular', 'left')" aria-label="Scroll left">
-                            <i class="pi pi-chevron-left"></i>
-                        </button>
-                        <button type="button" (click)="scrollCarousel('trackPopular', 'right')" aria-label="Scroll right">
-                            <i class="pi pi-chevron-right"></i>
-                        </button>
-                    </div>
-                    <button
-                        pButton
-                        type="button"
-                        label="See All"
-                        icon="pi pi-chevron-right"
-                        iconPos="right"
-                        class="p-button-text p-button-sm text-primary font-bold mr-2 p-0"
-                        (click)="selectCategory('✨ Popular', $event)"
-                    ></button>
-                </div>
+            <div class="fp-fav-empty" *ngIf="favoriteProducts.length === 0">
+                <i class="pi pi-heart"></i>
+                <span>No saved items yet — tap ♥ on a product to pin it here.</span>
             </div>
 
-            <div
-                class="fp-products-marquee"
-                id="trackPopular"
-                [class.is-dragging]="productMarqueeDragging"
-                (pointerdown)="onProductMarqueePointerDown($event)"
-                (pointermove)="onProductMarqueePointerMove($event)"
-                (pointerup)="onProductMarqueePointerUp($event)"
-                (pointercancel)="onProductMarqueePointerUp($event)"
-                (pointerleave)="onProductMarqueePointerUp($event)"
-            >
-                <div class="fp-products-track">
+            <div class="fp-fav-block" *ngIf="otherProducts.length > 0">
+                <div class="fp-fav-block-label fp-fav-block-label--muted">
+                    <i class="pi pi-th-large"></i>
+                    <span>More products</span>
+                    <span class="fp-fav-block-count">{{ otherProducts.length }}</span>
+                </div>
+                <div class="fp-menu-grid">
                     <div
-                        *ngFor="let product of productMarqueeItems(popularItems); let idx = index"
-                        class="fp-products-marquee-item"
+                        *ngFor="let product of otherProducts; let idx = index"
+                        class="fp-menu-grid-col fp-scroll-reveal"
+                        [style.--fp-reveal-i]="idx % 6"
                     >
                         <ng-container
-                            *ngTemplateOutlet="foodCardTpl; context: { product: product, imgIdx: (idx % popularItems.length) + 4, tagIdx: (idx % popularItems.length) + 4 }"
+                            *ngTemplateOutlet="foodCardTpl; context: { product: product, imgIdx: idx + 50, tagIdx: idx }"
                         ></ng-container>
                     </div>
                 </div>
             </div>
-        </section>
+        </ng-container>
 
-        <!-- Section 3: Dynamic Category Rows from Backend -->
-        <section
-            class="fp-store-section"
-            *ngFor="let sec of categorySections; let sIdx = index"
-            [id]="getCategorySectionId(sec.category)"
-        >
-            <div class="section-header-row">
-                <div class="section-title cursor-pointer" (click)="selectCategory(sec.category, $event)">
-                    <span>{{ sec.category }}</span>
-                    <span class="badge surface-200 text-700 text-xs px-2 py-1 border-round-3xl font-bold">
-                        {{ sec.items.length }} items
-                    </span>
-                </div>
-                <div class="section-controls flex align-items-center">
-                    <div class="fp-marquee-nav" [attr.aria-label]="'Scroll ' + sec.category">
-                        <button type="button" (click)="scrollCarousel('trackCat' + sIdx, 'left')" aria-label="Scroll left">
-                            <i class="pi pi-chevron-left"></i>
-                        </button>
-                        <button type="button" (click)="scrollCarousel('trackCat' + sIdx, 'right')" aria-label="Scroll right">
-                            <i class="pi pi-chevron-right"></i>
-                        </button>
-                    </div>
-                    <button
-                        pButton
-                        type="button"
-                        label="See All"
-                        icon="pi pi-chevron-right"
-                        iconPos="right"
-                        class="p-button-text p-button-sm text-primary font-bold mr-2 p-0"
-                        (click)="selectCategory(sec.category, $event)"
-                    ></button>
-                </div>
-            </div>
-
+        <!-- Home / default: single grid -->
+        <div class="fp-menu-grid" *ngIf="activeMobileTab !== 'favorites' && products.length > 0">
             <div
-                class="fp-products-marquee"
-                [id]="'trackCat' + sIdx"
-                [class.is-dragging]="productMarqueeDragging"
-                (pointerdown)="onProductMarqueePointerDown($event)"
-                (pointermove)="onProductMarqueePointerMove($event)"
-                (pointerup)="onProductMarqueePointerUp($event)"
-                (pointercancel)="onProductMarqueePointerUp($event)"
-                (pointerleave)="onProductMarqueePointerUp($event)"
+                *ngFor="let product of displayProducts; let idx = index"
+                class="fp-menu-grid-col fp-scroll-reveal"
+                [style.--fp-reveal-i]="idx % 6"
             >
-                <div class="fp-products-track">
-                    <div
-                        *ngFor="let product of productMarqueeItems(sec.items); let idx = index"
-                        class="fp-products-marquee-item"
-                    >
-                        <ng-container
-                            *ngTemplateOutlet="foodCardTpl; context: { product: product, imgIdx: (idx % sec.items.length) + sIdx, tagIdx: idx % sec.items.length }"
-                        ></ng-container>
-                    </div>
-                </div>
+                <ng-container
+                    *ngTemplateOutlet="foodCardTpl; context: { product: product, imgIdx: idx, tagIdx: idx }"
+                ></ng-container>
             </div>
-        </section>
+        </div>
+
+        <!-- Loading catalog -->
+        <div *ngIf="loading && products.length === 0" class="fp-catalog-loading text-center py-8 px-3">
+            <i class="pi pi-spin pi-spinner text-3xl text-primary mb-3 block"></i>
+            <h3 class="text-900 font-bold mb-1">Loading products…</h3>
+            <p class="text-600 mb-0">Fetching the latest items for this branch.</p>
+        </div>
 
         <!-- Empty Products State -->
         <div *ngIf="products.length === 0 && !loading" class="text-center py-8">
@@ -907,8 +700,8 @@
         <div class="fp-menu-grid">
             <div
                 *ngFor="let product of filteredProducts; let idx = index"
-                class="fp-menu-grid-col"
-                [style.animation-delay.ms]="idx * 45"
+                class="fp-menu-grid-col fp-scroll-reveal"
+                [style.--fp-reveal-i]="idx % 6"
             >
                 <ng-container
                     *ngTemplateOutlet="foodCardTpl; context: { product: product, imgIdx: idx, tagIdx: idx }"
@@ -946,9 +739,18 @@
             <div class="fp-grab-handle block md:hidden"></div>
 
             <!-- Hero Media Banner -->
-            <div class="fp-modal-hero">
-                <img [src]="getProductImage(selectedProduct, 0)" [alt]="selectedProduct.name" class="hero-img" />
-                <div class="hero-shadow"></div>
+            <div class="fp-modal-hero" [class.fp-modal-hero--empty]="!hasProductImage(selectedProduct)">
+                <img
+                    *ngIf="hasProductImage(selectedProduct)"
+                    [src]="getProductImage(selectedProduct, 0)"
+                    [alt]="selectedProduct.name"
+                    class="hero-img"
+                    (error)="onProductImageError($event, selectedProduct)"
+                />
+                <div class="hero-name-fallback" *ngIf="!hasProductImage(selectedProduct)" aria-hidden="true">
+                    <span class="card-name-initials">{{ getProductNameInitials(selectedProduct) }}</span>
+                </div>
+                <div class="hero-shadow" *ngIf="hasProductImage(selectedProduct)"></div>
 
                 <button type="button" class="hero-close-circle" (click)="closeProductModal()">
                     <i class="pi pi-times"></i>
@@ -1078,9 +880,20 @@
             <div class="fp-modal-bottom-bar">
                 <!-- Quantity Stepper -->
                 <div class="qty-stepper">
-                    <button type="button" class="btn-step" (click)="updateDetailQuantity(-1)">−</button>
-                    <span class="qty-display">{{ detailQuantity }}</span>
-                    <button type="button" class="btn-step" (click)="updateDetailQuantity(1)">+</button>
+                    <button type="button" class="btn-step" (click)="updateDetailQuantity(-1)" aria-label="Decrease quantity">−</button>
+                    <input
+                        type="number"
+                        class="qty-display qty-display-input"
+                        [(ngModel)]="detailQuantity"
+                        (ngModelChange)="onDetailQuantityTyped($event)"
+                        (blur)="normalizeDetailQuantity()"
+                        (keydown.enter)="normalizeDetailQuantity()"
+                        min="1"
+                        max="9999"
+                        inputmode="numeric"
+                        aria-label="Quantity"
+                    />
+                    <button type="button" class="btn-step" (click)="updateDetailQuantity(1)" aria-label="Increase quantity">+</button>
                 </div>
 
                 <!-- Add to Cart Button -->
@@ -1455,12 +1268,12 @@
                 />
             </div>
             <div class="field mb-3">
-                <label class="font-bold text-xs text-700">Kitchen / Special Instructions</label>
+                <label class="font-bold text-xs text-700">{{ checkoutNotesLabel }}</label>
                 <textarea
                     pInputTextarea
                     rows="2"
                     [(ngModel)]="notes"
-                    placeholder="e.g. Extra ketchup, ring bell, handle with care..."
+                    [placeholder]="checkoutNotesPlaceholder"
                     class="border-round-xl"
                 ></textarea>
             </div>
@@ -1766,72 +1579,84 @@
     </p-dialog>
 
     <!-- 13. Fixed Bottom Navigation Dock (5-Tab Bar) -->
-    <nav class="fp-mobile-bottom-dock md:hidden" aria-label="Bottom Navigation">
-        <button
-            type="button"
-            class="dock-tab-btn"
-            [class.active]="activeMobileTab === 'home'"
-            (click)="onMobileTabSelect('home')"
-        >
-            <i class="pi pi-home"></i>
-            <span class="dock-label">Home</span>
-            <span class="dock-active-dot" *ngIf="activeMobileTab === 'home'"></span>
-        </button>
-
-        <button
-            type="button"
-            class="dock-tab-btn"
-            [class.active]="activeMobileTab === 'deals'"
-            (click)="onMobileTabSelect('deals')"
-        >
-            <i class="pi pi-tags"></i>
-            <span class="dock-label">Deals</span>
-            <span class="dock-active-dot" *ngIf="activeMobileTab === 'deals'"></span>
-        </button>
-
-        <button
-            type="button"
-            class="dock-tab-btn"
-            [class.active]="activeMobileTab === 'cart'"
-            (click)="onMobileTabSelect('cart')"
-        >
-            <div class="dock-icon-wrap">
-                <i class="pi pi-shopping-bag"></i>
-                <span class="dock-counter-badge" *ngIf="cartService.totalItemsCount > 0">{{ cartService.totalItemsCount }}</span>
+    <nav
+        class="fp-spotlight-dock md:hidden"
+        aria-label="Bottom Navigation"
+        [style.--dock-i]="liquidDockIndex"
+        [style.--dock-accent]="liquidDockAccent"
+    >
+        <div class="fp-spotlight-dock-shell">
+            <!-- Sliding teal top line + light beam -->
+            <div class="fp-spotlight-indicator" aria-hidden="true">
+                <span class="fp-spotlight-cap"></span>
+                <span class="fp-spotlight-beam"></span>
             </div>
-            <span class="dock-label">Cart</span>
-            <span class="dock-active-dot" *ngIf="activeMobileTab === 'cart'"></span>
-        </button>
 
-        <button
-            type="button"
-            class="dock-tab-btn"
-            [class.active]="activeMobileTab === 'favorites'"
-            (click)="onMobileTabSelect('favorites')"
-        >
-            <div class="dock-icon-wrap">
-                <i [class]="favorites.size > 0 ? 'pi pi-heart-fill' : 'pi pi-heart'"></i>
-                <span class="dock-counter-badge" *ngIf="favoriteCount > 0">{{ favoriteCount }}</span>
-            </div>
-            <span class="dock-label">Saved</span>
-            <span class="dock-active-dot" *ngIf="activeMobileTab === 'favorites'"></span>
-        </button>
+            <div class="fp-spotlight-tabs">
+                <button
+                    type="button"
+                    class="fp-spotlight-tab fp-spotlight-tab--home"
+                    [class.active]="activeMobileTab === 'home'"
+                    (click)="onMobileTabSelect('home')"
+                    aria-label="Home"
+                >
+                    <span class="fp-spotlight-glyph"><i class="pi pi-home"></i></span>
+                </button>
 
-        <button
-            type="button"
-            class="dock-tab-btn"
-            [class.active]="activeMobileTab === 'account'"
-            (click)="onMobileTabSelect('account')"
-        >
-            <div class="dock-icon-wrap">
-                <span class="dock-profile-avatar" *ngIf="profilePhotoUrl">
-                    <img [src]="profilePhotoUrl" alt="" (error)="onProfilePhotoError()" />
-                </span>
-                <span class="dock-profile-initials" *ngIf="!profilePhotoUrl">{{ customerProfileInitials }}</span>
+                <button
+                    type="button"
+                    class="fp-spotlight-tab fp-spotlight-tab--deals"
+                    [class.active]="activeMobileTab === 'deals'"
+                    (click)="onMobileTabSelect('deals')"
+                    aria-label="Deals"
+                >
+                    <span class="fp-spotlight-glyph"><i class="pi pi-tags"></i></span>
+                </button>
+
+                <button
+                    type="button"
+                    class="fp-spotlight-tab fp-spotlight-tab--cart"
+                    [class.active]="activeMobileTab === 'cart'"
+                    (click)="onMobileTabSelect('cart')"
+                    aria-label="Cart"
+                >
+                    <span class="fp-spotlight-icon-wrap">
+                        <span class="fp-spotlight-glyph"><i class="pi pi-shopping-bag"></i></span>
+                        <span class="fp-spotlight-badge" *ngIf="cartService.totalItemsCount > 0">{{ cartService.totalItemsCount }}</span>
+                    </span>
+                </button>
+
+                <button
+                    type="button"
+                    class="fp-spotlight-tab fp-spotlight-tab--fav"
+                    [class.active]="activeMobileTab === 'favorites'"
+                    (click)="onMobileTabSelect('favorites')"
+                    aria-label="Saved"
+                >
+                    <span class="fp-spotlight-icon-wrap">
+                        <span class="fp-spotlight-glyph">
+                            <i [class]="favorites.size > 0 ? 'pi pi-heart-fill' : 'pi pi-heart'"></i>
+                        </span>
+                        <span class="fp-spotlight-badge" *ngIf="favoriteCount > 0">{{ favoriteCount }}</span>
+                    </span>
+                </button>
+
+                <button
+                    type="button"
+                    class="fp-spotlight-tab fp-spotlight-tab--account"
+                    [class.active]="activeMobileTab === 'account'"
+                    (click)="onMobileTabSelect('account')"
+                    [attr.aria-label]="hasCustomerProfile ? 'Profile' : 'Account'"
+                >
+                    <span class="fp-spotlight-icon-wrap" *ngIf="profilePhotoUrl; else dockInitials">
+                        <img class="fp-spotlight-avatar" [src]="profilePhotoUrl" alt="" (error)="onProfilePhotoError()" />
+                    </span>
+                    <ng-template #dockInitials>
+                        <span class="fp-spotlight-glyph fp-spotlight-initials">{{ customerProfileInitials }}</span>
+                    </ng-template>
+                </button>
             </div>
-            <span class="dock-label">{{ hasCustomerProfile ? 'Profile' : 'Account' }}</span>
-            <span class="dock-active-dot" *ngIf="activeMobileTab === 'account'"></span>
-        </button>
+        </div>
     </nav>
 
     <!-- Customer Feedbacks (public, branch-scoped) -->
@@ -1943,21 +1768,11 @@
                                 (error)="onBranchLogoError()"
                             />
                         </div>
-                        <div>
-                            <div class="fp-footer-brand-name">{{ branchName || 'Online Restaurant' }}</div>
-                            <div class="fp-footer-brand-tag">Fresh &amp; Hot Online Food Delivery</div>
+                        <div class="fp-footer-brand-text">
+                            <div class="fp-footer-brand-name">{{ branchName || 'Online Store' }}</div>
+                            <div class="fp-footer-brand-tag">{{ footerBrandTag }}</div>
                         </div>
-                    </div>
-                    <p class="fp-footer-bio">
-                        Gourmet meals made fresh to order — fast, hygienic, and delivered with care.
-                    </p>
-                    <div class="fp-footer-badges">
-                        <span class="fp-badge-trust"><i class="pi pi-shield"></i>100% Halal</span>
-                        <span class="fp-badge-trust"><i class="pi pi-bolt"></i>Quick Delivery</span>
-                    </div>
-                    <div class="fp-social-links">
-                        <span class="fp-social-label">Follow us</span>
-                        <div class="fp-social-icons">
+                        <div class="fp-social-icons fp-social-icons--end" aria-label="Follow us">
                             <a class="fp-social-btn facebook" [href]="socialFacebookHref" target="_blank" rel="noopener noreferrer" aria-label="Facebook">
                                 <i class="pi pi-facebook"></i>
                             </a>
@@ -1969,48 +1784,55 @@
                             </a>
                         </div>
                     </div>
+                    <p class="fp-footer-bio">{{ footerBrandBio }}</p>
+                    <div class="fp-footer-badges">
+                        <span class="fp-badge-trust" *ngFor="let badge of footerTrustBadges">
+                            <i class="pi" [ngClass]="badge.icon"></i>{{ badge.label }}
+                        </span>
+                    </div>
                 </div>
 
-                <div class="fp-footer-col">
-                    <h4>Quick Navigation</h4>
-                    <ul>
-                        <li><a (click)="scrollToSection('home', $event)">Home</a></li>
-                        <li><a (click)="scrollToSection('menu', $event)">Food Menu</a></li>
-                        <li><a (click)="scrollToSection('deals', $event)">Super Deals</a></li>
-                    </ul>
-                </div>
+                <div class="fp-footer-links">
+                    <div class="fp-footer-nav-cats">
+                        <div class="fp-footer-col fp-footer-col--nav">
+                            <h4>Quick Navigation</h4>
+                            <ul>
+                                <li><a (click)="scrollToSection('home', $event)">Home</a></li>
+                                <li><a (click)="scrollToSection('menu', $event)">{{ menuNavLabel }}</a></li>
+                                <li><a (click)="scrollToSection('deals', $event)">Super Deals</a></li>
+                            </ul>
+                        </div>
 
-                <div class="fp-footer-col">
-                    <h4>Categories</h4>
-                    <ul>
-                        <li *ngFor="let cat of categories.slice(0, 5)">
-                            <a (click)="selectCategory(cat, $event)">{{ cat }}</a>
-                        </li>
-                    </ul>
-                </div>
+                        <div class="fp-footer-col fp-footer-col--cats">
+                            <h4>Categories</h4>
+                            <ul>
+                                <li *ngFor="let cat of categories.slice(0, 5)">
+                                    <a (click)="selectCategory(cat, $event)">{{ cat }}</a>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
 
-                <div class="fp-footer-col fp-footer-contact">
-                    <h4>Branch &amp; Contact</h4>
-                    <ul class="fp-footer-contact-list">
-                        <li *ngIf="branchAddress">
-                            <i class="pi pi-map-marker"></i>
-                            <span>{{ branchAddress }}</span>
-                        </li>
-                        <li *ngIf="branchPhone">
-                            <i class="pi pi-phone"></i>
-                            <span>{{ branchPhone }}</span>
-                        </li>
-                        <li>
-                            <i class="pi pi-clock"></i>
-                            <span>Mon – Sun: 11:00 AM – 02:00 AM</span>
-                        </li>
-                    </ul>
+                    <div class="fp-footer-col fp-footer-contact">
+                        <h4>Branch &amp; Contact</h4>
+                        <ul class="fp-footer-contact-list">
+                            <li *ngIf="branchAddress">
+                                <i class="pi pi-map-marker"></i>
+                                <span>{{ branchAddress }}</span>
+                            </li>
+                            <li *ngIf="branchPhone">
+                                <i class="pi pi-phone"></i>
+                                <span>{{ branchPhone }}</span>
+                            </li>
+                            <li>
+                                <i class="pi pi-clock"></i>
+                                <span>Mon – Sun: 11:00 AM – 02:00 AM</span>
+                            </li>
+                        </ul>
+                    </div>
                 </div>
             </div>
 
-            <div class="fp-footer-copy">
-                © {{ branchName || 'Online Store' }}. All rights reserved. Powered by Al Jannat.
-            </div>
         </div>
     </footer>
 
@@ -2143,16 +1965,31 @@
         </ng-template>
     </p-dialog>
 
+    <!-- WhatsApp chat with branch admin (invoice contact phone) -->
+    <a
+        *ngIf="branchWhatsAppHref && !detailModalVisible"
+        class="fp-whatsapp-fab"
+        [href]="branchWhatsAppHref"
+        target="_blank"
+        rel="noopener noreferrer"
+        [attr.aria-label]="'Chat with ' + (branchName || 'store') + ' on WhatsApp'"
+        pTooltip="Chat on WhatsApp"
+        tooltipPosition="right"
+    >
+        <i class="pi pi-whatsapp" aria-hidden="true"></i>
+    </a>
+
     <!-- Floating cart (only when cart has items). #storeCartFlyTarget is always present for fly-in animation. -->
     <div
         class="store-fab-stack"
         id="storeCartFlyTarget"
         [class.has-cart]="cartService.totalItemsCount > 0"
     >
+        <!-- Desktop only — mobile uses bottom dock Cart tab -->
         <button
             *ngIf="cartService.totalItemsCount > 0 && !detailModalVisible"
             type="button"
-            class="store-cart-fab"
+            class="store-cart-fab hidden md:inline-flex"
             (click)="cartService.sidebarVisible = true"
             [attr.aria-label]="'View cart, ' + cartService.totalItemsCount + ' items, PKR ' + (cartService.cartSubtotal | number: '1.0-0')"
             pTooltip="View cart"
@@ -2202,15 +2039,20 @@
 
     <!-- Shared product card (menu grids) -->
     <ng-template #foodCardTpl let-product="product" let-imgIdx="imgIdx" let-tagIdx="tagIdx">
-        <div class="fp-food-card grid-mode" (click)="openProductModal(product)">
-            <div class="card-media-box">
+        <div class="fp-food-card grid-mode" [class.fp-food-card--no-image]="!hasProductImage(product)" (click)="openProductModal(product)">
+            <div class="card-media-box" [class.card-media-box--empty]="!hasProductImage(product)">
                 <img
+                    *ngIf="hasProductImage(product)"
                     [src]="getProductImage(product, imgIdx)"
                     [alt]="product.name || 'Product'"
                     class="card-img"
                     (error)="onProductImageError($event, product)"
                 />
-                <div class="card-media-shade" aria-hidden="true"></div>
+                <div class="card-name-fallback" *ngIf="!hasProductImage(product)" aria-hidden="true">
+                    <span class="card-name-initials">{{ getProductNameInitials(product) }}</span>
+                    <span class="card-name-spell">{{ product.name }}</span>
+                </div>
+                <div class="card-media-shade" *ngIf="hasProductImage(product)" aria-hidden="true"></div>
 
                 <button
                     type="button"
@@ -2229,7 +2071,7 @@
 
             <div class="card-body">
                 <h3 class="product-title" [title]="product.name">{{ product.name }}</h3>
-                <p class="product-desc">{{ getProductDescription(product) }}</p>
+                <p class="product-desc" *ngIf="getProductDescription(product) as desc">{{ desc }}</p>
 
                 <div class="card-footer-row">
                     <div class="price-col">

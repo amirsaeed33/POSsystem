@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { ConfirmationService, MessageService } from 'primeng/api';
+import { sweetToast } from 'src/app/demo/utils/sweet-toast';
 import { PermissionNames } from 'src/app/demo/api/permission-names';
 import { SellerDto, SellerStatus, SellerStatuses } from 'src/app/demo/api/seller';
 import { PermissionService } from 'src/app/demo/service/permission.service';
@@ -239,9 +240,7 @@ export class SellerListComponent implements OnInit {
         try {
             await this.sellerService.delete(seller.id);
             this.messageService.add({
-                severity: 'success',
-                summary: 'Deleted',
-                detail: 'Seller application removed.',
+                ...sweetToast('seller', 'delete', seller.fullName),
             });
             await this.load();
         } catch (err: any) {

@@ -116,6 +116,14 @@ export class BranchContextService {
         return this.loadPromise;
     }
 
+    /** Force a fresh lookup (e.g. after creating a branch or opening Change Branch). */
+    async reload(preferredBranchId?: number | null): Promise<BranchDto[]> {
+        this.loadPromise = null;
+        return this.ensureLoaded(
+            preferredBranchId ?? this.toBranchId(this.currentBranchSubject.value?.id)
+        );
+    }
+
     private async loadBranches(
         preferredBranchId?: number | null
     ): Promise<BranchDto[]> {

@@ -1,5 +1,11 @@
 import { AppFormatService } from 'src/app/demo/service/app-format.service';
-import { Component, HostListener, OnDestroy, OnInit } from '@angular/core';
+import {
+    Component,
+    ElementRef,
+    HostListener,
+    OnDestroy,
+    OnInit,
+} from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CustomerOrderService } from 'src/app/demo/service/customer-order.service';
 import { DeliveryAreaService, DeliveryAreaDto } from 'src/app/demo/service/delivery-area.service';
@@ -82,7 +88,10 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
     products: any[] = [];
     filteredProducts: any[] = [];
     categories: string[] = [];
+    /** Category names from store header (legacy string list). */
     backendCategories: string[] = [];
+    /** Name → uploaded category image URL from GetOnlineCategories. */
+    categoryImageByName: Record<string, string> = {};
     /** Empty = All categories. Multiple chips can be active at once. */
     selectedCategories: string[] = [];
 
@@ -122,6 +131,38 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
     favorites: Set<number> = new Set<number>();
     mobileSearchOpen = false;
 
+    /** Index 0–4 for liquid dock notch / bubble position. */
+    get liquidDockIndex(): number {
+        switch (this.activeMobileTab) {
+            case 'deals':
+                return 1;
+            case 'cart':
+                return 2;
+            case 'favorites':
+                return 3;
+            case 'account':
+                return 4;
+            default:
+                return 0;
+        }
+    }
+
+    /** Spotlight accent color matching the active colored menu icon. */
+    get liquidDockAccent(): string {
+        switch (this.activeMobileTab) {
+            case 'deals':
+                return '#f59e0b';
+            case 'cart':
+                return '#f43f5e';
+            case 'favorites':
+                return '#ec4899';
+            case 'account':
+                return '#a78bfa';
+            default:
+                return '#38bdf8';
+        }
+    }
+
     // Curated Section Carousels & Deals
     dealsList: any[] = [];
     trendingDeals: any[] = [];
@@ -155,6 +196,19 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
 
     // Store Chat Floating Drawer
     storeChatOpen = false;
+
+    /** WhatsApp deep link using branch invoice contact phone (null when unavailable). */
+    get branchWhatsAppHref(): string | null {
+        const phone = this.toWhatsAppNumber(this.branchPhone);
+        if (!phone) {
+            return null;
+        }
+        const store = (this.branchName || 'your store').trim();
+        const text = encodeURIComponent(
+            `Hi ${store}, I would like to chat about an order / product.`
+        );
+        return `https://wa.me/${phone}?text=${text}`;
+    }
 
     /** Active online orders for this device — shown in the menu (no separate track page). */
     activeOrders: MyOnlineOrderRef[] = [];
@@ -241,7 +295,7 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
     profileClearImage = false;
     profilePhotoBroken = false;
 
-    loading = false;
+    loading = true;
 
     // Curated high quality imagery for Solar Panels, Inverters, Batteries and general retail
     private solarPanelImages = [
@@ -314,8 +368,12 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
         private browserTitle: AppBrowserTitleService,
         private seo: AppSeoService,
         private appSound: AppSoundService,
-        private storefrontHost: StorefrontHostService
+        private storefrontHost: StorefrontHostService,
+        private hostEl: ElementRef<HTMLElement>
     ) {}
+
+    private productRevealObserver: IntersectionObserver | null = null;
+    private productRevealRaf = 0;
 
     /** Custom client domain: branch is fixed; no multi-branch picker. */
     get isCustomDomainStorefront(): boolean {
@@ -341,161 +399,80 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
 
     currentHeroSlide = 0;
     private heroSlideTimer: any = null;
+    private heroLeaveTimer: ReturnType<typeof setTimeout> | null = null;
+    private heroAnimBusy = false;
+    /** `next` | `prev` — drives 3D enter/leave direction. */
+    heroSlideDir: 'next' | 'prev' = 'next';
+    /** Previous slide index used for exit animation. */
+    previousHeroSlide = 0;
 
     heroSlides: any[] = [];
 
-    private readonly defaultHeroSlides = [
-        {
-            id: 1,
-            badge: 'FRESH FROM OVEN • 30-45 MIN DELIVERY',
-            badgeIcon: '🔥',
-            titleMain: 'Craving Something',
-            titleHighlight: 'Hot, Cheesy',
-            titleEnd: '& Delicious?',
-            description: 'Explore handcrafted pizzas loaded with 100% mozzarella, sizzling juicy burgers, crispy wings, and mouth-watering family deals. Cooked fresh on order!',
-            offerPill: 'FLAT 25% OFF ON LARGE PIZZAS',
-            primaryBtnText: 'Order Deals Now',
-            primaryTarget: 'deals',
-            secondaryBtnText: 'Explore Full Menu',
-            secondaryTarget: 'menu',
-            imageUrl: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=800&h=600&q=80',
-            bgImageUrl: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&w=1920&q=85',
-            cardTag: '🔥 CROWN CRUST PIZZA',
-            cardTitle: 'Cheesy Crown Supreme Pizza',
-            cardPrice: 1650,
-            cardOriginalPrice: 2199,
-            rating: '4.9★'
-        },
-        {
-            id: 2,
-            badge: 'SMASHED & GRILLED TO PERFECTION',
-            badgeIcon: '🍔',
-            titleMain: 'Bite Into Pure',
-            titleHighlight: 'Juicy & Crispy',
-            titleEnd: 'Gourmet Burgers',
-            description: 'Double smashed beef patties, crispy tender chicken fillets, secret spicy mayo, and melted golden cheddar packed inside freshly toasted brioche buns.',
-            offerPill: 'FREE CRISPY FRIES + DIP WITH COMBOS',
-            primaryBtnText: 'Grab Burger Deal',
-            primaryTarget: 'deals',
-            secondaryBtnText: 'View All Burgers',
-            secondaryTarget: 'menu',
-            imageUrl: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=800&h=600&q=80',
-            bgImageUrl: 'https://images.unsplash.com/photo-1572802419224-296b0aeee0d9?auto=format&fit=crop&w=1920&q=85',
-            cardTag: '⭐ BEST SELLER',
-            cardTitle: 'Double Smashed Monster Burger',
-            cardPrice: 890,
-            cardOriginalPrice: 1150,
-            rating: '4.8★'
-        },
-        {
-            id: 3,
-            badge: 'SMOKY CHARCOAL & AUTHENTIC TASTE',
-            badgeIcon: '🍢',
-            titleMain: 'Sizzling Live',
-            titleHighlight: 'Smoky BBQ',
-            titleEnd: '& Kebab Platters',
-            description: 'Tender chicken boti, melt-in-mouth seekh kebabs, and grilled reshmi tikka marinated in rich spices and served with piping-hot kulchas and mint raita.',
-            offerPill: 'FAMILY PLATTER SPECIAL SAVE PKR 800',
-            primaryBtnText: 'Taste The BBQ',
-            primaryTarget: 'menu',
-            secondaryBtnText: 'View BBQ Platters',
-            secondaryTarget: 'menu',
-            imageUrl: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=800&h=600&q=80',
-            bgImageUrl: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=1920&q=85',
-            cardTag: '👑 SIGNATURE SPECIAL',
-            cardTitle: 'Royal Charcoal Mixed BBQ Platter',
-            cardPrice: 2450,
-            cardOriginalPrice: 3250,
-            rating: '4.9★'
-        },
-        {
-            id: 4,
-            badge: 'MEGA VALUE PACKS & CELEBRATIONS',
-            badgeIcon: '🎉',
-            titleMain: 'Gather Round For',
-            titleHighlight: 'Mega Family',
-            titleEnd: 'Feast Combos',
-            description: 'The ultimate party solution! 2 Large Specialty Pizzas, 10 pcs Crispy Wings, Cheesy Garlic Bread, and a chilled 1.5L drink for the whole squad.',
-            offerPill: 'MEGA SAVINGS UP TO PKR 1,200',
-            primaryBtnText: 'Get Family Feast',
-            primaryTarget: 'deals',
-            secondaryBtnText: 'See All Combos',
-            secondaryTarget: 'deals',
-            imageUrl: 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=800&h=600&q=80',
-            bgImageUrl: 'https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?auto=format&fit=crop&w=1920&q=85',
-            cardTag: '⚡ JUMBO COMBO',
-            cardTitle: 'Ultimate Family Feast Box',
-            cardPrice: 3499,
-            cardOriginalPrice: 4699,
-            rating: '5.0★'
-        },
-        {
-            id: 5,
-            badge: 'PIPING HOT DELIVERY GUARANTEE',
-            badgeIcon: '⚡',
-            titleMain: 'Delivered In',
-            titleHighlight: '30-45 Mins',
-            titleEnd: 'Right To Your Door',
-            description: 'Experience lightning-fast express delivery with insulated heat bags. Live rider GPS tracking keeps you informed every step of the way from grill to table.',
-            offerPill: 'FREE EXPRESS DELIVERY TODAY',
-            primaryBtnText: 'Order Online Now',
-            primaryTarget: 'menu',
-            secondaryBtnText: 'Track Active Order',
-            secondaryTarget: 'deals',
-            imageUrl: 'https://images.unsplash.com/photo-1617347454431-f49d7ff5c3b1?auto=format&fit=crop&w=800&h=600&q=80',
-            bgImageUrl: 'https://images.unsplash.com/photo-1617347454431-f49d7ff5c3b1?auto=format&fit=crop&w=1920&q=85',
-            cardTag: '🚀 EXPRESS DELIVERY',
-            cardTitle: 'Fresh, Steaming & Fast To Doorstep',
-            cardPrice: 1200,
-            cardOriginalPrice: 1500,
-            rating: '4.9★'
-        }
-    ];
-
     private async loadHeroSlides(branchId: number): Promise<void> {
+        this.stopHeroSlider();
+        this.clearHeroLeaveTimer();
+        this.heroAnimBusy = false;
+        this.heroSlides = [];
+        this.currentHeroSlide = 0;
+        this.previousHeroSlide = 0;
+
+        if (!branchId || branchId <= 0) {
+            return;
+        }
+
         try {
             const slides = await this.onlineOrderHeroSlideService.getActiveByBranch(branchId);
-            if (slides?.length) {
-                this.heroSlides = slides.map((s) => ({
-                    id: s.id,
-                    badge: s.badge || '',
-                    badgeIcon: s.badgeIcon || '🔥',
-                    titleMain: s.titleMain || '',
-                    titleHighlight: s.titleHighlight || '',
-                    titleEnd: s.titleEnd || '',
-                    description: s.description || '',
-                    offerPill: s.offerPill || '',
-                    primaryBtnText: s.primaryBtnText || 'Order Now',
-                    primaryTarget: s.primaryTarget || 'menu',
-                    secondaryBtnText: s.secondaryBtnText || 'Explore Full Menu',
-                    secondaryTarget: s.secondaryTarget || 'menu',
-                    imageUrl: this.onlineOrderHeroSlideService.getImageUrl(s.imagePath),
-                    bgImageUrl:
+            this.heroSlides = (slides || [])
+                .filter((s) => {
+                    const path = (s.bgImagePath || s.imagePath || '').toString();
+                    if (!path.trim()) {
+                        return false;
+                    }
+                    // Skip auto-seeded generic food defaults (pizza/burger/etc.).
+                    return !/OnlineOrderHeroImages\/defaults/i.test(path);
+                })
+                .map((s) => {
+                    const imageUrl = this.onlineOrderHeroSlideService.getImageUrl(s.imagePath);
+                    const bgImageUrl =
                         this.onlineOrderHeroSlideService.getImageUrl(s.bgImagePath || s.imagePath) ||
-                        this.onlineOrderHeroSlideService.getImageUrl(s.imagePath),
-                    rating: s.rating || '4.9★',
-                }));
-            } else {
-                this.heroSlides = [...this.defaultHeroSlides];
-            }
+                        imageUrl;
+                    return {
+                        id: s.id,
+                        badge: s.badge || '',
+                        badgeIcon: s.badgeIcon || '',
+                        titleMain: s.titleMain || '',
+                        titleHighlight: s.titleHighlight || '',
+                        titleEnd: s.titleEnd || '',
+                        description: s.description || '',
+                        offerPill: s.offerPill || '',
+                        primaryBtnText: s.primaryBtnText || 'Order Now',
+                        primaryTarget: s.primaryTarget || 'menu',
+                        secondaryBtnText: s.secondaryBtnText || 'Explore Menu',
+                        secondaryTarget: s.secondaryTarget || 'menu',
+                        imageUrl,
+                        bgImageUrl,
+                        rating: s.rating || '',
+                    };
+                })
+                .filter((s) => !!s.bgImageUrl);
         } catch {
-            this.heroSlides = [...this.defaultHeroSlides];
+            this.heroSlides = [];
         }
 
-        this.currentHeroSlide = 0;
         if (this.heroSlides.length > 1) {
             this.startHeroSlider();
-        } else {
-            this.stopHeroSlider();
         }
     }
 
     startHeroSlider(): void {
         this.stopHeroSlider();
-        // Interval longer than CSS crossfade (~0.85s) so each transition can finish.
+        if (this.heroSlides.length <= 1) {
+            return;
+        }
+        // 3D flip duration (~1s) + linger on the image.
         this.heroSlideTimer = setInterval(() => {
-            this.nextHeroSlide();
-        }, 4500);
+            this.nextHeroSlide(false);
+        }, 5500);
     }
 
     stopHeroSlider(): void {
@@ -505,17 +482,60 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
         }
     }
 
-    nextHeroSlide(): void {
-        this.currentHeroSlide = (this.currentHeroSlide + 1) % this.heroSlides.length;
+    private clearHeroLeaveTimer(): void {
+        if (this.heroLeaveTimer) {
+            clearTimeout(this.heroLeaveTimer);
+            this.heroLeaveTimer = null;
+        }
     }
 
-    prevHeroSlide(): void {
-        this.currentHeroSlide = (this.currentHeroSlide - 1 + this.heroSlides.length) % this.heroSlides.length;
+    /** Pause autoplay only on real hover devices — touch can fire mouseenter without leave. */
+    onHeroMouseEnter(): void {
+        if (typeof window !== 'undefined' && window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+            this.stopHeroSlider();
+        }
+    }
+
+    onHeroMouseLeave(): void {
+        if (typeof window !== 'undefined' && window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+            this.startHeroSlider();
+        }
+    }
+
+    nextHeroSlide(restart = true): void {
+        if (this.heroSlides.length <= 1 || this.heroAnimBusy) {
+            return;
+        }
+        this.setHeroSlide((this.currentHeroSlide + 1) % this.heroSlides.length, 'next');
+        if (restart) {
+            this.startHeroSlider();
+        }
     }
 
     goToHeroSlide(index: number): void {
-        this.currentHeroSlide = index;
+        if (!this.heroSlides.length || index === this.currentHeroSlide || this.heroAnimBusy) {
+            return;
+        }
+        this.setHeroSlide(index, index > this.currentHeroSlide ? 'next' : 'prev');
         this.startHeroSlider();
+    }
+
+    private setHeroSlide(index: number, dir: 'next' | 'prev'): void {
+        if (index === this.currentHeroSlide) {
+            return;
+        }
+        this.clearHeroLeaveTimer();
+        this.heroAnimBusy = true;
+        this.heroSlideDir = dir;
+        this.previousHeroSlide = this.currentHeroSlide;
+        this.currentHeroSlide = index;
+
+        // Match CSS 3D transition (~1s), then clear leaving panel.
+        this.heroLeaveTimer = setTimeout(() => {
+            this.previousHeroSlide = this.currentHeroSlide;
+            this.heroAnimBusy = false;
+            this.heroLeaveTimer = null;
+        }, 1050);
     }
 
     ngOnInit(): void {
@@ -524,7 +544,7 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
             setTimeout(() => this.openCustomerProfile(), 0);
         }
 
-        this.heroSlides = [...this.defaultHeroSlides];
+        this.heroSlides = [];
         this.checkScreenSize();
         this.checkAuthSession();
         this.loadFavorites();
@@ -1080,8 +1100,61 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
 
     ngOnDestroy(): void {
         this.stopHeroSlider();
+        this.clearHeroLeaveTimer();
         this.stopProductMarqueeAutoScroll();
+        this.teardownProductRevealObserver();
         this.browserTitle.clearStorefrontBranchName();
+    }
+
+    /** Observe product cards and animate them as they enter the viewport on scroll. */
+    private scheduleProductRevealObserve(): void {
+        if (typeof requestAnimationFrame === 'undefined') {
+            return;
+        }
+        cancelAnimationFrame(this.productRevealRaf);
+        // Double rAF: wait until Angular has painted *ngFor product cards.
+        this.productRevealRaf = requestAnimationFrame(() => {
+            this.productRevealRaf = requestAnimationFrame(() => {
+                this.ensureProductRevealObserver();
+                const root = this.hostEl?.nativeElement;
+                if (!root || !this.productRevealObserver) {
+                    return;
+                }
+                const nodes = root.querySelectorAll(
+                    '.fp-menu-grid-col.fp-scroll-reveal:not(.is-visible)'
+                );
+                nodes.forEach((node) => this.productRevealObserver!.observe(node));
+            });
+        });
+    }
+
+    private ensureProductRevealObserver(): void {
+        if (this.productRevealObserver || typeof IntersectionObserver === 'undefined') {
+            return;
+        }
+        this.productRevealObserver = new IntersectionObserver(
+            (entries) => {
+                for (const entry of entries) {
+                    if (!entry.isIntersecting) {
+                        continue;
+                    }
+                    entry.target.classList.add('is-visible');
+                    this.productRevealObserver?.unobserve(entry.target);
+                }
+            },
+            {
+                root: null,
+                rootMargin: '0px 0px -6% 0px',
+                threshold: 0.08,
+            }
+        );
+    }
+
+    private teardownProductRevealObserver(): void {
+        cancelAnimationFrame(this.productRevealRaf);
+        this.productRevealRaf = 0;
+        this.productRevealObserver?.disconnect();
+        this.productRevealObserver = null;
     }
 
     @HostListener('window:resize')
@@ -1328,7 +1401,9 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
                 if (info.latitude != null) this.branchLatitude = Number(info.latitude);
                 if (info.longitude != null) this.branchLongitude = Number(info.longitude);
                 if (info.categories && Array.isArray(info.categories) && info.categories.length > 0) {
-                    this.backendCategories = info.categories;
+                    this.backendCategories = info.categories
+                        .map((c: any) => (typeof c === 'string' ? c : c?.name || c?.Name || '').toString().trim())
+                        .filter((n: string) => !!n);
                     this.extractCategories();
                     this.applyFilter();
                 }
@@ -1470,7 +1545,8 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
         this.products = [];
         this.filteredProducts = [];
         this.categorySections = [];
-        this.heroSlides = [...this.defaultHeroSlides];
+        this.heroSlides = [];
+        this.stopHeroSlider();
 
         try {
             this.loading = true;
@@ -1672,13 +1748,14 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
             const promises: Promise<any>[] = [
                 this.customerOrderService.getOnlineCatalog(bId || undefined),
             ];
-            if (bId && (!this.backendCategories || this.backendCategories.length === 0)) {
+            // Always load categories with images when a branch is set.
+            if (bId) {
                 promises.push(this.customerOrderService.getOnlineCategories(bId).catch(() => []));
             }
             const results = await Promise.all(promises);
             this.products = results[0] || [];
-            if (results.length > 1 && Array.isArray(results[1]) && results[1].length > 0) {
-                this.backendCategories = results[1];
+            if (results.length > 1 && Array.isArray(results[1])) {
+                this.applyOnlineCategoryCatalog(results[1]);
             }
 
             if (this.products && this.products.length > 0 && this.products[0].currencyFormat) {
@@ -1697,6 +1774,7 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
                     this.openProductModal(target);
                 }
             }
+            this.scheduleProductRevealObserve();
         } catch (error: any) {
             this.messageService.add({
                 severity: 'error',
@@ -1705,33 +1783,94 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
             });
         } finally {
             this.loading = false;
+            this.scheduleProductRevealObserve();
+        }
+    }
+
+    /** Map GetOnlineCategories DTOs → names + image URLs. */
+    private applyOnlineCategoryCatalog(list: any[]): void {
+        const imageMap: Record<string, string> = { ...this.categoryImageByName };
+        const names: string[] = [];
+        for (const raw of list || []) {
+            if (typeof raw === 'string') {
+                const n = raw.trim();
+                if (n) {
+                    names.push(n);
+                }
+                continue;
+            }
+            const name = (raw?.name ?? raw?.Name ?? '').toString().trim();
+            if (!name) {
+                continue;
+            }
+            names.push(name);
+            const path = (raw?.imagePath ?? raw?.ImagePath ?? '').toString().trim();
+            const url = this.customerOrderService.getCategoryImageUrl(path);
+            if (url) {
+                imageMap[name.toLowerCase()] = url;
+            }
+        }
+        this.categoryImageByName = imageMap;
+        if (names.length) {
+            this.backendCategories = names;
         }
     }
 
     extractCategories(): void {
-        const set = new Set<string>();
-
-        // 1. Add all categories configured by admin on backend
-        (this.backendCategories || []).forEach((c) => {
-            if (c && c.trim()) {
-                set.add(c.trim());
-            }
-        });
-
-        // 2. Also add any categories found on loaded products
+        const productCats = new Set<string>();
         (this.products || []).forEach((p) => {
-            if (p.categoryName && p.categoryName.trim()) {
-                set.add(p.categoryName.trim());
+            const name = (p.categoryName || '').trim();
+            if (name) {
+                productCats.add(name);
             }
         });
 
-        const allCats = Array.from(set);
-        const regularCats = allCats.filter(
+        // Prefer categories that actually have catalog items (avoids empty Dairy/Beverages noise).
+        const fromProducts = Array.from(productCats).filter(
             (c) => c.toLowerCase() !== 'all' && !c.toLowerCase().includes('deal')
         );
 
-        // Always provide 'All' first, then '🔥 Deals', then all admin-created categories
-        this.categories = ['All', '🔥 Deals', ...regularCats];
+        let regularCats = fromProducts;
+        if (regularCats.length === 0) {
+            const set = new Set<string>();
+            (this.backendCategories || []).forEach((c) => {
+                if (c && c.trim()) {
+                    set.add(c.trim());
+                }
+            });
+            regularCats = Array.from(set).filter(
+                (c) => c.toLowerCase() !== 'all' && !c.toLowerCase().includes('deal')
+            );
+        }
+
+        // Prefer backend order when images/catalog list is available.
+        if (this.backendCategories?.length) {
+            const productSet = new Set(fromProducts.map((c) => c.toLowerCase()));
+            const ordered = this.backendCategories.filter((c) => {
+                const lower = (c || '').toLowerCase();
+                if (!c || lower === 'all' || lower.includes('deal')) {
+                    return false;
+                }
+                // If products loaded, only show categories that have items.
+                if (fromProducts.length > 0) {
+                    return productSet.has(lower);
+                }
+                return true;
+            });
+            if (ordered.length) {
+                regularCats = ordered;
+            }
+        }
+
+        const hasDeals = (this.products || []).some(
+            (p) =>
+                !!p.isDeal ||
+                ((p.categoryName || '').trim().toLowerCase().includes('deal'))
+        );
+
+        this.categories = hasDeals
+            ? ['All', '🔥 Deals', ...regularCats]
+            : ['All', ...regularCats];
     }
 
     private organizeCarousels(): void {
@@ -1928,13 +2067,6 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
         const pill = this.selectedPill;
 
         this.filteredProducts = (this.products || []).filter((p) => {
-            // Favorites tab restriction
-            if (this.activeMobileTab === 'favorites') {
-                if (!this.favorites.has(p.id)) {
-                    return false;
-                }
-            }
-
             // Multi-category: product must match at least one selected category
             let matchesCat = true;
             if (selectedCats.length > 0) {
@@ -1980,11 +2112,49 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
 
             return matchesCat && matchesPill && matchesSearch;
         });
+
+        // Saved tab / heart: keep favorites at the top of filtered results too.
+        if (this.activeMobileTab === 'favorites') {
+            this.filteredProducts = this.sortFavoritesFirst(this.filteredProducts);
+        }
+        this.scheduleProductRevealObserve();
+    }
+
+    /** Favorite products first, then the rest (stable order within each group). */
+    private sortFavoritesFirst(list: any[]): any[] {
+        const items = list || [];
+        const favs: any[] = [];
+        const rest: any[] = [];
+        for (const p of items) {
+            if (p?.id != null && this.favorites.has(p.id)) {
+                favs.push(p);
+            } else {
+                rest.push(p);
+            }
+        }
+        return [...favs, ...rest];
+    }
+
+    get favoriteProducts(): any[] {
+        return (this.products || []).filter((p) => p?.id != null && this.favorites.has(p.id));
+    }
+
+    get otherProducts(): any[] {
+        return (this.products || []).filter((p) => !p?.id || !this.favorites.has(p.id));
+    }
+
+    /** Catalog grid source: favorites pinned on top when Saved tab is active. */
+    get displayProducts(): any[] {
+        if (this.activeMobileTab === 'favorites') {
+            return this.sortFavoritesFirst(this.products || []);
+        }
+        return this.products || [];
     }
 
     // 5-Tab Navigation Dock Actions
     onMobileTabSelect(tab: 'home' | 'deals' | 'cart' | 'favorites' | 'account'): void {
         this.activeMobileTab = tab;
+        this.scheduleProductRevealObserve();
         if (tab === 'home') {
             this.selectedCategories = [];
             this.selectedPill = '';
@@ -2001,8 +2171,13 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
         } else if (tab === 'favorites') {
             this.selectedCategories = [];
             this.selectedPill = '';
+            this.searchKeyword = '';
             this.applyFilter();
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            // Jump to product grid so Saved items appear on top immediately.
+            setTimeout(() => {
+                const el = document.getElementById('storeAllProducts') || document.getElementById('storeMenuSection');
+                el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 50);
         } else if (tab === 'account') {
             this.openCustomerProfile();
         }
@@ -2116,11 +2291,14 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
             this.favorites.delete(productId);
         } else {
             this.favorites.add(productId);
+            // Show Saved layout: favorites on top, everything else below.
+            this.activeMobileTab = 'favorites';
+            this.selectedCategories = [];
+            this.selectedPill = '';
+            this.searchKeyword = '';
         }
         this.saveFavorites();
-        if (this.activeMobileTab === 'favorites') {
-            this.applyFilter();
-        }
+        this.applyFilter();
 
         try {
             const result = await this.customerOrderService.toggleFavorite({
@@ -2184,10 +2362,34 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
     }
 
     // Circular Category Visual Resolver
+    /** Drop broken category image so icon fallback shows. */
+    onCategoryThumbError(event: Event, cat: string): void {
+        const key = (cat || '').toLowerCase().trim();
+        if (key && this.categoryImageByName[key]) {
+            const next = { ...this.categoryImageByName };
+            delete next[key];
+            this.categoryImageByName = next;
+        }
+        const img = event?.target as HTMLImageElement | null;
+        if (img) {
+            img.style.display = 'none';
+        }
+    }
+
     getCategoryVisual(cat: string): { icon: string; image?: string; color: string; label: string } {
-        const c = cat.toLowerCase();
+        const c = (cat || '').toLowerCase().trim();
+        const uploaded = this.categoryImageByName[c];
         if (c === 'all') {
             return { icon: 'pi pi-compass', color: '#e23744', label: 'All' };
+        }
+        // Prefer branch-uploaded category image from the server.
+        if (uploaded) {
+            return {
+                icon: 'pi pi-tag',
+                color: '#be185d',
+                label: cat,
+                image: uploaded,
+            };
         }
         if (c.includes('deal') || c.includes('🔥')) {
             return {
@@ -2301,11 +2503,26 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
                 image: 'https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&w=150&q=80',
             };
         }
+        if (
+            c.includes('fragrance') ||
+            c.includes('perfume') ||
+            c.includes('attar') ||
+            c.includes('oud') ||
+            c.includes('scent') ||
+            c.includes('mist') ||
+            c.includes('body spray')
+        ) {
+            return {
+                icon: 'pi pi-star-fill',
+                color: '#be185d',
+                label: cat,
+                image: 'https://images.unsplash.com/photo-1541643600914-78b084683601?auto=format&fit=crop&w=150&q=80',
+            };
+        }
         return {
             icon: 'pi pi-tag',
             color: '#e23744',
             label: cat,
-            image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=150&q=80',
         };
     }
 
@@ -2334,6 +2551,9 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
     }
 
     isRestaurantStore(): boolean {
+        if (this.isFragranceStore() || this.isSolarStore()) {
+            return false;
+        }
         if (this.isRestaurant) {
             return true;
         }
@@ -2342,6 +2562,8 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
             b.includes('cafe') ||
             b.includes('restaurant') ||
             b.includes('food') ||
+            b.includes('almeezan') ||
+            b.includes('meezan') ||
             b.includes('burger') ||
             b.includes('pizza') ||
             b.includes('dining') ||
@@ -2352,6 +2574,164 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
             b.includes('dhaba') ||
             b.includes('hotel')
         );
+    }
+
+    /** Perfume / attar / fragrance retail (e.g. Perform). */
+    isFragranceStore(): boolean {
+        const b = (this.branchName || '').toLowerCase();
+        if (
+            b.includes('perform') ||
+            b.includes('fragrance') ||
+            b.includes('perfume') ||
+            b.includes('attar') ||
+            b.includes('scent')
+        ) {
+            return true;
+        }
+        return (this.categories || []).some((c) => {
+            const n = (c || '').toLowerCase();
+            return n.includes('fragrance') || n.includes('perfume') || n.includes('attar');
+        });
+    }
+
+    get footerBrandTag(): string {
+        if (this.isFragranceStore()) {
+            return 'Premium Fragrances · Online Orders';
+        }
+        if (this.isSolarStore()) {
+            return 'Solar Energy & Power Systems';
+        }
+        if (this.isRestaurantStore()) {
+            return 'Fresh Food · Online Delivery';
+        }
+        return 'Online Store & Delivery';
+    }
+
+    get footerBrandBio(): string {
+        if (this.isFragranceStore()) {
+            return 'Curated scents and attars — authentic bottles, size options, and doorstep delivery.';
+        }
+        if (this.isSolarStore()) {
+            return 'Panels, inverters, and power solutions sized for homes and businesses.';
+        }
+        if (this.isRestaurantStore()) {
+            return 'Gourmet meals made fresh to order — fast, hygienic, and delivered with care.';
+        }
+        return 'Shop online from this branch — quality products, clear pricing, and reliable delivery.';
+    }
+
+    get footerTrustBadges(): { icon: string; label: string }[] {
+        if (this.isFragranceStore()) {
+            return [
+                { icon: 'pi-verified', label: 'Authentic' },
+                { icon: 'pi-send', label: 'Fast Delivery' },
+            ];
+        }
+        if (this.isSolarStore()) {
+            return [
+                { icon: 'pi-shield', label: 'Warranty Ready' },
+                { icon: 'pi-bolt', label: 'Expert Support' },
+            ];
+        }
+        if (this.isRestaurantStore()) {
+            return [
+                { icon: 'pi-shield', label: '100% Halal' },
+                { icon: 'pi-bolt', label: 'Quick Delivery' },
+            ];
+        }
+        return [
+            { icon: 'pi-check-circle', label: 'Quality Assured' },
+            { icon: 'pi-send', label: 'Fast Delivery' },
+        ];
+    }
+
+    /** Menu strip icon/title/search copy based on selected branch. */
+    get menuSectionIcon(): string {
+        if (this.isFragranceStore()) {
+            return '✨';
+        }
+        if (this.isSolarStore()) {
+            return '☀️';
+        }
+        if (this.isRestaurantStore()) {
+            return '🍽️';
+        }
+        return '🛍️';
+    }
+
+    get menuSectionTitle(): string {
+        if (this.isFragranceStore()) {
+            return 'Explore Fragrances';
+        }
+        if (this.isSolarStore()) {
+            return 'Explore Solar Products';
+        }
+        if (this.isRestaurantStore()) {
+            return 'Explore Food Menu';
+        }
+        return 'Explore Products';
+    }
+
+    get menuSectionSubtitle(): string {
+        if (this.isFragranceStore()) {
+            return 'Search scents or pick a size like 2 ml – 8 ml';
+        }
+        if (this.isSolarStore()) {
+            return 'Search or select panels, inverters, and more';
+        }
+        if (this.isRestaurantStore()) {
+            return 'Search or select one or more categories';
+        }
+        return 'Search or select one or more categories';
+    }
+
+    get menuSearchPlaceholder(): string {
+        if (this.isFragranceStore()) {
+            return 'Search fragrances, sizes, deals…';
+        }
+        if (this.isSolarStore()) {
+            return 'Search panels, inverters, batteries…';
+        }
+        if (this.isRestaurantStore()) {
+            return 'Search meals, deals, categories…';
+        }
+        return 'Search products, deals, categories…';
+    }
+
+    get menuNavLabel(): string {
+        if (this.isFragranceStore() || this.isSolarStore()) {
+            return 'Products';
+        }
+        if (this.isRestaurantStore()) {
+            return 'Food Menu';
+        }
+        return 'Products';
+    }
+
+    get checkoutNotesLabel(): string {
+        if (this.isFragranceStore()) {
+            return 'Delivery Notes (optional)';
+        }
+        if (this.isSolarStore()) {
+            return 'Installation / Delivery Notes';
+        }
+        if (this.isRestaurantStore()) {
+            return 'Kitchen / Special Instructions';
+        }
+        return 'Order Notes (optional)';
+    }
+
+    get checkoutNotesPlaceholder(): string {
+        if (this.isFragranceStore()) {
+            return 'e.g. Ring the bell, leave with guard, gift wrap…';
+        }
+        if (this.isSolarStore()) {
+            return 'e.g. Call before delivery, roof access notes…';
+        }
+        if (this.isRestaurantStore()) {
+            return 'e.g. Extra ketchup, ring bell, handle with care…';
+        }
+        return 'e.g. Ring bell, landmark, handle with care…';
     }
 
     getProductDomain(product: any): 'solar-panel' | 'inverter' | 'battery' | 'solar-accessory' | 'food' | 'retail' | 'general' {
@@ -2581,109 +2961,40 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
         94: 'https://images.unsplash.com/photo-1584556812952-905ffd0c611a?auto=format&fit=crop&w=500&h=500&q=80', // Tissue Pocket Pack
     };
 
-    getProductImage(product: any, index: number): string {
-        if (product?.imagePath && !product.imagePath.includes('placeholder.png')) {
-            return this.getImageUrl(product.imagePath);
-        }
-
-        // Direct matching by Product ID (exact 1-to-1 match for all 94 catalog items)
-        if (product?.id && OnlineOrderComponent.CATALOG_IMAGES_BY_ID[product.id]) {
-            return OnlineOrderComponent.CATALOG_IMAGES_BY_ID[product.id];
-        }
-
-        const name = (product?.name || '').toLowerCase().trim();
-        const cat = (product?.categoryName || '').toLowerCase().trim();
-        const desc = (product?.description || '').toLowerCase().trim();
-
-        // 1. Cheezious-style Pizza Deals & Combos
-        if (name.includes('small pizza') || (name.includes('pizza') && name.includes('small'))) {
-            return 'assets/menu-items/pizza_small.jpg';
-        }
-        if (name.includes('regular pizza') || (name.includes('pizza') && name.includes('regular'))) {
-            return 'assets/menu-items/pizza_regular.jpg';
-        }
-        if (name.includes('large pizza') || (name.includes('pizza') && (name.includes('large') || name.includes('family')))) {
-            return 'assets/menu-items/pizza_large.jpg';
-        }
-        if (name.includes('pizza') || desc.includes('pizza')) {
-            return 'assets/menu-items/pizza_regular.jpg';
-        }
-
-        // 2. Cheezious-style Burger Combos & Deals
-        if (name.includes('burger deal') || name.includes('somewhat') || name.includes('combo') || name.includes('bazinga') || name.includes('amazing') || name.includes('cheezious') || name.includes('fast food deal')) {
-            return 'assets/menu-items/burger_combo.jpg';
-        }
-
-        // 3. Specific Bakery Item Names (Match against product name FIRST, NOT category!)
-        if (name.includes('barfi')) return 'assets/menu-items/barfi.jpg';
-        if (name.includes('milk bread') || name.includes('sandwich bread')) return 'assets/menu-items/milk_bread.jpg';
-        if (name.includes('brown bread')) return 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=500&h=500&q=80';
-        if (name.includes('burger bun')) return 'https://images.unsplash.com/photo-1586190848861-99aa4a171e90?auto=format&fit=crop&w=500&h=500&q=80';
-        if (name.includes('hot dog')) return 'https://images.unsplash.com/photo-1619740455993-9e612b1af08a?auto=format&fit=crop&w=500&h=500&q=80';
-        if (name.includes('dinner roll') || name.includes('rolls')) return 'https://images.unsplash.com/photo-1568254183919-78a4f43a2877?auto=format&fit=crop&w=500&h=500&q=80';
-        if (name.includes('garlic bread')) return 'https://images.unsplash.com/photo-1619535860434-ba1d8fa12536?auto=format&fit=crop&w=500&h=500&q=80';
-        if (name.includes('fruit bun')) return 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=500&h=500&q=80';
-        if (name.includes('kulcha') || name.includes('naan')) return 'https://images.unsplash.com/photo-1601050690597-df0568f70950?auto=format&fit=crop&w=500&h=500&q=80';
-
-        // 4. Sweets, Cakes, Donuts & Pastries
-        if (name.includes('donut')) return 'https://images.unsplash.com/photo-1551024601-bec78aea704b?auto=format&fit=crop&w=500&h=500&q=80';
-        if (name.includes('cupcake')) return 'https://images.unsplash.com/photo-1576618148400-f54bed99fcfd?auto=format&fit=crop&w=500&h=500&q=80';
-        if (name.includes('muffin')) return 'https://images.unsplash.com/photo-1586985289688-ca3cf47d3e6e?auto=format&fit=crop&w=500&h=500&q=80';
-        if (name.includes('croissant')) return 'https://images.unsplash.com/photo-1555507036-ab1f4038808a?auto=format&fit=crop&w=500&h=500&q=80';
-        if (name.includes('pastry') || name.includes('cake')) return 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=500&h=500&q=80';
-
-        // 5. Dairy
-        if (name.includes('cheese')) return 'https://images.unsplash.com/photo-1486297678162-eb2a19b0a32d?auto=format&fit=crop&w=500&h=500&q=80';
-        if (name.includes('ghee')) return 'https://images.unsplash.com/photo-1628088062854-d1870b4553da?auto=format&fit=crop&w=500&h=500&q=80';
-        if (name.includes('butter')) return 'https://images.unsplash.com/photo-1589985270826-4b7bb135bc9d?auto=format&fit=crop&w=500&h=500&q=80';
-        if (name.includes('yogurt')) return 'https://images.unsplash.com/photo-1488477181946-6428a0291777?auto=format&fit=crop&w=500&h=500&q=80';
-        if (name.includes('egg')) return 'https://images.unsplash.com/photo-1582722872445-44dc5f7e3c8f?auto=format&fit=crop&w=500&h=500&q=80';
-        if (name.includes('milk') || name.includes('cream')) return 'https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=500&h=500&q=80';
-
-        // Fast food fallback
-        if (name.includes('burger') || name.includes('zinger') || name.includes('chicken') || name.includes('fast food')) {
-            return 'assets/menu-items/burger_combo.jpg';
-        }
-
-        // Default domain fallback
-        const domain = this.getProductDomain(product);
-        const idx = Math.abs(product?.id || index || 0);
-        switch (domain) {
-            case 'food':
-                return 'assets/menu-items/burger_combo.jpg';
-            case 'solar-panel':
-                return this.solarPanelImages[idx % this.solarPanelImages.length];
-            case 'inverter':
-                return this.inverterImages[idx % this.inverterImages.length];
-            case 'battery':
-                return this.batteryImages[idx % this.batteryImages.length];
-            case 'solar-accessory':
-                return this.solarAccessoryImages[idx % this.solarAccessoryImages.length];
-            default:
-                return 'assets/menu-items/burger_combo.jpg';
-        }
+    hasProductImage(product: any): boolean {
+        const path = (product?.imagePath || '').toString().trim();
+        return !!path && !path.includes('placeholder.png');
     }
 
-    /** When remote/DB image fails, swap to a local food asset so alt text never overlaps the badge. */
-    onProductImageError(event: Event, product?: any): void {
+    getProductImage(product: any, _index?: number): string {
+        if (!this.hasProductImage(product)) {
+            return '';
+        }
+        return this.getImageUrl(product.imagePath) || '';
+    }
+
+    getProductNameInitials(product: any): string {
+        const name = (product?.name || '').toString().trim();
+        if (!name) {
+            return '•';
+        }
+        const parts = name.split(/\s+/).filter(Boolean);
+        if (parts.length === 1) {
+            return parts[0].slice(0, 2).toUpperCase();
+        }
+        return `${parts[0][0] || ''}${parts[1][0] || ''}`.toUpperCase();
+    }
+
+    /** Hide broken images — do not swap in random placeholders. */
+    onProductImageError(event: Event, _product?: any): void {
         const img = event?.target as HTMLImageElement | null;
         if (!img || img.dataset['fallbackApplied'] === '1') {
             return;
         }
         img.dataset['fallbackApplied'] = '1';
-        const name = (product?.name || '').toLowerCase();
-        if (name.includes('pizza')) {
-            img.src = 'assets/menu-items/pizza_regular.jpg';
-        } else if (name.includes('burger') || name.includes('zinger')) {
-            img.src = 'assets/menu-items/burger_combo.jpg';
-        } else if (name.includes('barfi')) {
-            img.src = 'assets/menu-items/barfi.jpg';
-        } else if (name.includes('bread') || name.includes('bun')) {
-            img.src = 'assets/menu-items/milk_bread.jpg';
-        } else {
-            img.src = 'assets/menu-items/burger_combo.jpg';
-        }
+        img.removeAttribute('src');
         img.alt = '';
+        img.style.display = 'none';
     }
 
     getProductRating(product: any): string {
@@ -2697,23 +3008,8 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
     }
 
     getProductDescription(product: any): string {
-        if (product?.description && product.description.trim()) {
-            return product.description;
-        }
-        const domain = this.getProductDomain(product);
-        if (domain === 'solar-panel') {
-            return 'High-efficiency Tier-1 Monocrystalline solar module engineered with advanced half-cut multi-busbar technology for maximum energy yield even in low-light and high-temperature environments. Certified with 25-year linear performance warranty.';
-        }
-        if (domain === 'inverter') {
-            return 'Smart hybrid solar inverter featuring high-efficiency MPPT charge controller, pure sine wave AC output, zero-transfer time UPS functionality, and real-time WiFi mobile app monitoring.';
-        }
-        if (domain === 'battery') {
-            return 'Heavy-duty deep-cycle energy storage battery built with thick reinforced plates for exceptional cycle life, deep discharge recovery, and consistent high-power backup.';
-        }
-        if (domain === 'solar-accessory') {
-            return 'Certified high-grade solar infrastructure equipment designed for extreme outdoor weather conditions, electrical safety, and seamless system integration.';
-        }
-        return 'Authentic, premium-quality branded product with official manufacturer warranty and guaranteed durability.';
+        const desc = (product?.description || '').toString().trim();
+        return desc;
     }
 
     hasVariants(product: any): boolean {
@@ -2843,8 +3139,25 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
     updateDetailQuantity(change: number): void {
         const next = this.detailQuantity + change;
         if (next >= 1) {
-            this.detailQuantity = next;
+            this.detailQuantity = Math.min(9999, next);
         }
+    }
+
+    onDetailQuantityTyped(value: number | string | null): void {
+        const n = typeof value === 'number' ? value : parseInt(String(value ?? ''), 10);
+        if (!Number.isFinite(n)) {
+            return;
+        }
+        this.detailQuantity = Math.min(9999, Math.max(1, Math.floor(n)));
+    }
+
+    normalizeDetailQuantity(): void {
+        const n = Number(this.detailQuantity);
+        if (!Number.isFinite(n) || n < 1) {
+            this.detailQuantity = 1;
+            return;
+        }
+        this.detailQuantity = Math.min(9999, Math.max(1, Math.floor(n)));
     }
 
 
@@ -3131,8 +3444,11 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
         }
         this.applyCheckoutDraft();
         this.cartService.sidebarVisible = false;
-        this.checkoutModalVisible = true;
-        void this.loadSavedAddresses(this.customerMobile);
+        // Open after sidebar starts closing so both overlays are not stacked.
+        setTimeout(() => {
+            this.checkoutModalVisible = true;
+            void this.loadSavedAddresses(this.customerMobile);
+        }, 180);
     }
 
     /** Prefill name / phone / address from profile, reorder draft, or local storage. */
@@ -3581,6 +3897,18 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
         } catch {
             // Ignore
         }
+    }
+
+    /** Normalize local/intl phone into WhatsApp `wa.me` digits (PK 03… → 923…). */
+    private toWhatsAppNumber(phone: string): string {
+        let digits = (phone || '').replace(/\D/g, '');
+        if (!digits) {
+            return '';
+        }
+        if (digits.startsWith('0') && digits.length >= 10) {
+            digits = `92${digits.substring(1)}`;
+        }
+        return digits;
     }
 
     goToTracking(orderNo?: string): void {

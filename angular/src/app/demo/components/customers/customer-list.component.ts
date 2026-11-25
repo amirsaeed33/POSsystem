@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { Table } from 'primeng/table';
 import { ConfirmationService, MessageService } from 'primeng/api';
+import { sweetToast } from 'src/app/demo/utils/sweet-toast';
 import { CustomerDto, CustomerType } from 'src/app/demo/api/customer';
 import { CustomerService } from 'src/app/demo/service/customer.service';
 import { RowActionItem } from 'src/app/shared/components/row-actions/row-actions.component';
@@ -130,9 +131,7 @@ export class CustomerListComponent implements OnInit {
                     .delete(customer.id)
                     .then(() => {
                         this.messageService.add({
-                            severity: 'success',
-                            summary: 'Success',
-                            detail: 'Customer deleted successfully',
+                            ...sweetToast('customer', 'delete', customer.name),
                         });
                         this.loadCustomers();
                     })

@@ -2,10 +2,12 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import {
+    BranchModifierTemplateDto,
     CreateModifierGroupDto,
     CreateModifierOptionDto,
     ProductModifierGroupDto,
     ProductModifierOptionDto,
+    UpdateModifierOptionDto,
 } from '../api/product-modifier';
 import { environment } from '../../../environments/environment';
 import { TtlCache, branchCacheKey } from './ttl-cache';
@@ -109,6 +111,26 @@ export class ProductModifierService {
         return this.mapOption(option);
     }
 
+    async updateOption(dto: UpdateModifierOptionDto): Promise<ProductModifierOptionDto> {
+        this.clearCache();
+        const price =
+            dto.price !== undefined && dto.price !== null
+                ? Number(dto.price)
+                : 0;
+        const payload = {
+            id: dto.id,
+            name: dto.name,
+            price: Number.isFinite(price) ? Math.max(0, price) : 0,
+            isIncludedInBasePrice: !!dto.isIncludedInBasePrice,
+            isDefault: !!dto.isDefault,
+        };
+        const res: any = await firstValueFrom(
+            this.http.put<any>(`${this.apiUrl}/UpdateOption`, payload)
+        );
+        const option = this.unwrap(res, 'Failed to update option');
+        return this.mapOption(option);
+    }
+
     async deleteOption(id: number): Promise<void> {
         this.clearCache();
         const res: any = await firstValueFrom(
@@ -117,6 +139,58 @@ export class ProductModifierService {
             })
         );
         this.unwrap(res, 'Failed to delete option');
+    }
+
+    async getBranchTemplate(branchId: number): Promise<BranchModifierTemplateDto> {
+        const res: any = await firstValueFrom(
+            this.http.get<any>(`${this.apiUrl}/GetBranchTemplate`, {
+                params: { branchId },
+            })
+        );
+        return this.mapTemplate(this.unwrap(res, 'Failed to load modifier template'), branchId);
+    }
+
+    async saveBranchTemplate(
+        input: BranchModifierTemplateDto
+    ): Promise<BranchModifierTemplateDto> {
+        const res: any = await firstValueFrom(
+            this.http.post<any>(`${this.apiUrl}/SaveBranchTemplate`, input)
+        );
+        return this.mapTemplate(
+            this.unwrap(res, 'Failed to save modifier template'),
+            input.branchId
+        );
+    }
+
+    async applyBranchTemplate(
+        productId: number,
+        branchId?: number | null
+    ): Promise<ProductModifierGroupDto[]> {
+        this.clearCache();
+        const res: any = await firstValueFrom(
+            this.http.post<any>(`${this.apiUrl}/ApplyBranchTemplate`, {
+                productId,
+                branchId: branchId || undefined,
+            })
+        );
+        const list = this.unwrap(res, 'Failed to apply modifier template');
+        return (Array.isArray(list) ? list : []).map((g: any) => this.mapGroup(g));
+    }
+
+    private mapTemplate(raw: any, branchId: number): BranchModifierTemplateDto {
+        const options = (raw?.options || raw?.Options || []).map((o: any) => ({
+            name: (o.name ?? o.Name ?? '').toString(),
+            useSalePrice: !!(o.useSalePrice ?? o.UseSalePrice),
+            price: Number(o.price ?? o.Price ?? 0) || 0,
+            isDefault: !!(o.isDefault ?? o.IsDefault),
+        }));
+        return {
+            branchId: Number(raw?.branchId ?? raw?.BranchId ?? branchId) || branchId,
+            groupName: (raw?.groupName ?? raw?.GroupName ?? 'Size').toString(),
+            isRequired: !!(raw?.isRequired ?? raw?.IsRequired ?? true),
+            allowMultiple: !!(raw?.allowMultiple ?? raw?.AllowMultiple),
+            options,
+        };
     }
 
     private unwrap(res: any, fallback: string): any {

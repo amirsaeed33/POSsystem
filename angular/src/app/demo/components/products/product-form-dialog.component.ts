@@ -20,6 +20,7 @@ import { BranchService } from 'src/app/demo/service/branch.service';
 import { BranchContextService } from 'src/app/demo/service/branch-context.service';
 import { PermissionService } from 'src/app/demo/service/permission.service';
 import { PermissionNames } from 'src/app/demo/api/permission-names';
+import { sweetToast } from 'src/app/demo/utils/sweet-toast';
 
 export interface ProductSpecItem {
     key: string;
@@ -29,6 +30,7 @@ export interface ProductSpecItem {
 @Component({
     selector: 'app-product-form-dialog',
     templateUrl: './product-form-dialog.component.html',
+    styleUrls: ['./product-form-dialog.component.scss'],
 })
 export class ProductFormDialogComponent implements OnChanges {
     @Input() visible = false;
@@ -55,13 +57,14 @@ export class ProductFormDialogComponent implements OnChanges {
     loading = false;
     canManageBranches = false;
 
-    readonly cardTagOptions: { label: string; value: string }[] = [
-        { label: '🔥 Hot Deal', value: '🔥 Hot Deal' },
-        { label: '⭐ Best Seller', value: '⭐ Best Seller' },
-        { label: '🎉 Special Deal', value: '🎉 Special Deal' },
-        { label: '⚡ Verified', value: '⚡ Verified' },
-        { label: '👑 Signature', value: '👑 Signature' },
-        { label: '✨ New', value: '✨ New' },
+    /** Plain strings — editable p-dropdown + optionValue fails to show the selected label. */
+    readonly cardTagOptions: string[] = [
+        '🔥 Hot Deal',
+        '⭐ Best Seller',
+        '🎉 Special Deal',
+        '⚡ Verified',
+        '👑 Signature',
+        '✨ New',
     ];
 
     constructor(
@@ -192,7 +195,7 @@ export class ProductFormDialogComponent implements OnChanges {
         }
     }
 
-    save(): void {
+    save(createAnother = false): void {
         const validationMessage = this.getValidationMessage();
         if (validationMessage) {
             this.messageService.add({
@@ -201,6 +204,11 @@ export class ProductFormDialogComponent implements OnChanges {
                 detail: validationMessage,
             });
             return;
+        }
+
+        // Create-another only applies to the create popup.
+        if (this.productId) {
+            createAnother = false;
         }
 
         const name = (this.product.name || '').trim();
@@ -216,10 +224,11 @@ export class ProductFormDialogComponent implements OnChanges {
         }
         let brandId = this.product.brandId;
 
+        if (!barcode) {
+            barcode = `${this.isRestaurant ? 'REST' : 'PRD'}-${Date.now()}`;
+        }
+
         if (this.isRestaurant) {
-            if (!barcode) {
-                barcode = `REST-${Date.now()}`;
-            }
             if (!brandId && this.brands.length > 0) {
                 brandId = this.brands[0].id;
             }
@@ -307,23 +316,32 @@ export class ProductFormDialogComponent implements OnChanges {
                   categoryId: this.product.categoryId,
                   brandId: brandId || undefined,
                   unitId: this.product.unitId,
-                  imageBase64: undefined,
+                  imageBase64,
                   specifications: specsJson,
                   cardTag: (this.product.cardTag || '').toString().trim() || undefined,
                   ...assignment,
               } as CreateProductDto);
 
+        const wasCreate = !this.productId;
         request
             .then(() => {
                 this.messageService.add({
-                    severity: 'success',
-                    summary: 'Success',
-                    detail: this.productId
-                        ? 'Product updated successfully'
-                        : 'Product created successfully',
+                    ...sweetToast(
+                        'product',
+                        wasCreate
+                            ? createAnother
+                              ? 'createAnother'
+                              : 'create'
+                            : 'update',
+                        name
+                    ),
                 });
                 this.saved.emit();
-                this.onHide();
+                if (createAnother) {
+                    this.resetForNextCreate();
+                } else {
+                    this.onHide();
+                }
             })
             .catch((error) => {
                 this.messageService.add({
@@ -337,12 +355,24 @@ export class ProductFormDialogComponent implements OnChanges {
             });
     }
 
+    /** Keep category/brand/unit/etc.; clear image, name, and selling price for the next product. */
+    private resetForNextCreate(): void {
+        this.product = {
+            ...this.product,
+            id: 0,
+            name: '',
+            barcode: '',
+            description: '',
+            price: null as any,
+            imagePath: undefined,
+            imageBase64: undefined,
+        };
+        this.imagePreview = '';
+    }
+
     private getValidationMessage(): string | null {
         if (!(this.product.name || '').trim()) {
             return 'Name is required.';
-        }
-        if (!this.isRestaurant && !(this.product.barcode || '').trim()) {
-            return 'Barcode is required.';
         }
         if (this.isPermanentGroceryCategory) {
             // Permanent grocery items do not have sell or purchase price in this form
@@ -455,11 +485,11 @@ export class ProductFormDialogComponent implements OnChanges {
             .then((product) => {
                 this.product = { ...product, imageBase64: undefined };
                 this.specItems = this.parseSpecs(product.specifications);
-                // Tenant-level (all locations) keeps assignment empty.
-                this.selectedBranchIds =
-                    product.isShared || !product.branchIds?.length
-                        ? []
-                        : [...product.branchIds];
+                this.selectedBranchIds = product.branchIds?.length
+                    ? [...product.branchIds]
+                    : product.branchId
+                      ? [product.branchId]
+                      : [];
                 this.imagePreview = this.productService.getImageUrl(product.imagePath);
             })
             .catch((error) => {

@@ -7,6 +7,7 @@ import {
     SimpleChanges,
 } from '@angular/core';
 import { MessageService } from 'primeng/api';
+import { sweetToast } from 'src/app/demo/utils/sweet-toast';
 import {
     CreateStockAdjustmentDto,
     CreateStockAdjustmentLineDto,
@@ -156,11 +157,10 @@ export class StockAdjustmentFormDialogComponent implements OnChanges {
         request
             .then(() => {
                 this.messageService.add({
-                    severity: 'success',
-                    summary: 'Success',
-                    detail: this.adjustmentId
-                        ? 'Stock adjustment updated successfully'
-                        : 'Stock adjustment created successfully',
+                    ...sweetToast(
+                        'stockAdjustment',
+                        this.adjustmentId ? 'update' : 'create'
+                    ),
                 });
                 this.saved.emit();
                 this.onHide();

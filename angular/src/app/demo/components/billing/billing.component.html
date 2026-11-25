@@ -163,13 +163,24 @@
     <div class="flex flex-wrap gap-2 mb-3" *ngIf="data?.paymentMethods?.length; else noMethods">
         <button
             *ngFor="let method of data?.paymentMethods"
-            pButton
             type="button"
-            [label]="method.kindName"
-            class="p-button-sm"
-            [class.p-button-outlined]="selectedMethod?.id !== method.id"
+            class="billing-method-btn"
+            [class.billing-method-btn--active]="selectedMethod?.id === method.id"
+            [attr.aria-label]="method.kindName"
+            [pTooltip]="method.kindName"
+            tooltipPosition="top"
             (click)="selectMethod(method)"
-        ></button>
+        >
+            <img
+                *ngIf="methodIcon(method) as icon; else methodLabel"
+                [src]="icon"
+                [alt]="method.kindName"
+                class="billing-method-icon"
+            />
+            <ng-template #methodLabel>
+                <span class="billing-method-label">{{ method.kindName }}</span>
+            </ng-template>
+        </button>
     </div>
     <ng-template #noMethods>
         <p class="text-500">No payment methods are available yet.</p>
@@ -178,21 +189,25 @@
     <div class="billing-pay-box" *ngIf="selectedMethod as method">
         <div class="font-bold">{{ method.kindName }}</div>
         <div>{{ method.accountTitle }}</div>
-        <div class="text-lg font-semibold">{{ method.accountNumber }}</div>
+        <div class="flex align-items-center gap-2 flex-wrap">
+            <div class="text-lg font-semibold billing-account-number">{{ method.accountNumber }}</div>
+            <button
+                pButton
+                type="button"
+                class="p-button-text p-button-sm"
+                icon="pi pi-copy"
+                pTooltip="Copy account number"
+                tooltipPosition="top"
+                aria-label="Copy account number"
+                [disabled]="!method.accountNumber"
+                (click)="copyAccountNumber(method.accountNumber)"
+            ></button>
+        </div>
         <div class="text-500" *ngIf="method.bankName">{{ method.bankName }}</div>
         <p class="mb-2" *ngIf="method.instructions">{{ method.instructions }}</p>
         <img *ngIf="qrSrc(method) as src" [src]="src" alt="Payment QR code" class="billing-qr" />
-        <button
-            *ngIf="isWalletMethod(method)"
-            pButton
-            type="button"
-            class="p-button-sm mt-3"
-            [label]="'Pay ' + money(selectedAmount) + ' with ' + method.kindName"
-            icon="pi pi-external-link"
-            (click)="openWalletPay(method)"
-        ></button>
         <small class="text-500 block mt-2" *ngIf="isWalletMethod(method)">
-            Opens {{ method.kindName }}. Send {{ money(selectedAmount) }} to {{ method.accountNumber }}, then upload the receipt below.
+            Send {{ money(selectedAmount) }} to {{ method.accountNumber }}, then upload the receipt below.
         </small>
     </div>
 

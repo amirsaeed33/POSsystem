@@ -11,6 +11,7 @@ import {
     RateCustomerOrderInput,
     CustomerOrderHistoryInput,
     DeliveryRiderStatusDto,
+    OnlineCategoryDto,
     OnlineCustomerProfileDto,
     OverrideDeliveryFeeInput,
     PagedCustomerOrderResultRequestDto,
@@ -27,7 +28,7 @@ export class CustomerOrderService {
     private readonly apiUrl = `${environment.apiUrl}/api/services/app/CustomerOrder`;
     private readonly catalogCache = new TtlCache<any[]>(2 * 60 * 1000);
     private readonly headerCache = new TtlCache<any>(5 * 60 * 1000);
-    private readonly categoriesCache = new TtlCache<string[]>(5 * 60 * 1000);
+    private readonly categoriesCache = new TtlCache<OnlineCategoryDto[]>(5 * 60 * 1000);
     private readonly headerInflight = new Map<string, Promise<any>>();
 
     constructor(private http: HttpClient) {}
@@ -178,8 +179,8 @@ export class CustomerOrderService {
         return request;
     }
 
-    async getOnlineCategories(branchId?: number): Promise<string[]> {
-        const key = branchCacheKey(branchId, 'categories');
+    async getOnlineCategories(branchId?: number): Promise<OnlineCategoryDto[]> {
+        const key = branchCacheKey(branchId, 'categories:v2');
         const hit = this.categoriesCache.get(key);
         if (hit) {
             return hit;
@@ -191,9 +192,44 @@ export class CustomerOrderService {
             this.http.get<any>(`${this.apiUrl}/GetOnlineCategories`, { params })
         );
         const result = this.unwrap(res, 'Failed to load categories');
-        const items = Array.isArray(result) ? result : [];
+        const raw = Array.isArray(result) ? result : [];
+        const items: OnlineCategoryDto[] = [];
+        for (const c of raw) {
+            if (typeof c === 'string') {
+                const name = c.trim();
+                if (name) {
+                    items.push({ name });
+                }
+                continue;
+            }
+            const name = (c?.name ?? c?.Name ?? '').toString().trim();
+            if (!name) {
+                continue;
+            }
+            const imagePath =
+                (c?.imagePath ?? c?.ImagePath ?? '').toString().trim() || undefined;
+            items.push({ name, imagePath });
+        }
         this.categoriesCache.set(key, items);
         return items;
+    }
+
+    getCategoryImageUrl(imagePath?: string | null): string {
+        if (!imagePath) {
+            return '';
+        }
+        const path = imagePath.toString().trim();
+        if (!path) {
+            return '';
+        }
+        if (
+            path.startsWith('http://') ||
+            path.startsWith('https://') ||
+            path.startsWith('data:')
+        ) {
+            return path;
+        }
+        return `${environment.apiUrl}${path.startsWith('/') ? '' : '/'}${path}`;
     }
 
     async createOnlineOrder(input: CreateCustomerOrderDto): Promise<CustomerOrderDto> {

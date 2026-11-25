@@ -409,6 +409,15 @@ export class PosComponent implements OnInit, OnDestroy {
         return this.isRestaurantMode && this.authService.isWaiter();
     }
 
+    get isCashier(): boolean {
+        return this.authService.isCashier();
+    }
+
+    /** Waiter + Cashier cannot deduct after KOT/receipt; Admin can. */
+    get cannotDeductAfterKot(): boolean {
+        return this.isRestaurantMode && this.authService.cannotDeductAfterKot();
+    }
+
     private get currentWaiterNameKey(): string {
         return (this.authService.getPrinterIdentity().name || this.waiterName || '')
             .trim()
@@ -4725,8 +4734,8 @@ export class PosComponent implements OnInit, OnDestroy {
         if (!this.isRestaurantMode) {
             return true;
         }
-        // Admin/cashier may void after KOT; waiters cannot remove sent items.
-        if (!this.isWaiter) {
+        // Admin may void after KOT; waiter/cashier cannot remove sent items.
+        if (!this.cannotDeductAfterKot) {
             return true;
         }
         return !line.isSentToKitchen && !(line.printedQuantity && line.printedQuantity > 0);
@@ -4736,9 +4745,9 @@ export class PosComponent implements OnInit, OnDestroy {
         if (!this.isRestaurantMode) {
             return 0.01;
         }
-        // Waiters cannot go below already-printed KOT qty; admin can deduct to zero.
+        // Waiter/Cashier cannot go below already-printed KOT qty; admin can deduct to zero.
         if (
-            this.isWaiter &&
+            this.cannotDeductAfterKot &&
             (line.isSentToKitchen || (line.printedQuantity && line.printedQuantity > 0))
         ) {
             return line.printedQuantity || line.quantity || 1;
@@ -4749,11 +4758,11 @@ export class PosComponent implements OnInit, OnDestroy {
     bumpQty(line: PosCartLine, delta: number): void {
         const min = this.getMinQty(line);
         const next = Number(((line.quantity || 0) + delta).toFixed(2));
-        if (this.isRestaurantMode && this.isWaiter && delta < 0 && next < min) {
+        if (this.isRestaurantMode && this.cannotDeductAfterKot && delta < 0 && next < min) {
             this.messageService.add({
                 severity: 'warn',
                 summary: 'Permission Denied',
-                detail: `Waiters cannot reduce quantity below previously sent amount (${min}).`,
+                detail: `Cannot reduce quantity below previously sent amount (${min}). Only admin can deduct.`,
             });
             return;
         }
@@ -4779,18 +4788,18 @@ export class PosComponent implements OnInit, OnDestroy {
 
         const value = Number(qty);
         const min = this.getMinQty(line);
-        if (this.isRestaurantMode && this.isWaiter && value < min) {
+        if (this.isRestaurantMode && this.cannotDeductAfterKot && value < min) {
             this.messageService.add({
                 severity: 'warn',
                 summary: 'Permission Denied',
-                detail: `Waiters cannot reduce quantity below previously sent amount (${min}).`,
+                detail: `Cannot reduce quantity below previously sent amount (${min}). Only admin can deduct.`,
             });
             line.quantity = min;
             return;
         }
 
         if (value <= 0) {
-            if (!this.isWaiter && this.isRestaurantMode && this.canRemoveLine(line)) {
+            if (!this.cannotDeductAfterKot && this.isRestaurantMode && this.canRemoveLine(line)) {
                 this.removeLine(line);
                 return;
             }
@@ -4819,7 +4828,7 @@ export class PosComponent implements OnInit, OnDestroy {
             this.messageService.add({
                 severity: 'warn',
                 summary: 'Permission Denied',
-                detail: 'Waiters cannot remove previously sent KOT items. Ask an admin, or use Cancel Order.',
+                detail: 'Cannot remove previously sent KOT items. Ask an admin, or use Cancel Order.',
             });
             return;
         }

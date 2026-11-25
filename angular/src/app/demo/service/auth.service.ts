@@ -234,6 +234,29 @@ export class AuthService {
         return false;
     }
 
+    isCashier(): boolean {
+        const user = this.getUserInfo();
+        if (!user) {
+            return false;
+        }
+        const match = (r: string) => !!r && r.toLowerCase().includes('cashier');
+        if (user.roles && Array.isArray(user.roles) && user.roles.some(match)) {
+            return true;
+        }
+        if (user.roleNames && Array.isArray(user.roleNames) && user.roleNames.some(match)) {
+            return true;
+        }
+        if (user.designation && match(user.designation)) {
+            return true;
+        }
+        return false;
+    }
+
+    /** Waiter/Cashier: add after KOT ok; deduct/remove printed lines blocked. */
+    cannotDeductAfterKot(): boolean {
+        return this.isWaiter() || this.isCashier();
+    }
+
     /**
      * True for Admin / Super Admin / other back-office staff (not rider, waiter, or storefront-only customer).
      */
@@ -302,6 +325,8 @@ export class AuthService {
         let role = 'Staff';
         if (this.isWaiter()) {
             role = 'Waiter';
+        } else if (this.isCashier()) {
+            role = 'Cashier';
         } else if (
             (user?.roles && Array.isArray(user.roles) && user.roles.some((r: string) => r && r.toLowerCase().includes('admin'))) ||
             (user?.roleNames && Array.isArray(user.roleNames) && user.roleNames.some((r: string) => r && r.toLowerCase().includes('admin')))

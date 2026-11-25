@@ -20,7 +20,9 @@ public partial class WaiterOrderViewModel : BaseViewModel
     private readonly SessionService _session;
     private readonly CartService _cart;
     private readonly AbpApiClient _api;
+    private readonly StaffDataCache _staffCache;
     private List<ProductDto> _allProducts = new();
+    private const int MaxVisibleMenuItems = 80;
 
     [ObservableProperty]
     private string orderTitle = "No table selected";
@@ -99,12 +101,18 @@ public partial class WaiterOrderViewModel : BaseViewModel
             ? "ACTIVE KOT TRAY"
             : $"ACTIVE KOT TRAY  •  {CartCount} {(CartCount == 1 ? "ITEM" : "ITEMS")}";
 
-    public WaiterOrderViewModel(RestaurantService restaurant, SessionService session, CartService cart, AbpApiClient api)
+    public WaiterOrderViewModel(
+        RestaurantService restaurant,
+        SessionService session,
+        CartService cart,
+        AbpApiClient api,
+        StaffDataCache staffCache)
     {
         _restaurant = restaurant;
         _session = session;
         _cart = cart;
         _api = api;
+        _staffCache = staffCache;
         Title = "Order";
         _cart.CartChanged += (_, _) =>
         {
@@ -315,15 +323,30 @@ public partial class WaiterOrderViewModel : BaseViewModel
     {
         await RunBusyAsync(async () =>
         {
-            _allProducts = await _restaurant.GetPosProductsAsync();
-            foreach (var p in _allProducts)
+            var branchId = _session.BranchId ?? 0;
+            if (branchId > 0 &&
+                _staffCache.TryGetPosProducts(branchId, out var cached) &&
+                cached is { Count: > 0 })
             {
-                var url = ProductImageResolver.Resolve(
-                    _api.ResolveImageUrl, p.ImagePath, p.Name, p.CategoryName, p.Id);
-                p.ImageUrl = url;
-                if (string.IsNullOrWhiteSpace(p.ImagePath))
+                _allProducts = cached;
+            }
+            else
+            {
+                _allProducts = await _restaurant.GetPosProductsAsync();
+                foreach (var p in _allProducts)
                 {
-                    p.ImagePath = url;
+                    var url = ProductImageResolver.Resolve(
+                        _api.ResolveImageUrl, p.ImagePath, p.Name, p.CategoryName, p.Id);
+                    p.ImageUrl = url;
+                    if (string.IsNullOrWhiteSpace(p.ImagePath))
+                    {
+                        p.ImagePath = url;
+                    }
+                }
+
+                if (branchId > 0)
+                {
+                    _staffCache.SetPosProducts(branchId, _allProducts);
                 }
             }
 
@@ -342,22 +365,14 @@ public partial class WaiterOrderViewModel : BaseViewModel
     [RelayCommand]
     private void SelectCategory(WaiterCategoryChip? category)
     {
-        LoadingService.Current.ShowTabLoader();
-        try
+        var name = string.IsNullOrWhiteSpace(category?.Name) ? "All" : category!.Name;
+        SelectedCategory = name;
+        foreach (var chip in Categories)
         {
-            var name = string.IsNullOrWhiteSpace(category?.Name) ? "All" : category!.Name;
-            SelectedCategory = name;
-            foreach (var chip in Categories)
-            {
-                chip.IsSelected = string.Equals(chip.Name, name, StringComparison.OrdinalIgnoreCase);
-            }
+            chip.IsSelected = string.Equals(chip.Name, name, StringComparison.OrdinalIgnoreCase);
+        }
 
-            ApplyFilters();
-        }
-        finally
-        {
-            LoadingService.Current.HideTabLoader();
-        }
+        ApplyFilters();
     }
 
     partial void OnSearchQueryChanged(string value) => ApplyFilters();
@@ -368,7 +383,6 @@ public partial class WaiterOrderViewModel : BaseViewModel
 
     private void ApplyFilters()
     {
-        Products.Clear();
         IEnumerable<ProductDto> query = _allProducts;
         if (!string.Equals(SelectedCategory, "All", StringComparison.OrdinalIgnoreCase))
         {
@@ -384,14 +398,50 @@ public partial class WaiterOrderViewModel : BaseViewModel
                 (p.Description?.Contains(SearchQuery, StringComparison.OrdinalIgnoreCase) ?? false));
         }
 
-        foreach (var p in query)
+        var next = query.Take(MaxVisibleMenuItems).ToList();
+        foreach (var p in next)
         {
             p.CartQty = _cart.GetQty(p.Id);
-            Products.Add(p);
         }
 
+        SyncProductCollection(next);
         OnPropertyChanged(nameof(HasNoMenuResults));
         OnPropertyChanged(nameof(FilteredMenuItems));
+    }
+
+    private void SyncProductCollection(IReadOnlyList<ProductDto> next)
+    {
+        if (Products.Count == next.Count)
+        {
+            var sameOrder = true;
+            for (var i = 0; i < next.Count; i++)
+            {
+                if (!ReferenceEquals(Products[i], next[i]) && Products[i].Id != next[i].Id)
+                {
+                    sameOrder = false;
+                    break;
+                }
+            }
+
+            if (sameOrder)
+            {
+                for (var i = 0; i < next.Count; i++)
+                {
+                    if (!ReferenceEquals(Products[i], next[i]))
+                    {
+                        Products[i] = next[i];
+                    }
+                }
+
+                return;
+            }
+        }
+
+        Products.Clear();
+        foreach (var p in next)
+        {
+            Products.Add(p);
+        }
     }
 
     private void SyncCartQtyBadges()
@@ -401,7 +451,9 @@ public partial class WaiterOrderViewModel : BaseViewModel
             p.CartQty = _cart.GetQty(p.Id);
         }
 
-        ApplyFilters();
+        // Qty badges bind on the same ProductDto instances — avoid rebuilding the menu grid.
+        OnPropertyChanged(nameof(HasNoMenuResults));
+        OnPropertyChanged(nameof(FilteredMenuItems));
     }
 
     private void RebuildFilteredCustomers()

@@ -172,5 +172,11 @@ namespace SmartPos.Branches
 
         /// <summary>1 foot = 0.3048 meters.</summary>
         public const double FeetToMeters = 0.3048;
+
+        /// <summary>
+        /// JSON template for default product modifiers (e.g. Size options) applied when
+        /// creating/editing products that have no modifiers yet.
+        /// </summary>
+        public virtual string ModifierTemplateJson { get; set; }
     }
 }

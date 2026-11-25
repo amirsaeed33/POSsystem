@@ -83,6 +83,14 @@ namespace SmartPos.Web.Host.Startup
                                     return true;
                                 }
 
+                                // Allow local Flutter/web debug hosts (any port)
+                                if (host.Equals("localhost", StringComparison.OrdinalIgnoreCase)
+                                    || host.Equals("127.0.0.1")
+                                    || host.Equals("[::1]"))
+                                {
+                                    return true;
+                                }
+
                                 return host.EndsWith(".ngrok-free.dev", StringComparison.OrdinalIgnoreCase)
                                        || host.EndsWith(".ngrok-free.app", StringComparison.OrdinalIgnoreCase)
                                        || host.EndsWith(".ngrok.io", StringComparison.OrdinalIgnoreCase)

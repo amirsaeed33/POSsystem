@@ -1,5 +1,6 @@
 import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges } from '@angular/core';
 import { MessageService } from 'primeng/api';
+import { sweetToast } from 'src/app/demo/utils/sweet-toast';
 import { CreateLookUpDto, LookUpDto, LookUpTypes } from 'src/app/demo/api/lookup';
 import { LookUpService } from 'src/app/demo/service/lookup.service';
 
@@ -82,9 +83,7 @@ export class LookUpFormDialogComponent implements OnChanges {
         request
             .then(() => {
                 this.messageService.add({
-                    severity: 'success',
-                    summary: 'Success',
-                    detail: this.id ? 'Lookup updated successfully' : 'Lookup created successfully',
+                    ...sweetToast('lookup', this.id ? 'update' : 'create', name),
                 });
                 this.saved.emit();
                 this.onHide();

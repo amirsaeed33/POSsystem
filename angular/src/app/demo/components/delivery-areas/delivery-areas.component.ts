@@ -1,5 +1,6 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { ConfirmationService, MessageService } from 'primeng/api';
+import { sweetToast } from 'src/app/demo/utils/sweet-toast';
 import { Subscription } from 'rxjs';
 import {
     DeliveryAreaDto,
@@ -344,9 +345,11 @@ export class DeliveryAreasComponent implements OnInit, OnDestroy {
                     isActive: this.form.isActive,
                 });
                 this.messageService.add({
-                    severity: 'success',
-                    summary: 'Updated',
-                    detail: 'Delivery area updated successfully.',
+                    ...sweetToast(
+                        'deliveryArea',
+                        'update',
+                        this.form.name
+                    ),
                 });
             } else {
                 await this.deliveryAreaService.create({
@@ -361,9 +364,11 @@ export class DeliveryAreasComponent implements OnInit, OnDestroy {
                     isActive: this.form.isActive,
                 });
                 this.messageService.add({
-                    severity: 'success',
-                    summary: 'Created',
-                    detail: 'Delivery area created successfully.',
+                    ...sweetToast(
+                        'deliveryArea',
+                        'create',
+                        this.form.name
+                    ),
                 });
             }
             this.dialogVisible = false;
@@ -407,9 +412,7 @@ export class DeliveryAreasComponent implements OnInit, OnDestroy {
                 try {
                     await this.deliveryAreaService.delete(area.id);
                     this.messageService.add({
-                        severity: 'success',
-                        summary: 'Deleted',
-                        detail: `Delivery area "${area.name}" deleted successfully.`,
+                        ...sweetToast('deliveryArea', 'delete', area.name),
                     });
                     await this.loadAreas();
                 } catch (error: any) {

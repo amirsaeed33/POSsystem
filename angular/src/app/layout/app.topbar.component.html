@@ -76,9 +76,10 @@
                 <span class="font-medium white-space-nowrap sm:hidden" [title]="locationLabel">
                     {{ locationLabelShort }}
                 </span>
-                <span class="font-medium white-space-nowrap hidden sm:inline">
+                <span class="font-medium white-space-nowrap hidden sm:inline" [title]="'Change branch'">
                     {{ locationLabel }}
                 </span>
+                <span class="hidden md:inline text-xs text-500 white-space-nowrap">Change</span>
                 <span
                     *ngIf="currentBranch?.businessType === 2"
                     class="text-xs px-2 py-1 border-round font-medium bg-yellow-100 text-yellow-900"
@@ -556,6 +557,15 @@
             >
                 <li>
                     <a
+                        *ngIf="canSwitchLocations && !isWaiter && !isDeliveryRider"
+                        pRipple
+                        class="flex p-2 border-round align-items-center hover:surface-hover transition-colors transition-duration-150 cursor-pointer"
+                        (click)="openChangeBranchDialog()"
+                    >
+                        <i class="pi pi-sitemap mr-3"></i>
+                        <span>Change Branch</span>
+                    </a>
+                    <a
                         pRipple
                         class="flex p-2 border-round align-items-center hover:surface-hover transition-colors transition-duration-150 cursor-pointer"
                         (click)="openDisplaySettings()"
@@ -599,6 +609,62 @@
         </div>
     </div>
 </div>
+
+<!-- Admin: Change Branch -->
+<p-dialog
+    header="Change Branch"
+    [(visible)]="changeBranchDialogVisible"
+    [modal]="true"
+    appendTo="body"
+    [style]="{ width: '28rem' }"
+    [breakpoints]="{ '960px': '92vw' }"
+    [draggable]="false"
+    [resizable]="false"
+>
+    <div *ngIf="loadingBranchesForSwitch" class="p-4 text-center text-500">
+        <i class="pi pi-spin pi-spinner mr-2"></i> Loading branches...
+    </div>
+
+    <div *ngIf="!loadingBranchesForSwitch && !(branches?.length)" class="p-4 text-center text-600">
+        No branches available.
+    </div>
+
+    <ul *ngIf="!loadingBranchesForSwitch && branches?.length" class="list-none p-0 m-0">
+        <li *ngFor="let branch of branches" class="mb-2">
+            <button
+                type="button"
+                class="w-full flex align-items-center justify-content-between gap-2 p-3 border-round border-1 surface-border surface-ground hover:surface-hover cursor-pointer text-left"
+                [class.border-primary]="branch.id === currentBranch?.id"
+                [disabled]="changingBranch"
+                (click)="onChangeBranch(branch)"
+            >
+                <span class="flex-1 min-w-0">
+                    <span class="block font-semibold text-900 white-space-nowrap overflow-hidden text-overflow-ellipsis">
+                        {{ branch.name }}
+                        <span *ngIf="branch.businessType === 2" class="text-xs ml-1 text-yellow-700">Restaurant</span>
+                    </span>
+                    <span class="text-xs text-500" *ngIf="branch.code">{{ branch.code }}</span>
+                    <span class="text-xs text-500 block" *ngIf="isHostAdmin && branch.tenancyName">
+                        {{ branch.tenancyName }}
+                    </span>
+                </span>
+                <i class="pi pi-check text-primary" *ngIf="branch.id === currentBranch?.id"></i>
+            </button>
+        </li>
+    </ul>
+
+    <ng-template pTemplate="footer">
+        <button
+            pButton
+            type="button"
+            label="Close"
+            icon="pi pi-times"
+            class="p-button-text p-button-sm"
+            (click)="changeBranchDialogVisible = false"
+            [disabled]="changingBranch"
+        ></button>
+    </ng-template>
+</p-dialog>
 
 <!-- Real-Time Customer Chat Dialog -->
 <p-dialog

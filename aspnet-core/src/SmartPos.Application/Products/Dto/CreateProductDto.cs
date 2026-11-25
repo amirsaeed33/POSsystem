@@ -58,7 +58,7 @@ namespace SmartPos.Products.Dto
         public bool IsVisibleOnline { get; set; } = true;
 
         /// <summary>
-        /// Tenant-admin only. Optional. Empty = tenant-level (all locations);
+        /// Tenant-admin only. Optional. Empty = current / owning branch only;
         /// otherwise product is limited to these branches.
         /// </summary>
         public List<int> BranchIds { get; set; }

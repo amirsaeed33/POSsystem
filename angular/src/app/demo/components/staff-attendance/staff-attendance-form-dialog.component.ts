@@ -7,6 +7,7 @@ import {
     SimpleChanges,
 } from '@angular/core';
 import { MessageService } from 'primeng/api';
+import { sweetToast } from 'src/app/demo/utils/sweet-toast';
 import { StaffDto } from 'src/app/demo/api/staff';
 import {
     AttendanceStatus,
@@ -24,6 +25,7 @@ export class StaffAttendanceFormDialogComponent implements OnChanges {
     @Input() attendanceId: number | null = null;
     @Input() defaultStaffId: number | null = null;
     @Input() defaultDate: string | null = null;
+    @Input() defaultStatus: AttendanceStatus | null = null;
     @Output() visibleChange = new EventEmitter<boolean>();
     @Output() saved = new EventEmitter<void>();
 
@@ -46,7 +48,16 @@ export class StaffAttendanceFormDialogComponent implements OnChanges {
     ) {}
 
     get dialogTitle(): string {
-        return this.attendanceId ? 'Edit Attendance' : 'Create Attendance';
+        if (this.attendanceId) {
+            return 'Edit Attendance';
+        }
+        if (this.defaultStatus === AttendanceStatus.Leave) {
+            return 'Create Leave';
+        }
+        if (this.defaultStatus === AttendanceStatus.Absent) {
+            return 'Create Absent';
+        }
+        return 'Create Attendance';
     }
 
     get timesDisabled(): boolean {
@@ -144,11 +155,10 @@ export class StaffAttendanceFormDialogComponent implements OnChanges {
         request
             .then(() => {
                 this.messageService.add({
-                    severity: 'success',
-                    summary: 'Success',
-                    detail: this.attendanceId
-                        ? 'Attendance updated successfully'
-                        : 'Attendance created successfully',
+                    ...sweetToast(
+                        'attendance',
+                        this.attendanceId ? 'update' : 'create'
+                    ),
                 });
                 this.saved.emit();
                 this.onHide();
@@ -173,7 +183,7 @@ export class StaffAttendanceFormDialogComponent implements OnChanges {
             attendanceDate: this.toDateInputValue(this.defaultDate),
             checkInTime: null,
             checkOutTime: null,
-            status: AttendanceStatus.Present,
+            status: this.defaultStatus ?? AttendanceStatus.Present,
             workingHours: null,
             remarks: '',
         };

@@ -7,6 +7,7 @@ import { DialogModule } from 'primeng/dialog';
 import { DropdownModule } from 'primeng/dropdown';
 import { TableModule } from 'primeng/table';
 import { ToastModule } from 'primeng/toast';
+import { TooltipModule } from 'primeng/tooltip';
 import { BillingComponent } from './billing.component';
 
 @NgModule({
@@ -19,6 +20,7 @@ import { BillingComponent } from './billing.component';
         DropdownModule,
         TableModule,
         ToastModule,
+        TooltipModule,
     ],
     declarations: [BillingComponent],
 })

@@ -4,6 +4,7 @@ import { Table } from 'primeng/table';
 import { RoleDto } from 'src/app/demo/api/role-management';
 import { RoleService } from 'src/app/demo/service/role.service';
 import { MessageService, ConfirmationService } from 'primeng/api';
+import { sweetToast } from 'src/app/demo/utils/sweet-toast';
 import { RowActionItem } from 'src/app/shared/components/row-actions/row-actions.component';
 
 @Component({
@@ -97,10 +98,12 @@ export class RoleListComponent implements OnInit {
             accept: () => {
                 this.roleService.delete(role.id)
                     .then(() => {
-                        this.messageService.add({ 
-                            severity: 'success', 
-                            summary: 'Success', 
-                            detail: 'Role deleted successfully' 
+                        this.messageService.add({
+                            ...sweetToast(
+                                'role',
+                                'delete',
+                                role.displayName || role.name
+                            ),
                         });
                         this.loadRoles();
                     })

@@ -1,6 +1,7 @@
 import { Component, Input, OnInit } from '@angular/core';
 import { Table } from 'primeng/table';
 import { ConfirmationService, MessageService } from 'primeng/api';
+import { sweetToast } from 'src/app/demo/utils/sweet-toast';
 import { DepartmentDto } from 'src/app/demo/api/department';
 import { DepartmentService } from 'src/app/demo/service/department.service';
 import { RowActionItem } from 'src/app/shared/components/row-actions/row-actions.component';
@@ -110,9 +111,7 @@ export class DepartmentListComponent implements OnInit {
                     .delete(department.id)
                     .then(() => {
                         this.messageService.add({
-                            severity: 'success',
-                            summary: 'Success',
-                            detail: 'Department deleted successfully',
+                            ...sweetToast('department', 'delete', department.name),
                         });
                         this.loadDepartments();
                     })

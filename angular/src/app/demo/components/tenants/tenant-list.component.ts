@@ -1,6 +1,7 @@
 import { Component, OnInit, ViewChild } from '@angular/core';
 import { Table } from 'primeng/table';
 import { ConfirmationService, MessageService } from 'primeng/api';
+import { sweetToast } from 'src/app/demo/utils/sweet-toast';
 import { TenantDto } from 'src/app/demo/api/tenant';
 import { SubscriptionService, TenantSubscriptionDto } from 'src/app/demo/service/subscription.service';
 import { TenantService } from 'src/app/demo/service/tenant.service';
@@ -145,9 +146,7 @@ export class TenantListComponent implements OnInit {
                     .delete(tenant.id)
                     .then(() => {
                         this.messageService.add({
-                            severity: 'success',
-                            summary: 'Success',
-                            detail: 'Tenant deleted successfully',
+                            ...sweetToast('tenant', 'delete', tenant.name),
                         });
                         this.loadTenants();
                     })

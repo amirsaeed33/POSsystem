@@ -3,6 +3,7 @@ import { Table } from 'primeng/table';
 import { UserDto } from 'src/app/demo/api/user-management';
 import { UserService } from 'src/app/demo/service/user.service';
 import { MessageService, ConfirmationService } from 'primeng/api';
+import { sweetToast } from 'src/app/demo/utils/sweet-toast';
 import { environment } from 'src/environments/environment';
 import { AppFormatService } from 'src/app/demo/service/app-format.service';
 import { RowActionItem } from 'src/app/shared/components/row-actions/row-actions.component';
@@ -120,10 +121,12 @@ export class ProfileListComponent implements OnInit {
             accept: () => {
                 this.userService.delete(user.id)
                     .then(() => {
-                        this.messageService.add({ 
-                            severity: 'success', 
-                            summary: 'Success', 
-                            detail: 'User deleted successfully' 
+                        this.messageService.add({
+                            ...sweetToast(
+                                'user',
+                                'delete',
+                                user.name || user.userName
+                            ),
                         });
                         this.loadUsers();
                     })

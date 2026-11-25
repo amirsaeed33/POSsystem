@@ -1,6 +1,7 @@
 import { Component, Input, OnInit } from '@angular/core';
 import { Table } from 'primeng/table';
 import { ConfirmationService, MessageService } from 'primeng/api';
+import { sweetToast } from 'src/app/demo/utils/sweet-toast';
 import { UnitDto } from 'src/app/demo/api/unit';
 import { UnitService } from 'src/app/demo/service/unit.service';
 import { RowActionItem } from 'src/app/shared/components/row-actions/row-actions.component';
@@ -106,9 +107,7 @@ export class UnitListComponent implements OnInit {
                     .delete(unit.id)
                     .then(() => {
                         this.messageService.add({
-                            severity: 'success',
-                            summary: 'Success',
-                            detail: 'Unit deleted successfully',
+                            ...sweetToast('unit', 'delete', unit.name),
                         });
                         this.loadUnits();
                     })

@@ -95,11 +95,51 @@
     color: #92400e;
 }
 
+.billing-method-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 6.5rem;
+    height: 2.5rem;
+    padding: 0.25rem 0.5rem;
+    border: 2px solid var(--surface-border);
+    border-radius: 10px;
+    background: #fff;
+    cursor: pointer;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.billing-method-btn:hover {
+    border-color: #f59e0b;
+}
+
+.billing-method-btn--active {
+    border-color: #f59e0b;
+    box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.2);
+}
+
+.billing-method-icon {
+    height: 1.75rem;
+    width: auto;
+    display: block;
+}
+
+.billing-method-label {
+    font-weight: 700;
+    font-size: 0.85rem;
+    color: #334155;
+}
+
 .billing-pay-box {
     padding: 0.9rem;
     border: 1px solid var(--surface-border);
     border-radius: 12px;
     background: var(--surface-50, #f8fafc);
+}
+
+.billing-account-number {
+    user-select: all;
+    letter-spacing: 0.02em;
 }
 
 .billing-qr,

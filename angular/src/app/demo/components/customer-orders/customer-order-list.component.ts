@@ -3,6 +3,7 @@ import { Component, OnDestroy, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { Table } from 'primeng/table';
 import { ConfirmationService, MessageService } from 'primeng/api';
+import { sweetToast } from 'src/app/demo/utils/sweet-toast';
 import {
     CustomerOrderDto,
     CustomerOrderStatus,
@@ -897,9 +898,11 @@ export class CustomerOrderListComponent implements OnInit, OnDestroy {
                     .delete(order.id)
                     .then(() => {
                         this.messageService.add({
-                            severity: 'success',
-                            summary: 'Success',
-                            detail: 'Customer order deleted successfully',
+                            ...sweetToast(
+                                'customerOrder',
+                                'delete',
+                                order.orderNo
+                            ),
                         });
                         this.loadOrders();
                     })

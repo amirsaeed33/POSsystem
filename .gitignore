@@ -95,6 +95,42 @@ TestResults/
 .nyc_output/
 
 # =========================
+# Flutter / mobile local artifacts
+# =========================
+.pub-cache/
+.pub/
+.publish/
+**/.pub-cache/
+**/.pub/
+**/.publish/
+flutter_app/.dart_tool/
+flutter_app/.flutter-plugins
+flutter_app/.flutter-plugins-dependencies
+flutter_app/.packages
+flutter_app/build/
+flutter_app/coverage/
+flutter_app/android/.gradle/
+flutter_app/android/local.properties
+flutter_app/android/.cxx/
+flutter_app/android/app/.cxx/
+flutter_app/android/build/
+flutter_app/android/app/build/
+flutter_app/**/GeneratedPluginRegistrant.java
+flutter_app/**/GeneratedPluginRegistrant.m
+flutter_app/**/GeneratedPluginRegistrant.swift
+flutter_app/**/*.apk
+flutter_app/**/*.aab
+flutter_app/**/*.ap_
+flutter_app/**/app.*.symbols
+flutter_app/**/app.*.map.json
+maui/**/[Bb]in/
+maui/**/[Oo]bj/
+maui/**/.vs/
+maui/**/*.user
+maui/**/DeviceSpecificCache/
+maui/**/publish/
+
+# =========================
 # Misc
 # =========================
 *.db
@@ -104,3 +140,8 @@ TestResults/
 *.rar
 *.7z
 aspnet-core/src/SmartPos.Web.Host/wwwroot/CompanyImages/2cd069ae6c6341c48b0c549617d3c664.jpg
+
+# Local JDK / build tooling (not part of app source)
+.tools/
+Aljannat_POS_Mobile*.apk
+

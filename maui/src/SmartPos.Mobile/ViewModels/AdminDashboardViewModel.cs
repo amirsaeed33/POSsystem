@@ -10,6 +10,7 @@ public class AdminDashboardViewModel : BaseViewModel
 {
     private readonly DashboardService _dashboard;
     private readonly SessionService _session;
+    private readonly StaffDataCache _staffCache;
 
     private string _greeting = "Admin";
     private string _headerSubtitle = "Operations overview";
@@ -37,11 +38,15 @@ public class AdminDashboardViewModel : BaseViewModel
     private bool _hasAreaStats;
     private Color _growthColor = ThemeColors.Get("GrowthPositive", "#D9822B");
 
-    public AdminDashboardViewModel(DashboardService dashboard, SessionService session)
+    public AdminDashboardViewModel(
+        DashboardService dashboard,
+        SessionService session,
+        StaffDataCache staffCache)
     {
         _dashboard = dashboard;
         _session = session;
-        RefreshCommand = new Command(async () => await LoadAsync());
+        _staffCache = staffCache;
+        RefreshCommand = new Command(async () => await LoadAsync(forceRefresh: true));
         DayBars = new ObservableCollection<AdminDayBarItem>();
         Timeline = new ObservableCollection<AdminTimelineItem>();
         PipelineStages = new ObservableCollection<OnlineOrderPipelineStageDto>();
@@ -240,7 +245,9 @@ public class AdminDashboardViewModel : BaseViewModel
 
     public ICommand RefreshCommand { get; }
 
-    public async Task LoadAsync()
+    public Task LoadAsync() => LoadAsync(forceRefresh: false);
+
+    public async Task LoadAsync(bool forceRefresh)
     {
         if (IsBusy)
         {
@@ -257,13 +264,62 @@ public class AdminDashboardViewModel : BaseViewModel
             Greeting = $"Hi, {name}";
             HeaderSubtitle = $"{DateTime.Now:dddd, dd MMM} · Super admin control";
 
+            DashboardDto dash;
+            OnlineOrderPipelineDto pipe;
+            if (!forceRefresh && _staffCache.TryGetAdmin(out var cached) && cached != null)
+            {
+                dash = cached.Dashboard;
+                pipe = cached.Pipeline;
+                ApplyDashboard(dash, pipe);
+                IsBusy = false;
+                _ = SoftRefreshAdminInBackgroundAsync();
+                return;
+            }
+
             var dashTask = _dashboard.GetDashboardAsync();
             var pipeTask = _dashboard.GetOnlineOrderPipelineAsync();
             await Task.WhenAll(dashTask, pipeTask);
 
+            dash = await dashTask;
+            pipe = await pipeTask;
+            _staffCache.SetAdmin(dash, pipe);
+            ApplyDashboard(dash, pipe);
+        }
+        catch (Exception ex)
+        {
+            ErrorText = ex.Message;
+            StatusSummary = "Could not load restaurant status.";
+            HasChartData = false;
+            HasTimeline = false;
+            HasAreaStats = false;
+            TopAreaSummary = "Could not load area stats.";
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    private async Task SoftRefreshAdminInBackgroundAsync()
+    {
+        try
+        {
+            var dashTask = _dashboard.GetDashboardAsync();
+            var pipeTask = _dashboard.GetOnlineOrderPipelineAsync();
+            await Task.WhenAll(dashTask, pipeTask);
             var dash = await dashTask;
             var pipe = await pipeTask;
+            _staffCache.SetAdmin(dash, pipe);
+            MainThread.BeginInvokeOnMainThread(() => ApplyDashboard(dash, pipe));
+        }
+        catch
+        {
+            // Keep cached admin dashboard.
+        }
+    }
 
+    private void ApplyDashboard(DashboardDto dash, OnlineOrderPipelineDto pipe)
+    {
             SalesTodayText = FormatMoney(dash.TodaySales);
             PurchasesTodayText = FormatMoney(dash.TodayPurchases);
             ProfitTodayText = FormatMoney(dash.TodayProfit);
@@ -369,20 +425,6 @@ public class AdminDashboardViewModel : BaseViewModel
 
             HasTimeline = Timeline.Count > 0;
             OnPropertyChanged(nameof(TimelineCountText));
-        }
-        catch (Exception ex)
-        {
-            ErrorText = ex.Message;
-            StatusSummary = "Could not load restaurant status.";
-            HasChartData = false;
-            HasTimeline = false;
-            HasAreaStats = false;
-            TopAreaSummary = "Could not load area stats.";
-        }
-        finally
-        {
-            IsBusy = false;
-        }
     }
 
     private static (Color Accent, Color Soft) ResolveAccent(string? type) =>

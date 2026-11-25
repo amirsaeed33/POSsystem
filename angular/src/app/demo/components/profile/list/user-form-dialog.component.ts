@@ -10,6 +10,7 @@ import {
 } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MessageService } from 'primeng/api';
+import { sweetToast } from 'src/app/demo/utils/sweet-toast';
 import { PermissionDto, RoleDto } from 'src/app/demo/api/role-management';
 import { BranchDto } from 'src/app/demo/api/branch';
 import { RoleService } from 'src/app/demo/service/role.service';
@@ -155,9 +156,11 @@ export class UserFormDialogComponent implements OnChanges {
                 )
                 .then(() => {
                     this.messageService.add({
-                        severity: 'success',
-                        summary: 'Success',
-                        detail: 'User updated successfully',
+                        ...sweetToast(
+                            'user',
+                            'update',
+                            formValue.name || formValue.userName
+                        ),
                     });
                     this.saved.emit();
                     this.onHide();
@@ -189,9 +192,11 @@ export class UserFormDialogComponent implements OnChanges {
                 })
                 .then(() => {
                     this.messageService.add({
-                        severity: 'success',
-                        summary: 'Success',
-                        detail: 'User created successfully',
+                        ...sweetToast(
+                            'user',
+                            'create',
+                            formValue.name || formValue.userName
+                        ),
                     });
                     this.saved.emit();
                     this.onHide();

@@ -1,6 +1,7 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, ElementRef, OnInit, ViewChild } from '@angular/core';
 import { Table } from 'primeng/table';
-import { ConfirmationService, MessageService } from 'primeng/api';
+import { ConfirmationService, MenuItem, MessageService } from 'primeng/api';
+import { Menu } from 'primeng/menu';
 import { ProductDto } from 'src/app/demo/api/product';
 import { ProductService } from 'src/app/demo/service/product.service';
 import * as XLSX from 'xlsx';
@@ -9,6 +10,7 @@ import { PermissionService } from 'src/app/demo/service/permission.service';
 import { RowActionItem } from 'src/app/shared/components/row-actions/row-actions.component';
 
 import {
+    BranchModifierTemplateDto,
     ProductModifierGroupDto,
     ProductModifierOptionDto,
 } from 'src/app/demo/api/product-modifier';
@@ -18,6 +20,7 @@ import { BranchContextService } from 'src/app/demo/service/branch-context.servic
 import { CategoryService } from 'src/app/demo/service/category.service';
 import { DealService } from 'src/app/demo/service/deal.service';
 import { CreateDealDto, UpdateDealDto, DealDto } from 'src/app/demo/api/deal';
+import { sweetToast } from 'src/app/demo/utils/sweet-toast';
 
 export interface DealAddedItem {
     product: ProductDto;
@@ -33,8 +36,12 @@ export interface DealAddedItem {
     providers: [MessageService, ConfirmationService],
 })
 export class ProductListComponent implements OnInit {
+    @ViewChild('excelFileInput') excelFileInput?: ElementRef<HTMLInputElement>;
+
     products: ProductDto[] = [];
     loading = false;
+    /** Overflow (⋮) actions: barcodes, modifiers template, excel import/template. */
+    toolbarMoreItems: MenuItem[] = [];
     totalRecords = 0;
     keyword = '';
     /** null = all categories */
@@ -60,6 +67,8 @@ export class ProductListComponent implements OnInit {
     modifierDialogVisible = false;
     modifierTargetProduct: ProductDto | null = null;
     loadingModifiers = false;
+    askCreateDefaultModifiers = false;
+    applyingDefaultModifiers = false;
     modifierGroups: ProductModifierGroupDto[] = [];
     newGroupName = '';
     newGroupIsRequired = false;
@@ -69,7 +78,18 @@ export class ProductListComponent implements OnInit {
     /** null/undefined = empty → use product sale price; 0 = Free. */
     newOptionPrice: Record<number, number | null> = {};
     addingOption: Record<number, boolean> = {};
+    editingOptionId: number | null = null;
+    editOptionName = '';
+    /** null = sale/included; 0 = Free; >0 = +extra */
+    editOptionPrice: number | null = null;
+    savingOptionEdit = false;
     readonly sizeQuickOptions = ['Small', 'Medium', 'Large', 'XL'];
+
+    // Branch-level modifier template (top of Products page)
+    modifierTemplateDialogVisible = false;
+    loadingModifierTemplate = false;
+    savingModifierTemplate = false;
+    modifierTemplate: BranchModifierTemplateDto | null = null;
 
     // Deal Management (Restaurant only)
     dealDialogVisible = false;
@@ -190,6 +210,60 @@ export class ProductListComponent implements OnInit {
         this.barcodeDialogVisible = true;
     }
 
+    buildToolbarMoreItems(): void {
+        const items: MenuItem[] = [];
+
+        if (!this.isRestaurant) {
+            items.push({
+                label: this.selectedProducts.length
+                    ? `Print Barcodes (${this.selectedProducts.length})`
+                    : 'Print All Barcodes',
+                icon: 'pi pi-print',
+                command: () => this.openBulkBarcodeDialog(),
+            });
+        }
+
+        if (!this.isDealsTab) {
+            items.push({
+                label: 'Modifiers Template',
+                icon: 'pi pi-sliders-h',
+                command: () => {
+                    void this.openModifierTemplateDialog();
+                },
+            });
+            items.push({
+                label: 'Import Excel',
+                icon: 'pi pi-file-excel',
+                disabled: !this.canCreate,
+                command: () => this.triggerExcelImport(),
+            });
+            items.push({
+                label: 'Excel Template',
+                icon: 'pi pi-download',
+                command: () => this.downloadExcelTemplate(),
+            });
+        }
+
+        this.toolbarMoreItems = items;
+    }
+
+    openToolbarMoreMenu(event: Event, menu: Menu): void {
+        this.buildToolbarMoreItems();
+        menu.toggle(event);
+    }
+
+    triggerExcelImport(): void {
+        if (!this.canCreate) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Permission',
+                detail: 'You do not have permission to Import',
+            });
+            return;
+        }
+        this.excelFileInput?.nativeElement?.click();
+    }
+
     openBulkBarcodeDialog(): void {
         this.barcodeTargetProduct = null;
         if (!this.selectedProducts?.length) {
@@ -230,7 +304,7 @@ export class ProductListComponent implements OnInit {
             });
         }
 
-        if (this.isRestaurant && !this.isDealProduct(product)) {
+        if (!this.isDealProduct(product)) {
             actions.push({
                 label: 'Modifiers & Add-ons',
                 icon: 'pi pi-list',
@@ -287,14 +361,90 @@ export class ProductListComponent implements OnInit {
         price?: number | null;
         isIncludedInBasePrice?: boolean;
     } | null | undefined): string {
+        if (this.isModifierIncludedOption(option)) {
+            const sale = Number(this.modifierTargetProduct?.price);
+            const shown =
+                Number.isFinite(sale) && sale > 0
+                    ? sale
+                    : Number(option?.price) || 0;
+            return shown > 0 ? `Sale ${shown.toFixed(2)}` : 'Sale price';
+        }
         const price = Number(option?.price) || 0;
         if (price <= 0) {
             return 'Free';
         }
-        if (this.isModifierIncludedOption(option)) {
-            return price.toFixed(2);
-        }
         return `+ ${price.toFixed(2)}`;
+    }
+
+    isEditOptionPriceEmpty(): boolean {
+        const raw = this.editOptionPrice;
+        return raw === null || raw === undefined || (typeof raw === 'number' && Number.isNaN(raw));
+    }
+
+    startEditModifierOption(opt: ProductModifierOptionDto): void {
+        this.editingOptionId = opt.id;
+        this.editOptionName = opt.name || '';
+        if (this.isModifierIncludedOption(opt)) {
+            this.editOptionPrice = null; // empty = sale
+        } else {
+            this.editOptionPrice = Number(opt.price) || 0;
+        }
+    }
+
+    cancelEditModifierOption(): void {
+        this.editingOptionId = null;
+        this.editOptionName = '';
+        this.editOptionPrice = null;
+        this.savingOptionEdit = false;
+    }
+
+    async saveEditModifierOption(opt: ProductModifierOptionDto): Promise<void> {
+        const name = (this.editOptionName || '').trim();
+        if (!name || !this.modifierTargetProduct) {
+            return;
+        }
+
+        const rawPrice = this.editOptionPrice;
+        const isEmpty =
+            rawPrice === null ||
+            rawPrice === undefined ||
+            (typeof rawPrice === 'number' && Number.isNaN(rawPrice));
+        const sale = Number(this.modifierTargetProduct.price);
+        const salePrice = Number.isFinite(sale) && sale > 0 ? sale : 0;
+        let price: number;
+        let isIncludedInBasePrice = false;
+        if (isEmpty) {
+            price = salePrice;
+            isIncludedInBasePrice = true;
+        } else {
+            const parsed = Number(rawPrice);
+            price = Number.isFinite(parsed) ? Math.max(0, parsed) : 0;
+            isIncludedInBasePrice = false;
+        }
+
+        this.savingOptionEdit = true;
+        try {
+            await this.productModifierService.updateOption({
+                id: opt.id,
+                name,
+                price,
+                isIncludedInBasePrice,
+                isDefault: !!opt.isDefault || isIncludedInBasePrice,
+            });
+            this.cancelEditModifierOption();
+            await this.loadModifiers(this.modifierTargetProduct.id);
+            this.messageService.add({
+                ...sweetToast('modifier', 'update', name),
+            });
+        } catch (err: any) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: err?.message || 'Failed to update option',
+            });
+        } finally {
+            this.savingOptionEdit = false;
+        }
     }
 
     isNewOptionPriceEmpty(groupId: number): boolean {
@@ -321,10 +471,65 @@ export class ProductListComponent implements OnInit {
     async openModifierDialog(product: ProductDto): Promise<void> {
         this.modifierTargetProduct = product;
         this.modifierDialogVisible = true;
+        this.askCreateDefaultModifiers = false;
+        this.applyingDefaultModifiers = false;
         this.newGroupName = '';
         this.newGroupIsRequired = false;
         this.newGroupAllowMultiple = true;
+        this.cancelEditModifierOption();
         await this.loadModifiers(product.id);
+
+        // Empty product → ask inside this dialog before creating defaults.
+        this.askCreateDefaultModifiers = !(this.modifierGroups || []).length;
+    }
+
+    async acceptCreateDefaultModifiers(): Promise<void> {
+        const product = this.modifierTargetProduct;
+        if (!product?.id || this.applyingDefaultModifiers) {
+            return;
+        }
+
+        this.applyingDefaultModifiers = true;
+        const branchId = this.branchContext.getBranchId();
+        try {
+            const applied = await this.productModifierService.applyBranchTemplate(
+                product.id,
+                branchId
+            );
+            this.askCreateDefaultModifiers = false;
+            if (applied?.length) {
+                this.modifierGroups = applied;
+                for (const group of this.modifierGroups) {
+                    this.newOptionPrice[group.id] = null;
+                    this.newOptionName[group.id] = '';
+                }
+                this.messageService.add({
+                    severity: 'success',
+                    summary: 'Default modifiers created',
+                    detail: 'Branch modifier template applied. Default size uses sale price.',
+                    life: 2800,
+                });
+            } else {
+                this.messageService.add({
+                    severity: 'info',
+                    summary: 'No template',
+                    detail: 'No branch modifier template found. You can add modifiers manually.',
+                    life: 2800,
+                });
+            }
+        } catch (err: any) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: err?.message || 'Failed to create default modifiers',
+            });
+        } finally {
+            this.applyingDefaultModifiers = false;
+        }
+    }
+
+    declineCreateDefaultModifiers(): void {
+        this.askCreateDefaultModifiers = false;
     }
 
     async loadModifiers(productId: number): Promise<void> {
@@ -348,6 +553,130 @@ export class ProductListComponent implements OnInit {
             });
         } finally {
             this.loadingModifiers = false;
+        }
+    }
+
+    async openModifierTemplateDialog(): Promise<void> {
+        const branchId = this.branchContext.getBranchId();
+        if (!branchId) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Branch required',
+                detail: 'Select a branch before editing the modifier template.',
+            });
+            return;
+        }
+        this.modifierTemplateDialogVisible = true;
+        this.loadingModifierTemplate = true;
+        try {
+            this.modifierTemplate = await this.productModifierService.getBranchTemplate(branchId);
+            if (!this.modifierTemplate.options?.length) {
+                this.modifierTemplate.options = [
+                    { name: '2 ml', useSalePrice: true, price: 0, isDefault: true },
+                    { name: '4 ml', useSalePrice: false, price: 200, isDefault: false },
+                    { name: '6 ml', useSalePrice: false, price: 400, isDefault: false },
+                    { name: '8 ml', useSalePrice: false, price: 650, isDefault: false },
+                ];
+            }
+        } catch (err: any) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: err?.message || 'Failed to load modifier template',
+            });
+            this.modifierTemplateDialogVisible = false;
+        } finally {
+            this.loadingModifierTemplate = false;
+        }
+    }
+
+    addTemplateOption(): void {
+        if (!this.modifierTemplate) {
+            return;
+        }
+        const isFirst = !(this.modifierTemplate.options || []).length;
+        this.modifierTemplate.options = [
+            ...(this.modifierTemplate.options || []),
+            {
+                name: '',
+                useSalePrice: isFirst,
+                price: isFirst ? 0 : 0,
+                isDefault: isFirst,
+            },
+        ];
+    }
+
+    removeTemplateOption(index: number): void {
+        if (!this.modifierTemplate?.options?.length) {
+            return;
+        }
+        this.modifierTemplate.options.splice(index, 1);
+        if (this.modifierTemplate.options.length) {
+            this.modifierTemplate.options[0].useSalePrice = true;
+            this.modifierTemplate.options[0].isDefault = true;
+            this.modifierTemplate.options[0].price = 0;
+            for (let i = 1; i < this.modifierTemplate.options.length; i++) {
+                this.modifierTemplate.options[i].useSalePrice = false;
+                this.modifierTemplate.options[i].isDefault = false;
+            }
+        }
+    }
+
+    async saveModifierTemplate(): Promise<void> {
+        if (!this.modifierTemplate) {
+            return;
+        }
+        // First size always = product sale price; later sizes use the amounts set here.
+        const options = (this.modifierTemplate.options || [])
+            .map((o, i) => ({
+                name: (o.name || '').trim(),
+                useSalePrice: i === 0,
+                price: i === 0 ? 0 : Math.max(0, Number(o.price) || 0),
+                isDefault: i === 0,
+            }))
+            .filter((o) => !!o.name);
+
+        if (!options.length) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Validation',
+                detail: 'Add at least one size/option name.',
+            });
+            return;
+        }
+
+        const branchId = this.branchContext.getBranchId();
+        if (!branchId) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Branch required',
+                detail: 'Select a branch before saving the modifier template.',
+            });
+            return;
+        }
+
+        this.savingModifierTemplate = true;
+        try {
+            this.modifierTemplate = await this.productModifierService.saveBranchTemplate({
+                ...this.modifierTemplate,
+                branchId,
+                groupName: (this.modifierTemplate.groupName || 'Size').trim() || 'Size',
+                options,
+            });
+            this.messageService.add({
+                severity: 'success',
+                summary: 'Saved',
+                detail: 'Branch modifier template saved. It loads by default on Add Modifiers.',
+            });
+            this.modifierTemplateDialogVisible = false;
+        } catch (err: any) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: err?.message || 'Failed to save modifier template',
+            });
+        } finally {
+            this.savingModifierTemplate = false;
         }
     }
 
@@ -438,9 +767,7 @@ export class ProductListComponent implements OnInit {
             this.newOptionPrice[groupId] = null;
             await this.loadModifiers(this.modifierTargetProduct.id);
             this.messageService.add({
-                severity: 'success',
-                summary: 'Added',
-                detail: 'Option added',
+                ...sweetToast('modifier', 'create', name),
             });
         } catch (err: any) {
             this.messageService.add({
@@ -459,9 +786,7 @@ export class ProductListComponent implements OnInit {
             await this.productModifierService.deleteOption(optionId);
             await this.loadModifiers(this.modifierTargetProduct.id);
             this.messageService.add({
-                severity: 'info',
-                summary: 'Deleted',
-                detail: 'Option removed',
+                ...sweetToast('modifier', 'delete'),
             });
         } catch (err: any) {
             this.messageService.add({
@@ -649,9 +974,7 @@ export class ProductListComponent implements OnInit {
                     .delete(product.id)
                     .then(() => {
                         this.messageService.add({
-                            severity: 'success',
-                            summary: 'Success',
-                            detail: 'Product deleted successfully',
+                            ...sweetToast('product', 'delete', product.name),
                         });
                         this.loadProducts();
                     })
@@ -1256,9 +1579,11 @@ export class ProductListComponent implements OnInit {
 
                 await this.dealService.update(payload);
                 this.messageService.add({
-                    severity: 'success',
-                    summary: 'Deal Updated',
-                    detail: `Deal "${this.dealName}" updated successfully with ${selectedItems.length} product(s).`,
+                    ...sweetToast(
+                        'deal',
+                        'update',
+                        this.dealName.trim()
+                    ),
                 });
             } else {
                 const payload: CreateDealDto = {
@@ -1274,9 +1599,11 @@ export class ProductListComponent implements OnInit {
 
                 await this.dealService.create(payload);
                 this.messageService.add({
-                    severity: 'success',
-                    summary: 'Deal Created',
-                    detail: `Deal "${this.dealName}" saved successfully with ${selectedItems.length} product(s).`,
+                    ...sweetToast(
+                        'deal',
+                        'create',
+                        this.dealName.trim()
+                    ),
                 });
             }
 

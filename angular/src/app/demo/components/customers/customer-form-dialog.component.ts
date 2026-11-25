@@ -9,6 +9,7 @@ import {
 import { CustomerDto, CustomerType } from 'src/app/demo/api/customer';
 import { CustomerService } from 'src/app/demo/service/customer.service';
 import { MessageService } from 'primeng/api';
+import { sweetToast } from 'src/app/demo/utils/sweet-toast';
 
 @Component({
     selector: 'app-customer-form-dialog',
@@ -89,11 +90,11 @@ export class CustomerFormDialogComponent implements OnChanges {
         request
             .then((result) => {
                 this.messageService.add({
-                    severity: 'success',
-                    summary: 'Success',
-                    detail: this.customerId
-                        ? 'Customer updated successfully'
-                        : 'Customer created successfully',
+                    ...sweetToast(
+                        'customer',
+                        this.customerId ? 'update' : 'create',
+                        name
+                    ),
                 });
                 this.saved.emit(result);
                 this.onHide();

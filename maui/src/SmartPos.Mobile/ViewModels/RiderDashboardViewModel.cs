@@ -11,6 +11,7 @@ public partial class RiderDashboardViewModel : BaseViewModel
     private readonly RiderOrderService _rider;
     private readonly SessionService _session;
     private readonly AuthService _auth;
+    private readonly StaffDataCache _staffCache;
     private CancellationTokenSource? _pollCts;
 
     [ObservableProperty]
@@ -31,11 +32,16 @@ public partial class RiderDashboardViewModel : BaseViewModel
     public string PendingAmountText => $"Rs {Stats?.ActivePendingAmount ?? 0:0.##}";
     public string TodayAmountText => $"Rs {Stats?.TodayDeliveredAmount ?? 0:0.##}";
 
-    public RiderDashboardViewModel(RiderOrderService rider, SessionService session, AuthService auth)
+    public RiderDashboardViewModel(
+        RiderOrderService rider,
+        SessionService session,
+        AuthService auth,
+        StaffDataCache staffCache)
     {
         _rider = rider;
         _session = session;
         _auth = auth;
+        _staffCache = staffCache;
         Title = "Rider Dashboard";
     }
 
@@ -44,7 +50,7 @@ public partial class RiderDashboardViewModel : BaseViewModel
     {
         try
         {
-            await RefreshAsync();
+            await LoadDashboardAsync(forceRefresh: false);
             _pollCts?.Cancel();
             _pollCts = new CancellationTokenSource();
             _ = PollAsync(_pollCts.Token);
@@ -68,7 +74,7 @@ public partial class RiderDashboardViewModel : BaseViewModel
             try
             {
                 await Task.Delay(TimeSpan.FromSeconds(25), ct);
-                await RefreshAsync();
+                await LoadDashboardAsync(forceRefresh: true, showBusy: false);
             }
             catch (TaskCanceledException)
             {
@@ -82,32 +88,75 @@ public partial class RiderDashboardViewModel : BaseViewModel
     }
 
     [RelayCommand]
-    private async Task RefreshAsync()
+    private Task RefreshAsync() => LoadDashboardAsync(forceRefresh: true);
+
+    private async Task LoadDashboardAsync(bool forceRefresh, bool showBusy = true)
     {
-        await RunBusyAsync(async () =>
+        if (!forceRefresh && _staffCache.TryGetRider(out var cached) && cached != null)
         {
-            Stats = await _rider.GetDashboardStatsAsync();
-            NotifyStatTexts();
+            ApplyRiderPayload(cached.Stats, cached.Orders);
+            _ = SoftRefreshRiderInBackgroundAsync();
+            return;
+        }
 
-            var list = await _rider.GetAssignedOrdersAsync() ?? new List<RiderOrderDto>();
-            Orders.Clear();
-            NewOrders.Clear();
-            ActiveOrders.Clear();
-            foreach (var order in list)
+        if (showBusy)
+        {
+            await RunBusyAsync(async () => await FetchAndApplyRiderAsync());
+            return;
+        }
+
+        try
+        {
+            await FetchAndApplyRiderAsync();
+        }
+        catch
+        {
+            // Poll errors are ignored by the caller.
+        }
+    }
+
+    private async Task SoftRefreshRiderInBackgroundAsync()
+    {
+        try
+        {
+            await FetchAndApplyRiderAsync();
+        }
+        catch
+        {
+            // Keep cached rider board.
+        }
+    }
+
+    private async Task FetchAndApplyRiderAsync()
+    {
+        var stats = await _rider.GetDashboardStatsAsync();
+        var list = await _rider.GetAssignedOrdersAsync() ?? new List<RiderOrderDto>();
+        _staffCache.SetRider(stats, list);
+        MainThread.BeginInvokeOnMainThread(() => ApplyRiderPayload(stats, list));
+    }
+
+    private void ApplyRiderPayload(RiderDashboardStatsDto? stats, IEnumerable<RiderOrderDto> list)
+    {
+        Stats = stats;
+        NotifyStatTexts();
+
+        Orders.Clear();
+        NewOrders.Clear();
+        ActiveOrders.Clear();
+        foreach (var order in list)
+        {
+            Orders.Add(order);
+            if (order.IsNewOrder)
             {
-                Orders.Add(order);
-                if (order.IsNewOrder)
-                {
-                    NewOrders.Add(order);
-                }
-                else
-                {
-                    ActiveOrders.Add(order);
-                }
+                NewOrders.Add(order);
             }
+            else
+            {
+                ActiveOrders.Add(order);
+            }
+        }
 
-            NotifyOrderLists();
-        });
+        NotifyOrderLists();
     }
 
     private void NotifyStatTexts()
@@ -135,7 +184,8 @@ public partial class RiderDashboardViewModel : BaseViewModel
         await RunBusyAsync(async () =>
         {
             await _rider.AcceptOrderAsync(order.Id);
-            await RefreshAsync();
+            _staffCache.InvalidateRider();
+            await FetchAndApplyRiderAsync();
         });
     }
 
@@ -152,7 +202,8 @@ public partial class RiderDashboardViewModel : BaseViewModel
         await RunBusyAsync(async () =>
         {
             await _rider.RejectOrderAsync(order.Id, reason);
-            await RefreshAsync();
+            _staffCache.InvalidateRider();
+            await FetchAndApplyRiderAsync();
         });
     }
 
@@ -165,7 +216,8 @@ public partial class RiderDashboardViewModel : BaseViewModel
         await RunBusyAsync(async () =>
         {
             await _rider.CompleteDeliveryAsync(order.Id);
-            await RefreshAsync();
+            _staffCache.InvalidateRider();
+            await FetchAndApplyRiderAsync();
         });
     }
 

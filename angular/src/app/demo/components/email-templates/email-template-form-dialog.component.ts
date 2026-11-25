@@ -8,6 +8,7 @@ import {
 } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { MessageService } from 'primeng/api';
+import { sweetToast } from 'src/app/demo/utils/sweet-toast';
 import {
     CreateEmailTemplateDto,
     EMAIL_TEMPLATE_SAMPLE_VALUES,
@@ -112,11 +113,11 @@ export class EmailTemplateFormDialogComponent implements OnChanges {
         request
             .then(() => {
                 this.messageService.add({
-                    severity: 'success',
-                    summary: 'Success',
-                    detail: this.templateId
-                        ? 'Email template updated successfully'
-                        : 'Email template created successfully',
+                    ...sweetToast(
+                        'emailTemplate',
+                        this.templateId ? 'update' : 'create',
+                        name
+                    ),
                 });
                 this.saved.emit();
                 this.onHide();

@@ -2,6 +2,7 @@ import { AppFormatService } from 'src/app/demo/service/app-format.service';
 import { Component, OnInit } from '@angular/core';
 import { Table } from 'primeng/table';
 import { ConfirmationService, MessageService } from 'primeng/api';
+import { sweetToast } from 'src/app/demo/utils/sweet-toast';
 import { ExpenseDto } from 'src/app/demo/api/expense';
 import { ExpenseService } from 'src/app/demo/service/expense.service';
 import { RowActionItem } from 'src/app/shared/components/row-actions/row-actions.component';
@@ -108,9 +109,11 @@ export class ExpenseListComponent implements OnInit {
                     .delete(expense.id)
                     .then(() => {
                         this.messageService.add({
-                            severity: 'success',
-                            summary: 'Success',
-                            detail: 'Expense deleted successfully',
+                            ...sweetToast(
+                                'expense',
+                                'delete',
+                                expense.referenceNo
+                            ),
                         });
                         this.loadExpenses();
                     })

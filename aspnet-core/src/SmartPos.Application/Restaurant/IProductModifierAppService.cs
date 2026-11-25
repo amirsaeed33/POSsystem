@@ -16,6 +16,15 @@ namespace SmartPos.Restaurant
 
         Task<ProductModifierOptionDto> AddOptionAsync(int groupId, CreateModifierOptionDto input);
 
+        Task<ProductModifierOptionDto> UpdateOptionAsync(UpdateModifierOptionDto input);
+
         Task DeleteOptionAsync(EntityDto<int> input);
+
+        Task<BranchModifierTemplateDto> GetBranchTemplateAsync(int branchId);
+
+        Task<BranchModifierTemplateDto> SaveBranchTemplateAsync(BranchModifierTemplateDto input);
+
+        /// <summary>Apply branch template to a product that has no modifier groups yet.</summary>
+        Task<List<ProductModifierGroupDto>> ApplyBranchTemplateAsync(ApplyModifierTemplateInput input);
     }
 }

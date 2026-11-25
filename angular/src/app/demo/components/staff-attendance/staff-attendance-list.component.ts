@@ -1,6 +1,7 @@
 import { AppFormatService } from 'src/app/demo/service/app-format.service';
 import { Component, Input, OnInit } from '@angular/core';
 import { ConfirmationService, MessageService } from 'primeng/api';
+import { sweetToast } from 'src/app/demo/utils/sweet-toast';
 import { Table } from 'primeng/table';
 import { PermissionNames } from 'src/app/demo/api/permission-names';
 import {
@@ -76,6 +77,29 @@ export class StaffAttendanceListComponent implements OnInit {
     punchTime = '';
     punchRow: StaffAttendanceRow | null = null;
 
+    statusMarkVisible = false;
+    statusMarkSaving = false;
+    statusMarkStatus: AttendanceStatus = AttendanceStatus.Leave;
+    statusMarkRemarks = '';
+    statusMarkSelectedTemplate: string | null = null;
+    statusMarkRow: StaffAttendanceRow | null = null;
+
+    readonly leaveRemarkTemplates = [
+        'Sick leave',
+        'Personal leave',
+        'Family emergency',
+        'Medical appointment',
+        'Annual leave',
+    ];
+
+    readonly absentRemarkTemplates = [
+        'No show',
+        'Uninformed absence',
+        'Transport issue',
+        'Weather / travel delay',
+        'Other (see remarks)',
+    ];
+
     statusOptions = [
         { label: 'All', value: null },
         { label: 'Present', value: AttendanceStatus.Present },
@@ -84,6 +108,8 @@ export class StaffAttendanceListComponent implements OnInit {
         { label: 'Half Day', value: AttendanceStatus.HalfDay },
         { label: 'Not marked', value: -1 as any },
     ];
+
+    readonly AttendanceStatus = AttendanceStatus;
 
     readonly canCreate =
         this.permissionService.isGranted(PermissionNames.StaffAttendanceCreate) ||
@@ -143,6 +169,24 @@ export class StaffAttendanceListComponent implements OnInit {
             });
         }
 
+        if (this.canMarkStatus(row, AttendanceStatus.Leave)) {
+            actions.push({
+                label: 'Mark Leave',
+                icon: 'pi pi-calendar',
+                color: 'blue',
+                action: () => this.openStatusMark(row, AttendanceStatus.Leave),
+            });
+        }
+
+        if (this.canMarkStatus(row, AttendanceStatus.Absent)) {
+            actions.push({
+                label: 'Mark Absent',
+                icon: 'pi pi-times-circle',
+                color: 'blue',
+                action: () => this.openStatusMark(row, AttendanceStatus.Absent),
+            });
+        }
+
         if (att && this.canDelete) {
             actions.push({
                 label: 'Delete',
@@ -152,6 +196,100 @@ export class StaffAttendanceListComponent implements OnInit {
             });
         }
         return actions;
+    }
+
+    canMarkStatus(row: StaffAttendanceRow, status: AttendanceStatus): boolean {
+        const att = row.attendance;
+        if (!att) {
+            return this.canCreate;
+        }
+        if (Number(att.status) === Number(status)) {
+            return this.canEdit;
+        }
+        // Allow switching unmarked/present/half-day into leave/absent
+        return this.canEdit || this.canCreate;
+    }
+
+    get statusMarkTitle(): string {
+        return this.statusMarkStatus === AttendanceStatus.Absent
+            ? 'Mark Absent'
+            : 'Mark Leave';
+    }
+
+    get statusMarkTemplates(): string[] {
+        return this.statusMarkStatus === AttendanceStatus.Absent
+            ? this.absentRemarkTemplates
+            : this.leaveRemarkTemplates;
+    }
+
+    openStatusMark(row: StaffAttendanceRow, status: AttendanceStatus): void {
+        if (!this.canMarkStatus(row, status)) {
+            return;
+        }
+        this.statusMarkRow = row;
+        this.statusMarkStatus = status;
+        this.statusMarkRemarks = row.attendance?.remarks?.trim() || '';
+        this.statusMarkSelectedTemplate = null;
+        this.statusMarkVisible = true;
+    }
+
+    selectRemarkTemplate(template: string): void {
+        this.statusMarkSelectedTemplate = template;
+        this.statusMarkRemarks = template;
+    }
+
+    saveStatusMark(): void {
+        const row = this.statusMarkRow;
+        if (!row) {
+            return;
+        }
+
+        const date = this.toDateInputValue(row.attendanceDate);
+        const remarks = this.statusMarkRemarks?.trim() || undefined;
+        const existing = row.attendance;
+        this.statusMarkSaving = true;
+
+        const request = existing
+            ? this.attendanceService.update({
+                  ...existing,
+                  attendanceDate: date,
+                  status: this.statusMarkStatus,
+                  checkInTime: null,
+                  checkOutTime: null,
+                  remarks,
+              })
+            : this.attendanceService.create({
+                  staffId: row.staffId,
+                  attendanceDate: date,
+                  status: this.statusMarkStatus,
+                  checkInTime: null,
+                  checkOutTime: null,
+                  remarks,
+              });
+
+        request
+            .then(() => {
+                this.messageService.add({
+                    severity: 'success',
+                    summary: 'Saved',
+                    detail:
+                        this.statusMarkStatus === AttendanceStatus.Absent
+                            ? 'Marked as absent'
+                            : 'Marked as leave',
+                });
+                this.statusMarkVisible = false;
+                this.loadAllEmployees();
+            })
+            .catch((error) => {
+                this.messageService.add({
+                    severity: 'error',
+                    summary: 'Error',
+                    detail: error?.message || 'Failed to save attendance',
+                });
+            })
+            .finally(() => {
+                this.statusMarkSaving = false;
+            });
     }
 
     canPunchOut(row: StaffAttendanceRow): boolean {
@@ -301,9 +439,11 @@ export class StaffAttendanceListComponent implements OnInit {
                     .delete(record.id)
                     .then(() => {
                         this.messageService.add({
-                            severity: 'success',
-                            summary: 'Success',
-                            detail: 'Attendance deleted',
+                            ...sweetToast(
+                                'attendance',
+                                'delete',
+                                record.staffName
+                            ),
                         });
                         this.loadAllEmployees();
                     })

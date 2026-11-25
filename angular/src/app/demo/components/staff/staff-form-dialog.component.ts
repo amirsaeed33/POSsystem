@@ -7,6 +7,7 @@ import {
     SimpleChanges,
 } from '@angular/core';
 import { MessageService } from 'primeng/api';
+import { sweetToast } from 'src/app/demo/utils/sweet-toast';
 import { BranchDto } from 'src/app/demo/api/branch';
 import { StaffDto } from 'src/app/demo/api/staff';
 import { BranchService } from 'src/app/demo/service/branch.service';
@@ -86,9 +87,11 @@ export class StaffFormDialogComponent implements OnChanges {
         }
 
         this.saving = true;
+        const currentBranchId =
+            this.branchContext.getBranchId() ?? this.staff.branchId ?? null;
         const payload = {
             name,
-            branchId: this.staff.branchId ?? null,
+            branchId: currentBranchId,
             employeeCode: this.staff.employeeCode?.trim() || undefined,
             phone: this.staff.phone?.trim() || undefined,
             email: this.staff.email?.trim() || undefined,
@@ -110,11 +113,11 @@ export class StaffFormDialogComponent implements OnChanges {
         request
             .then(() => {
                 this.messageService.add({
-                    severity: 'success',
-                    summary: 'Success',
-                    detail: this.staffId
-                        ? 'Staff updated successfully'
-                        : 'Staff created successfully',
+                    ...sweetToast(
+                        'staff',
+                        this.staffId ? 'update' : 'create',
+                        name
+                    ),
                 });
                 this.saved.emit();
                 this.onHide();

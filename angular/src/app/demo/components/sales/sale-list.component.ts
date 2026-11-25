@@ -2,6 +2,7 @@ import { AppFormatService } from 'src/app/demo/service/app-format.service';
 import { Component, OnInit } from '@angular/core';
 import { Table } from 'primeng/table';
 import { ConfirmationService, MessageService } from 'primeng/api';
+import { sweetToast } from 'src/app/demo/utils/sweet-toast';
 import { PaymentType, SaleDto, DepartmentSalesReportDto } from 'src/app/demo/api/sale';
 import { DepartmentService } from 'src/app/demo/service/department.service';
 import { SaleService } from 'src/app/demo/service/sale.service';
@@ -524,9 +525,11 @@ export class SaleListComponent implements OnInit {
                     .delete(sale.id)
                     .then(() => {
                         this.messageService.add({
-                            severity: 'success',
-                            summary: 'Success',
-                            detail: 'Sale deleted successfully',
+                            ...sweetToast(
+                                'sale',
+                                'delete',
+                                sale.invoiceNo || undefined
+                            ),
                         });
                         this.loadSales();
                         this.loadReturns();
@@ -554,9 +557,11 @@ export class SaleListComponent implements OnInit {
                     .delete(item.id)
                     .then(() => {
                         this.messageService.add({
-                            severity: 'success',
-                            summary: 'Success',
-                            detail: 'Sale return deleted successfully',
+                            ...sweetToast(
+                                'saleReturn',
+                                'delete',
+                                item.saleInvoiceNo
+                            ),
                         });
                         this.loadReturns();
                         this.loadSales();
