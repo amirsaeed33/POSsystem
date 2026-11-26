@@ -121,24 +121,29 @@ export class ThermalPrintService {
     // =========================================================================
     public getBaseThermalStyles(paperSize: ThermalPaperSize): string {
         const is58 = paperSize === '58mm';
-        const bodyWidth = is58 ? '48mm' : '76mm';
-        const baseFontSize = is58 ? '9.5px' : '12px';
-        const titleFontSize = is58 ? '13px' : '16px';
-        const subTitleFontSize = is58 ? '11px' : '14px';
-        const metaFontSize = is58 ? '9px' : '11.5px';
+        // Keep content inside paper width and leave visible left/right gaps.
+        const bodyWidth = is58 ? '58mm' : '80mm';
+        const sidePad = is58 ? '2.5mm' : '3.5mm';
+        const bodyPad = is58 ? `1.5mm ${sidePad}` : `2.5mm ${sidePad}`;
+        const baseFontSize = is58 ? '9px' : '11.5px';
+        const titleFontSize = is58 ? '11.5px' : '14px';
+        const subTitleFontSize = is58 ? '10px' : '13px';
+        const metaFontSize = is58 ? '8.5px' : '11px';
 
         return `
             @page {
                 margin: 0 !important;
+                size: ${is58 ? '58mm' : '80mm'} auto;
             }
             @media print {
                 html, body {
                     width: 100% !important;
                     max-width: ${bodyWidth} !important;
                     margin: 0 !important;
-                    padding: 0 !important;
+                    padding: ${bodyPad} !important;
                     background: #ffffff !important;
                     color: #000000 !important;
+                    overflow: hidden !important;
                 }
                 .no-print { display: none !important; }
             }
@@ -150,14 +155,15 @@ export class ThermalPrintService {
             body {
                 font-family: Arial, Helvetica, 'Segoe UI', sans-serif;
                 font-size: ${baseFontSize};
-                line-height: 1.34;
+                line-height: 1.3;
                 color: #000000;
                 background: #ffffff;
                 width: 100%;
                 max-width: ${bodyWidth};
                 margin: 0 auto;
-                padding: ${is58 ? '1.5mm 1mm' : '2.5mm 1.5mm'};
+                padding: ${bodyPad};
                 font-weight: 400;
+                overflow-x: hidden;
             }
             .text-center { text-align: center; }
             .text-right { text-align: right; }
@@ -171,22 +177,34 @@ export class ThermalPrintService {
                 display: flex;
                 justify-content: space-between;
                 align-items: flex-start;
-                gap: 6px;
+                gap: 4px;
                 font-size: ${metaFontSize};
                 margin-bottom: 2px;
                 line-height: 1.3;
+                width: 100%;
+                max-width: 100%;
+            }
+            .row > span {
+                min-width: 0;
+                overflow-wrap: anywhere;
+                word-break: break-word;
             }
             .row > span:last-child { text-align: right; }
             .printed-at {
-                white-space: nowrap;
-                flex: 0 0 auto;
-                font-size: ${is58 ? '8.5px' : '10px'};
+                white-space: normal;
+                flex: 0 1 auto;
+                font-size: ${is58 ? '8px' : '9.5px'};
             }
             .header-title {
                 font-size: ${titleFontSize};
                 font-weight: 700;
-                letter-spacing: 0.3px;
+                letter-spacing: 0.2px;
                 margin-top: 2px;
+                line-height: 1.2;
+                max-width: 100%;
+                overflow-wrap: anywhere;
+                word-break: break-word;
+                padding: 0 1px;
             }
             .header-subtitle {
                 font-size: ${subTitleFontSize};
@@ -599,59 +617,59 @@ export class ThermalPrintService {
 
             return `
                 <tr>
-                    <td style="width: 48%; padding-top: 3px;">
+                    <td style="width: 46%; padding-top: 3px;">
                         <span class="bold">${dealBadge}${l.productName || 'Item'}</span>${extrasHtml}
                     </td>
-                    <td style="width: 14%; text-align: center; font-weight: 700; padding-top: 3px;">${qty}</td>
-                    <td style="width: 18%; text-align: right; padding-top: 3px;">${rate.toFixed(0)}</td>
-                    <td style="width: 20%; text-align: right; font-weight: 700; padding-top: 3px;">${total.toFixed(0)}</td>
+                    <td style="width: 12%; text-align: center; font-weight: 700; padding-top: 3px;">${qty}</td>
+                    <td style="width: 20%; text-align: right; padding-top: 3px;">${rate.toFixed(0)}</td>
+                    <td style="width: 22%; text-align: right; font-weight: 700; padding-top: 3px;">${total.toFixed(0)}</td>
                 </tr>
             `;
         }).join('');
 
         const discountHtml = (params.discountAmount && params.discountAmount > 0)
-            ? `<tr><td colspan="3" style="text-align: left; padding: 1.5px 0;">Discount${params.discountPercent ? ' (' + params.discountPercent + '%)' : ''}</td><td style="text-align: right; padding: 1.5px 0;">-${Number(params.discountAmount).toFixed(0)} Rs</td></tr>`
+            ? `<tr><td colspan="3" style="text-align: left; padding: 1.5px 0;">Discount${params.discountPercent ? ' (' + params.discountPercent + '%)' : ''}</td><td style="text-align: right; padding: 1.5px 0;">-${Number(params.discountAmount).toFixed(0)}</td></tr>`
             : '';
         const taxHtml = (params.taxAmount && params.taxAmount > 0)
-            ? `<tr><td colspan="3" style="text-align: left; padding: 1.5px 0;">Tax${params.taxPercent ? ' (' + params.taxPercent + '%)' : ''}</td><td style="text-align: right; padding: 1.5px 0;">+${Number(params.taxAmount).toFixed(0)} Rs</td></tr>`
+            ? `<tr><td colspan="3" style="text-align: left; padding: 1.5px 0;">Tax${params.taxPercent ? ' (' + params.taxPercent + '%)' : ''}</td><td style="text-align: right; padding: 1.5px 0;">+${Number(params.taxAmount).toFixed(0)}</td></tr>`
             : '';
         const deliveryHtml = (params.deliveryFee && params.deliveryFee > 0)
-            ? `<tr><td colspan="3" style="text-align: left; padding: 1.5px 0;">Delivery Fee</td><td style="text-align: right; padding: 1.5px 0;">+${Number(params.deliveryFee).toFixed(0)} Rs</td></tr>`
+            ? `<tr><td colspan="3" style="text-align: left; padding: 1.5px 0;">Delivery Fee</td><td style="text-align: right; padding: 1.5px 0;">+${Number(params.deliveryFee).toFixed(0)}</td></tr>`
             : '';
         const serviceHtml = (params.serviceChargeAmount && params.serviceChargeAmount > 0)
-            ? `<tr><td colspan="3" style="text-align: left; padding: 1.5px 0;">Service Charge${params.serviceChargePercent ? ' (' + params.serviceChargePercent + '%)' : ''}</td><td style="text-align: right; padding: 1.5px 0;">+${Number(params.serviceChargeAmount).toFixed(0)} Rs</td></tr>`
+            ? `<tr><td colspan="3" style="text-align: left; padding: 1.5px 0;">Service Charge${params.serviceChargePercent ? ' (' + params.serviceChargePercent + '%)' : ''}</td><td style="text-align: right; padding: 1.5px 0;">+${Number(params.serviceChargeAmount).toFixed(0)}</td></tr>`
             : '';
 
         const cashPaidHtml = (params.cashPaid && params.cashPaid > 0)
-            ? `<tr><td colspan="3" style="text-align: left; padding: 1.5px 0;">Cash Paid</td><td style="text-align: right; padding: 1.5px 0;">${Number(params.cashPaid).toFixed(0)} Rs</td></tr>`
+            ? `<tr><td colspan="3" style="text-align: left; padding: 1.5px 0;">Cash Paid</td><td style="text-align: right; padding: 1.5px 0;">${Number(params.cashPaid).toFixed(0)}</td></tr>`
             : '';
         const cardPaidHtml = (params.cardPaid && params.cardPaid > 0)
-            ? `<tr><td colspan="3" style="text-align: left; padding: 1.5px 0;">Card Paid</td><td style="text-align: right; padding: 1.5px 0;">${Number(params.cardPaid).toFixed(0)} Rs</td></tr>`
+            ? `<tr><td colspan="3" style="text-align: left; padding: 1.5px 0;">Card Paid</td><td style="text-align: right; padding: 1.5px 0;">${Number(params.cardPaid).toFixed(0)}</td></tr>`
             : '';
         const dueHtml = (params.dueAmount && params.dueAmount > 0.009)
-            ? `<tr style="font-weight: 700;"><td colspan="3" style="text-align: left; padding: 2px 0;">Due Amount</td><td style="text-align: right; padding: 2px 0;">${Number(params.dueAmount).toFixed(0)} Rs</td></tr>`
+            ? `<tr style="font-weight: 700;"><td colspan="3" style="text-align: left; padding: 2px 0;">Due Amount</td><td style="text-align: right; padding: 2px 0;">${Number(params.dueAmount).toFixed(0)}</td></tr>`
             : '';
         const changeHtml = (params.changeReturned && params.changeReturned > 0)
-            ? `<tr style="font-weight: 700;"><td colspan="3" style="text-align: left; padding: 2px 0;">Change Returned</td><td style="text-align: right; padding: 2px 0;">${Number(params.changeReturned).toFixed(0)} Rs</td></tr>`
+            ? `<tr style="font-weight: 700;"><td colspan="3" style="text-align: left; padding: 2px 0;">Change Returned</td><td style="text-align: right; padding: 2px 0;">${Number(params.changeReturned).toFixed(0)}</td></tr>`
             : '';
 
         const tokenRowHtml = `
             <div style="margin-top: 4px;">
-                <div class="row" style="font-size: ${is58 ? '12px' : '14px'}; font-weight: 700; margin-bottom: 2px;">
+                <div class="row" style="font-size: ${is58 ? '11px' : '13px'}; font-weight: 700; margin-bottom: 2px;">
                     <span>${params.tokenNo != null && params.tokenNo > 0 ? `Token# ${params.tokenNo}` : ''}</span>
                     <span>Order Type: ${params.orderType}</span>
                 </div>
-                <div class="row" style="white-space: nowrap; font-size: ${is58 ? '8.5px' : '10.5px'};">
-                    <span style="white-space: nowrap;">Order ID: <strong>${params.orderId}</strong></span>
-                    <span style="white-space: nowrap;">Date: ${dateParts.fullStr}</span>
+                <div class="row" style="font-size: ${is58 ? '8px' : '10px'};">
+                    <span>Order ID: <strong>${params.orderId}</strong></span>
+                    <span>Date: ${dateParts.fullStr}</span>
                 </div>
-                <div class="row" style="white-space: nowrap; font-size: ${is58 ? '8.5px' : '10.5px'};">
-                    <span style="white-space: nowrap;">Invoice#: <strong>${params.invoiceNo || '#' + params.orderId}</strong></span>
-                    <span style="white-space: nowrap;">User: <strong>${params.userName || 'Staff'}</strong></span>
+                <div class="row" style="font-size: ${is58 ? '8px' : '10px'};">
+                    <span>Invoice#: <strong>${params.invoiceNo || '#' + params.orderId}</strong></span>
+                    <span>User: <strong>${params.userName || 'Staff'}</strong></span>
                 </div>
                 ${params.subLocation
-                    ? `<div class="row" style="white-space: nowrap; font-size: ${is58 ? '8.5px' : '10.5px'};">
-                            <span style="white-space: nowrap;"><strong>${params.subLocation}</strong></span>
+                    ? `<div class="row" style="font-size: ${is58 ? '8px' : '10px'};">
+                            <span><strong>${params.subLocation}</strong></span>
                             <span></span>
                        </div>`
                     : ''}
@@ -705,17 +723,17 @@ export class ThermalPrintService {
             <table>
                 <thead>
                     <tr>
-                        <th style="width: 48%; text-align: left;">Item</th>
-                        <th style="width: 14%; text-align: center;">Qty</th>
-                        <th style="width: 18%; text-align: right;">Rate</th>
-                        <th style="width: 20%; text-align: right;">Total</th>
+                        <th style="width: 46%; text-align: left;">Item</th>
+                        <th style="width: 12%; text-align: center;">Qty</th>
+                        <th style="width: 20%; text-align: right;">Rate</th>
+                        <th style="width: 22%; text-align: right;">Total</th>
                     </tr>
                 </thead>
                 <tbody>
                     ${linesHtml}
                     <tr style="border-top: 1px dashed #000000;">
                         <td colspan="3" style="text-align: left; padding: 2.5px 0;">Sub Total</td>
-                        <td style="text-align: right; font-weight: 700; padding: 2.5px 0;">${Number(params.subTotal || 0).toFixed(0)} Rs</td>
+                        <td style="text-align: right; font-weight: 700; padding: 2.5px 0;">${Number(params.subTotal || 0).toFixed(0)}</td>
                     </tr>
                     ${discountHtml}
                     ${taxHtml}
@@ -723,7 +741,7 @@ export class ThermalPrintService {
                     ${deliveryHtml}
                     <tr style="border-top: 1px dashed #000000; border-bottom: 1px dashed #000000;">
                         <td colspan="3" style="text-align: left; font-weight: 700; font-size: ${is58 ? '11px' : '13px'}; padding: 3px 0;">GRAND TOTAL</td>
-                        <td style="text-align: right; font-weight: 700; font-size: ${is58 ? '11px' : '13px'}; padding: 3px 0;">${Number(params.grandTotal || 0).toFixed(0)} Rs</td>
+                        <td style="text-align: right; font-weight: 700; font-size: ${is58 ? '11px' : '13px'}; padding: 3px 0;">${Number(params.grandTotal || 0).toFixed(0)}</td>
                     </tr>
                     ${cashPaidHtml}
                     ${cardPaidHtml}

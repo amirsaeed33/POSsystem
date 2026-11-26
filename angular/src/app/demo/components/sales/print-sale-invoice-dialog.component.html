@@ -111,7 +111,7 @@
         <div class="thermal-totals">
             <div class="thermal-total-row">
                 <span>Sub Total:</span>
-                <span class="font-bold">{{ sale.subTotal | number:'1.0-0' }} {{ currencyLabel }}</span>
+                <span class="font-bold">{{ sale.subTotal | number:'1.0-0' }}</span>
             </div>
             <div class="thermal-total-row" *ngIf="sale.discountAmount && sale.discountAmount > 0">
                 <span>Discount ({{ sale.discountPercent || 0 }}%):</span>
@@ -128,7 +128,7 @@
 
             <div class="thermal-grand-total">
                 <span>GRAND TOTAL:</span>
-                <span>{{ sale.totalAmount | number:'1.0-0' }} {{ currencyLabel }}</span>
+                <span>{{ sale.totalAmount | number:'1.0-0' }}</span>
             </div>
 
             <div class="thermal-total-row text-xs" *ngIf="sale.cashAmount">
@@ -141,7 +141,7 @@
             </div>
             <div class="thermal-total-row font-bold text-red-600" *ngIf="sale.dueAmount && sale.dueAmount > 0.009">
                 <span>Due Amount:</span>
-                <span>{{ sale.dueAmount | number:'1.0-0' }} {{ currencyLabel }}</span>
+                <span>{{ sale.dueAmount | number:'1.0-0' }}</span>
             </div>
         </div>
 
