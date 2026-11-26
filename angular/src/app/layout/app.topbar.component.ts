@@ -76,19 +76,9 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
         return this.authService.isWaiter();
     }
 
-    /** Logo / branch name / Home — role-specific portal home. */
+    /** Logo / branch name — role-specific portal home. */
     get homeLink(): string {
         return this.authService.getHomeRoute();
-    }
-
-    get homeLinkLabel(): string {
-        if (this.isDeliveryRider) {
-            return 'Dashboard';
-        }
-        if (this.isWaiter) {
-            return 'POS';
-        }
-        return 'Home';
     }
 
     todayPendingOrders: CustomerOrderDto[] = [];

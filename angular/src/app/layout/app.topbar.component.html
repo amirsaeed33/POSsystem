@@ -2,24 +2,18 @@
     <div class="topbar-start">
         <a class="app-logo" [routerLink]="homeLink" [title]="branchDisplayName">
             <img alt="app logo" [src]="logo" (error)="onLogoError()" style="max-height: 2.75rem; max-width: 3.5rem; width: auto; object-fit: contain; border-radius: 4px;">
-            <!-- Branch name: always visible for rider/waiter; desktop-only for others to save mobile space -->
+            <!-- Branch name: always for rider/waiter; from sm up for others. Ellipsis keeps it from colliding with center switcher. -->
             <span
                 class="app-name"
+                [class.app-name--compact]="showBranchSwitcher"
                 [ngClass]="(isDeliveryRider || isWaiter) ? 'inline' : 'hidden sm:inline'"
-                style="font-size: 1.5rem; max-width: 16rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
+                [title]="branchDisplayName"
             >{{ branchDisplayName }}</span>
         </a>
 
         <button #menubutton class="topbar-menubutton p-link" type="button" (click)="onMenuButtonClick()">
             <span></span>
         </button>
-
-        <a
-            class="p-link hidden sm:flex align-items-center px-3 py-2 border-round hover:surface-hover font-medium white-space-nowrap"
-            [routerLink]="homeLink"
-        >
-            {{ homeLinkLabel }}
-        </a>
 
         <ul class="topbar-menu">
             <li *ngFor="let item of tabs; let i = index">
@@ -57,10 +51,10 @@
             >Delivery</span>
         </a>
 
-        <!-- Branch switcher only when user can switch and tenant has 2+ locations -->
+        <!-- Branch switcher — primary branch label on small/medium; left app-name returns at lg -->
         <div class="topbar-branch relative" *ngIf="showBranchSwitcher">
             <button
-                class="p-link flex align-items-center gap-2 px-3 py-2 border-round hover:surface-hover"
+                class="topbar-branch-btn p-link flex align-items-center gap-1 sm:gap-2 px-2 sm:px-3 py-2 border-round hover:surface-hover"
                 type="button"
                 pStyleClass="@next"
                 enterClass="hidden"
@@ -69,31 +63,32 @@
                 leaveActiveClass="fadeout"
                 [hideOnOutsideClick]="true"
                 [disabled]="changingBranch"
+                [title]="locationLabel"
             >
-                <i class="pi pi-map-marker text-xl"></i>
-                <span class="hidden sm:inline text-sm text-500 white-space-nowrap">Branch</span>
-                <!-- Mobile: short shop name; desktop: full name -->
-                <span class="font-medium white-space-nowrap sm:hidden" [title]="locationLabel">
+                <i class="pi pi-map-marker text-xl flex-shrink-0"></i>
+                <span class="hidden xl:inline text-sm text-500 white-space-nowrap flex-shrink-0">Branch</span>
+                <!-- Mobile: short name; sm+: full name with ellipsis -->
+                <span class="topbar-branch-label font-medium sm:hidden">
                     {{ locationLabelShort }}
                 </span>
-                <span class="font-medium white-space-nowrap hidden sm:inline" [title]="'Change branch'">
+                <span class="topbar-branch-label font-medium hidden sm:inline">
                     {{ locationLabel }}
                 </span>
-                <span class="hidden md:inline text-xs text-500 white-space-nowrap">Change</span>
+                <span class="hidden xl:inline text-xs text-500 white-space-nowrap flex-shrink-0">Change</span>
                 <span
                     *ngIf="currentBranch?.businessType === 2"
-                    class="text-xs px-2 py-1 border-round font-medium bg-yellow-100 text-yellow-900"
+                    class="text-xs px-2 py-1 border-round font-medium bg-yellow-100 text-yellow-900 flex-shrink-0 hidden lg:inline"
                     title="Active Restaurant & Dining Table Mode"
                 >🍽️ Restaurant</span>
                 <span
                     *ngIf="currentBranch?.status && currentBranch?.status !== BranchStatuses.Approved"
-                    class="text-xs px-2 py-1 border-round font-medium"
+                    class="text-xs px-2 py-1 border-round font-medium flex-shrink-0"
                     [ngClass]="{
                         'bg-orange-100 text-orange-700': currentBranch?.status === BranchStatuses.Pending,
                         'bg-red-100 text-red-700': currentBranch?.status === BranchStatuses.Rejected
                     }"
                 >{{ currentBranch?.status }}</span>
-                <i class="pi pi-angle-down"></i>
+                <i class="pi pi-angle-down flex-shrink-0"></i>
             </button>
             <ul
                 class="list-none p-2 m-0 border-round shadow-2 hidden absolute surface-overlay origin-top mt-2 left-0 top-auto z-5"
