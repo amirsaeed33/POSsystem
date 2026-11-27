@@ -1,3 +1,5 @@
+import '../core/api/json_helpers.dart';
+
 class HeroSlideDto {
   final int id;
   final int branchId;
@@ -13,7 +15,9 @@ class HeroSlideDto {
   final String? primaryBtnText;
   final String? secondaryBtnText;
   final String? imagePath;
+  final String? bgImagePath;
   final String? imageUrl;
+  final String? bgImageUrl;
 
   HeroSlideDto({
     required this.id,
@@ -30,26 +34,36 @@ class HeroSlideDto {
     this.primaryBtnText,
     this.secondaryBtnText,
     this.imagePath,
+    this.bgImagePath,
     this.imageUrl,
+    this.bgImageUrl,
   });
+
+  String get bannerImageUrl {
+    final bg = bgImageUrl?.trim() ?? '';
+    if (bg.isNotEmpty) return bg;
+    return imageUrl?.trim() ?? '';
+  }
 
   factory HeroSlideDto.fromJson(Map<String, dynamic> json) {
     return HeroSlideDto(
-      id: json['id'] as int? ?? 0,
-      branchId: json['branchId'] as int? ?? 0,
-      sortOrder: json['sortOrder'] as int? ?? 0,
-      badge: json['badge'] as String?,
-      badgeIcon: json['badgeIcon'] as String?,
-      titleMain: json['titleMain'] as String?,
-      titleHighlight: json['titleHighlight'] as String?,
-      titleEnd: json['titleEnd'] as String?,
-      description: json['description'] as String?,
-      offerPill: json['offerPill'] as String?,
-      rating: json['rating'] as String?,
-      primaryBtnText: json['primaryBtnText'] as String?,
-      secondaryBtnText: json['secondaryBtnText'] as String?,
-      imagePath: json['imagePath'] as String?,
-      imageUrl: json['imageUrl'] as String?,
+      id: asInt(json['id']),
+      branchId: asInt(json['branchId']),
+      sortOrder: asInt(json['sortOrder']),
+      badge: asStringOrNull(json['badge']),
+      badgeIcon: asStringOrNull(json['badgeIcon']),
+      titleMain: asStringOrNull(json['titleMain']),
+      titleHighlight: asStringOrNull(json['titleHighlight']),
+      titleEnd: asStringOrNull(json['titleEnd']),
+      description: asStringOrNull(json['description']),
+      offerPill: asStringOrNull(json['offerPill']),
+      rating: asStringOrNull(json['rating']),
+      primaryBtnText: asStringOrNull(json['primaryBtnText']),
+      secondaryBtnText: asStringOrNull(json['secondaryBtnText']),
+      imagePath: asStringOrNull(json['imagePath']),
+      bgImagePath: asStringOrNull(json['bgImagePath']),
+      imageUrl: asStringOrNull(json['imageUrl']),
+      bgImageUrl: asStringOrNull(json['bgImageUrl']),
     );
   }
 }

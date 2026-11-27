@@ -17,6 +17,9 @@ class CartScreen extends StatefulWidget {
   final OnlineCatalogService catalogService;
   final int? branchId;
   final bool isRestaurant;
+  /// When true, hides the back button (used as bottom-nav tab).
+  final bool asTab;
+  final VoidCallback? onContinueShopping;
 
   const CartScreen({
     super.key,
@@ -24,6 +27,8 @@ class CartScreen extends StatefulWidget {
     required this.catalogService,
     this.branchId,
     this.isRestaurant = true,
+    this.asTab = false,
+    this.onContinueShopping,
   });
 
   @override
@@ -522,7 +527,10 @@ class _CartScreenState extends State<CartScreen> {
     if (cart.items.isEmpty) {
       return Scaffold(
         backgroundColor: AppColors.pageBackground,
-        appBar: AppBar(title: const Text('My Cart')),
+        appBar: AppBar(
+          title: const Text('My Cart'),
+          automaticallyImplyLeading: !widget.asTab,
+        ),
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -550,7 +558,13 @@ class _CartScreenState extends State<CartScreen> {
               AppButton(
                 text: BranchUiCopy.exploreCatalogCta(widget.isRestaurant),
                 width: 160,
-                onPressed: () => Navigator.of(context).pop(),
+                onPressed: () {
+                  if (widget.onContinueShopping != null) {
+                    widget.onContinueShopping!();
+                  } else {
+                    Navigator.of(context).maybePop();
+                  }
+                },
               ),
             ],
           ),
@@ -562,6 +576,7 @@ class _CartScreenState extends State<CartScreen> {
       backgroundColor: AppColors.pageBackground,
       appBar: AppBar(
         title: const Text('My Cart'),
+        automaticallyImplyLeading: !widget.asTab,
         actions: [
           IconButton(
             icon: const Icon(Icons.delete_outline, color: AppColors.badgeRed),

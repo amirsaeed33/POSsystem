@@ -39,7 +39,18 @@ class _CustomerShellScreenState extends State<CustomerShellScreen> {
   @override
   void initState() {
     super.initState();
+    widget.cartService.addListener(_onCartChanged);
     _loadBranches();
+  }
+
+  @override
+  void dispose() {
+    widget.cartService.removeListener(_onCartChanged);
+    super.dispose();
+  }
+
+  void _onCartChanged() {
+    if (mounted) setState(() {});
   }
 
   Future<void> _loadBranches() async {
@@ -105,19 +116,6 @@ class _CustomerShellScreenState extends State<CustomerShellScreen> {
     widget.sessionService.setBranch(branch.id, branch.name);
   }
 
-  void _openCart() {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => CartScreen(
-          cartService: widget.cartService,
-          catalogService: widget.catalogService,
-          branchId: _selectedBranch?.id,
-          isRestaurant: _selectedBranch?.isRestaurant ?? true,
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     if (_isLoadingBranches) {
@@ -170,12 +168,19 @@ class _CustomerShellScreenState extends State<CustomerShellScreen> {
         currentBranch: _selectedBranch,
         branches: _branches,
         onBranchChanged: _onBranchChanged,
-        onOpenCart: _openCart,
       ),
       CustomerOrderTab(
         catalogService: widget.catalogService,
         cartService: widget.cartService,
         currentBranch: _selectedBranch,
+      ),
+      CartScreen(
+        cartService: widget.cartService,
+        catalogService: widget.catalogService,
+        branchId: _selectedBranch?.id,
+        isRestaurant: _selectedBranch?.isRestaurant ?? true,
+        asTab: true,
+        onContinueShopping: () => setState(() => _currentIndex = 1),
       ),
       FavoritesTab(
         catalogService: widget.catalogService,
@@ -193,6 +198,7 @@ class _CustomerShellScreenState extends State<CustomerShellScreen> {
     ];
 
     final isRestaurant = _selectedBranch?.isRestaurant ?? true;
+    final cartCount = widget.cartService.itemCount;
     final navItems = [
       const BottomNavItem(
         label: 'Home',
@@ -203,6 +209,12 @@ class _CustomerShellScreenState extends State<CustomerShellScreen> {
         label: BranchUiCopy.catalogTabLabel(isRestaurant),
         icon: BranchUiCopy.catalogTabIcon(isRestaurant),
         activeIcon: BranchUiCopy.catalogTabActiveIcon(isRestaurant),
+      ),
+      BottomNavItem(
+        label: 'Cart',
+        icon: Icons.shopping_bag_outlined,
+        activeIcon: Icons.shopping_bag_rounded,
+        badgeCount: cartCount,
       ),
       const BottomNavItem(
         label: 'Favorites',
@@ -235,4 +247,3 @@ class _CustomerShellScreenState extends State<CustomerShellScreen> {
     );
   }
 }
-

@@ -6,11 +6,13 @@ class BottomNavItem {
   final String label;
   final IconData icon;
   final IconData? activeIcon;
+  final int badgeCount;
 
   const BottomNavItem({
     required this.label,
     required this.icon,
     this.activeIcon,
+    this.badgeCount = 0,
   });
 }
 
@@ -192,12 +194,42 @@ class _FancyNavTileState extends State<_FancyNavTile>
                     scale: widget.selected ? 1.06 : 1,
                     duration: const Duration(milliseconds: 320),
                     curve: Curves.easeOutBack,
-                    child: Icon(
-                      iconData,
-                      size: 23,
-                      color: widget.selected
-                          ? AppColors.primary
-                          : const Color(0xFF9A8B80),
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        Icon(
+                          iconData,
+                          size: 23,
+                          color: widget.selected
+                              ? AppColors.primary
+                              : const Color(0xFF9A8B80),
+                        ),
+                        if (widget.item.badgeCount > 0)
+                          Positioned(
+                            top: -5,
+                            right: -8,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                              constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                              decoration: const BoxDecoration(
+                                color: AppColors.primary,
+                                shape: BoxShape.circle,
+                              ),
+                              alignment: Alignment.center,
+                              child: Text(
+                                widget.item.badgeCount > 99
+                                    ? '99+'
+                                    : '${widget.item.badgeCount}',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w800,
+                                  height: 1.1,
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
                   ),
                   ClipRect(

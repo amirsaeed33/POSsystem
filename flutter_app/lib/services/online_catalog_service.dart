@@ -114,28 +114,48 @@ class OnlineCatalogService {
   Future<List<HeroSlideDto>> getHeroSlides(int branchId) async {
     try {
       final res = await _api.get('${AppEndpoints.getHeroSlides}?branchId=$branchId');
+      List raw = [];
       if (res is List) {
-        return res.map((s) {
-          final dto = HeroSlideDto.fromJson(Map<String, dynamic>.from(s as Map));
-          return HeroSlideDto(
-            id: dto.id,
-            branchId: dto.branchId,
-            sortOrder: dto.sortOrder,
-            badge: dto.badge,
-            badgeIcon: dto.badgeIcon,
-            titleMain: dto.titleMain,
-            titleHighlight: dto.titleHighlight,
-            titleEnd: dto.titleEnd,
-            description: dto.description,
-            offerPill: dto.offerPill,
-            rating: dto.rating,
-            primaryBtnText: dto.primaryBtnText,
-            secondaryBtnText: dto.secondaryBtnText,
-            imagePath: dto.imagePath,
-            imageUrl: _api.resolveImageUrl(dto.imagePath),
-          );
-        }).toList();
+        raw = res;
+      } else if (res is Map) {
+        final items = res['items'] ?? res['Items'];
+        if (items is List) raw = items;
       }
+
+      final defaultsRe = RegExp(r'OnlineOrderHeroImages/defaults', caseSensitive: false);
+      final slides = <HeroSlideDto>[];
+      for (final s in raw) {
+        if (s is! Map) continue;
+        final dto = HeroSlideDto.fromJson(Map<String, dynamic>.from(s));
+        final path = (dto.bgImagePath ?? dto.imagePath ?? '').trim();
+        if (path.isEmpty || defaultsRe.hasMatch(path)) continue;
+
+        final imageUrl = _api.resolveImageUrl(dto.imagePath);
+        final bgImageUrl = _api.resolveImageUrl(dto.bgImagePath?.isNotEmpty == true ? dto.bgImagePath : dto.imagePath);
+        if (bgImageUrl.isEmpty && imageUrl.isEmpty) continue;
+
+        slides.add(HeroSlideDto(
+          id: dto.id,
+          branchId: dto.branchId,
+          sortOrder: dto.sortOrder,
+          badge: dto.badge,
+          badgeIcon: dto.badgeIcon,
+          titleMain: dto.titleMain,
+          titleHighlight: dto.titleHighlight,
+          titleEnd: dto.titleEnd,
+          description: dto.description,
+          offerPill: dto.offerPill,
+          rating: dto.rating,
+          primaryBtnText: dto.primaryBtnText,
+          secondaryBtnText: dto.secondaryBtnText,
+          imagePath: dto.imagePath,
+          bgImagePath: dto.bgImagePath,
+          imageUrl: imageUrl,
+          bgImageUrl: bgImageUrl.isNotEmpty ? bgImageUrl : imageUrl,
+        ));
+      }
+      slides.sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+      return slides;
     } catch (_) {}
     return [];
   }

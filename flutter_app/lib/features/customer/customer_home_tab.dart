@@ -19,7 +19,6 @@ class CustomerHomeTab extends StatefulWidget {
   final OnlineBranchDto? currentBranch;
   final List<OnlineBranchDto> branches;
   final ValueChanged<OnlineBranchDto> onBranchChanged;
-  final VoidCallback onOpenCart;
 
   const CustomerHomeTab({
     super.key,
@@ -28,7 +27,6 @@ class CustomerHomeTab extends StatefulWidget {
     required this.currentBranch,
     required this.branches,
     required this.onBranchChanged,
-    required this.onOpenCart,
   });
 
   @override
@@ -37,15 +35,17 @@ class CustomerHomeTab extends StatefulWidget {
 
 class _CustomerHomeTabState extends State<CustomerHomeTab> {
   static const int _pageSize = 30;
+  static const Color _catActive = Color(0xFFE23744);
 
   final ScrollController _scrollController = ScrollController();
+  final PageController _heroPageController = PageController();
   Timer? _searchDebounce;
+  Timer? _heroTimer;
 
   bool _isLoading = true;
   bool _isLoadingMore = false;
   int _totalCount = 0;
-
-  static const Color _catActive = Color(0xFFE23744);
+  int _heroIndex = 0;
 
   List<OnlineProductDto> _products = [];
   List<HeroSlideDto> _heroSlides = [];
@@ -56,6 +56,9 @@ class _CustomerHomeTabState extends State<CustomerHomeTab> {
   Map<String, String> _categoryImageByName = {};
   String _selectedCategory = 'All';
   String _searchQuery = '';
+
+  bool get _showHeroBanners =>
+      _heroSlides.isNotEmpty && _selectedCategory == 'All' && _searchQuery.trim().isEmpty;
 
   @override
   void initState() {
@@ -76,10 +79,31 @@ class _CustomerHomeTabState extends State<CustomerHomeTab> {
   @override
   void dispose() {
     _searchDebounce?.cancel();
+    _stopHeroAutoPlay();
     _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
+    _heroPageController.dispose();
     widget.cartService.removeListener(_onCartChanged);
     super.dispose();
+  }
+
+  void _startHeroAutoPlay() {
+    _stopHeroAutoPlay();
+    if (_heroSlides.length <= 1) return;
+    _heroTimer = Timer.periodic(const Duration(milliseconds: 5500), (_) {
+      if (!mounted || !_heroPageController.hasClients || !_showHeroBanners) return;
+      final next = (_heroIndex + 1) % _heroSlides.length;
+      _heroPageController.animateToPage(
+        next,
+        duration: const Duration(milliseconds: 650),
+        curve: Curves.easeInOutCubic,
+      );
+    });
+  }
+
+  void _stopHeroAutoPlay() {
+    _heroTimer?.cancel();
+    _heroTimer = null;
   }
 
   void _onCartChanged() {
@@ -233,12 +257,14 @@ class _CustomerHomeTabState extends State<CustomerHomeTab> {
           _products = page.items;
           _totalCount = page.totalCount;
           _heroSlides = slides;
+          _heroIndex = 0;
           _deals = deals;
           _favoriteIds = favIds;
           _applyOnlineCategoryCatalog(onlineCats);
           _rebuildCategories();
           _isLoading = false;
         });
+        _startHeroAutoPlay();
       }
     } catch (_) {
       if (mounted) setState(() => _isLoading = false);
@@ -340,49 +366,6 @@ class _CustomerHomeTabState extends State<CustomerHomeTab> {
             ),
           ),
         ),
-        actions: [
-          GestureDetector(
-            onTap: widget.onOpenCart,
-            child: Container(
-              margin: const EdgeInsets.only(right: 16),
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: AppColors.cardBackground,
-                shape: BoxShape.circle,
-                border: Border.all(color: AppColors.borderSubtle),
-              ),
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  const Icon(Icons.shopping_bag_outlined, color: AppColors.textPrimary, size: 22),
-                  if (widget.cartService.itemCount > 0)
-                    Positioned(
-                      top: 6,
-                      right: 6,
-                      child: Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: const BoxDecoration(
-                          color: AppColors.primary,
-                          shape: BoxShape.circle,
-                        ),
-                        constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
-                        child: Text(
-                          '${widget.cartService.itemCount}',
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ),
-        ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
@@ -413,88 +396,143 @@ class _CustomerHomeTabState extends State<CustomerHomeTab> {
                     ),
                   ),
 
-                  if (_heroSlides.isNotEmpty) ...[
-                    SizedBox(
-                      height: 160,
-                      child: PageView.builder(
-                        itemCount: _heroSlides.length,
-                        itemBuilder: (context, index) {
-                          final slide = _heroSlides[index];
-                          return Container(
-                            margin: const EdgeInsets.symmetric(horizontal: 16),
-                            padding: const EdgeInsets.all(16),
+                  if (_showHeroBanners) ...[
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
+                      child: AspectRatio(
+                        aspectRatio: 4 / 3,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(16),
+                          child: DecoratedBox(
                             decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                colors: [Color(0xFFC84B11), Color(0xFF8F3006)],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                              borderRadius: BorderRadius.circular(20),
+                              color: const Color(0xFF0B1220),
+                              border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.18),
+                                  blurRadius: 24,
+                                  offset: const Offset(0, 10),
+                                ),
+                              ],
                             ),
-                            child: Row(
+                            child: Stack(
+                              fit: StackFit.expand,
                               children: [
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      if (slide.badge != null)
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                PageView.builder(
+                                  controller: _heroPageController,
+                                  itemCount: _heroSlides.length,
+                                  onPageChanged: (index) {
+                                    setState(() => _heroIndex = index);
+                                  },
+                                  itemBuilder: (context, index) {
+                                    final slide = _heroSlides[index];
+                                    final imageUrl = slide.bannerImageUrl;
+                                    final title = [
+                                      slide.titleMain,
+                                      slide.titleHighlight,
+                                      slide.titleEnd,
+                                    ].where((p) => p != null && p.trim().isNotEmpty).join(' ');
+
+                                    return Stack(
+                                      fit: StackFit.expand,
+                                      children: [
+                                        if (imageUrl.isNotEmpty)
+                                          CachedNetworkImage(
+                                            imageUrl: imageUrl,
+                                            fit: BoxFit.cover,
+                                            placeholder: (_, __) => Container(color: const Color(0xFF1E293B)),
+                                            errorWidget: (_, __, ___) => Container(
+                                              color: AppColors.primaryDark,
+                                              alignment: Alignment.center,
+                                              child: const Icon(Icons.image_outlined, color: Colors.white54, size: 42),
+                                            ),
+                                          )
+                                        else
+                                          Container(color: AppColors.primaryDark),
+                                        DecoratedBox(
                                           decoration: BoxDecoration(
-                                            color: Colors.white.withOpacity(0.25),
-                                            borderRadius: BorderRadius.circular(8),
-                                          ),
-                                          child: Text(
-                                            slide.badge!,
-                                            style: const TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 10,
-                                              fontWeight: FontWeight.bold,
+                                            gradient: LinearGradient(
+                                              begin: Alignment.topCenter,
+                                              end: Alignment.bottomCenter,
+                                              colors: [
+                                                Colors.black.withValues(alpha: 0.05),
+                                                Colors.black.withValues(alpha: 0.55),
+                                              ],
                                             ),
                                           ),
                                         ),
-                                      const SizedBox(height: 6),
-                                      Text(
-                                        '${slide.titleMain ?? ''} ${slide.titleHighlight ?? ''}',
-                                        maxLines: 2,
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                      if (slide.description != null) ...[
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          slide.description!,
-                                          maxLines: 1,
-                                          style: TextStyle(
-                                            color: Colors.white.withOpacity(0.85),
-                                            fontSize: 12,
+                                        if (title.isNotEmpty || (slide.badge?.trim().isNotEmpty ?? false))
+                                          Positioned(
+                                            left: 16,
+                                            right: 16,
+                                            bottom: 28,
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                if (slide.badge?.trim().isNotEmpty ?? false)
+                                                  Container(
+                                                    margin: const EdgeInsets.only(bottom: 8),
+                                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                                    decoration: BoxDecoration(
+                                                      color: Colors.white.withValues(alpha: 0.22),
+                                                      borderRadius: BorderRadius.circular(999),
+                                                    ),
+                                                    child: Text(
+                                                      slide.badge!,
+                                                      style: const TextStyle(
+                                                        color: Colors.white,
+                                                        fontSize: 11,
+                                                        fontWeight: FontWeight.w800,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                if (title.isNotEmpty)
+                                                  Text(
+                                                    title,
+                                                    maxLines: 2,
+                                                    overflow: TextOverflow.ellipsis,
+                                                    style: const TextStyle(
+                                                      color: Colors.white,
+                                                      fontSize: 20,
+                                                      fontWeight: FontWeight.w900,
+                                                      height: 1.15,
+                                                    ),
+                                                  ),
+                                              ],
+                                            ),
                                           ),
-                                        ),
                                       ],
-                                    ],
-                                  ),
+                                    );
+                                  },
                                 ),
-                                if (slide.imageUrl != null && slide.imageUrl!.isNotEmpty)
-                                  ClipRRect(
-                                    borderRadius: BorderRadius.circular(14),
-                                    child: CachedNetworkImage(
-                                      imageUrl: slide.imageUrl!,
-                                      width: 90,
-                                      height: 90,
-                                      fit: BoxFit.cover,
+                                if (_heroSlides.length > 1)
+                                  Positioned(
+                                    left: 0,
+                                    right: 0,
+                                    bottom: 10,
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: List.generate(_heroSlides.length, (i) {
+                                        final active = i == _heroIndex;
+                                        return AnimatedContainer(
+                                          duration: const Duration(milliseconds: 220),
+                                          margin: const EdgeInsets.symmetric(horizontal: 3),
+                                          width: active ? 18 : 7,
+                                          height: 7,
+                                          decoration: BoxDecoration(
+                                            color: active ? Colors.white : Colors.white.withValues(alpha: 0.45),
+                                            borderRadius: BorderRadius.circular(999),
+                                          ),
+                                        );
+                                      }),
                                     ),
                                   ),
                               ],
                             ),
-                          );
-                        },
+                          ),
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 16),
                   ],
 
                   if (_categories.isNotEmpty) ...[
