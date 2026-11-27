@@ -182,3 +182,24 @@ class OnlineProductDto {
   }
 }
 
+/// Online storefront category chip (name + optional uploaded image).
+class OnlineCategoryDto {
+  final String name;
+  final String? imagePath;
+  final String? imageUrl;
+
+  OnlineCategoryDto({
+    required this.name,
+    this.imagePath,
+    this.imageUrl,
+  });
+
+  factory OnlineCategoryDto.fromJson(Map<String, dynamic> json) {
+    return OnlineCategoryDto(
+      name: json['name']?.toString().trim() ?? '',
+      imagePath: asStringOrNull(json['imagePath']),
+      imageUrl: asStringOrNull(json['imageUrl']),
+    );
+  }
+}
+

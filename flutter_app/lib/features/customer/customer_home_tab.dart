@@ -45,11 +45,15 @@ class _CustomerHomeTabState extends State<CustomerHomeTab> {
   bool _isLoadingMore = false;
   int _totalCount = 0;
 
+  static const Color _catActive = Color(0xFFE23744);
+
   List<OnlineProductDto> _products = [];
   List<HeroSlideDto> _heroSlides = [];
   List<DealDto> _deals = [];
   Set<int> _favoriteIds = {};
   List<String> _categories = ['All'];
+  List<String> _backendCategories = [];
+  Map<String, String> _categoryImageByName = {};
   String _selectedCategory = 'All';
   String _searchQuery = '';
 
@@ -91,13 +95,101 @@ class _CustomerHomeTabState extends State<CustomerHomeTab> {
   }
 
   void _rebuildCategories() {
-    final catSet = <String>{'All'};
+    final fromProducts = <String>{};
     for (final p in _products) {
-      if (p.categoryName != null && p.categoryName!.trim().isNotEmpty) {
-        catSet.add(p.categoryName!.trim());
+      final name = p.categoryName?.trim() ?? '';
+      if (name.isEmpty) continue;
+      final lower = name.toLowerCase();
+      if (lower == 'all' || lower.contains('deal')) continue;
+      fromProducts.add(name);
+    }
+
+    // Prefer categories that have catalog items; fall back to backend list.
+    final regular = fromProducts.isNotEmpty
+        ? fromProducts.toList()
+        : _backendCategories
+            .where((c) {
+              final lower = c.toLowerCase();
+              return lower != 'all' && !lower.contains('deal');
+            })
+            .toList();
+
+    regular.sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+    _categories = ['All', ...regular];
+  }
+
+  void _applyOnlineCategoryCatalog(List<OnlineCategoryDto> list) {
+    final imageMap = Map<String, String>.from(_categoryImageByName);
+    final names = <String>[];
+    for (final cat in list) {
+      final name = cat.name.trim();
+      if (name.isEmpty) continue;
+      names.add(name);
+      final url = cat.imageUrl?.trim();
+      if (url != null && url.isNotEmpty) {
+        imageMap[name.toLowerCase()] = url;
       }
     }
-    _categories = catSet.toList();
+    _categoryImageByName = imageMap;
+    if (names.isNotEmpty) {
+      _backendCategories = names;
+    }
+  }
+
+  _CategoryVisual _categoryVisual(String cat) {
+    final c = cat.toLowerCase().trim();
+    final uploaded = _categoryImageByName[c];
+
+    if (c == 'all') {
+      return const _CategoryVisual(icon: Icons.explore_outlined, color: _catActive);
+    }
+    if (uploaded != null && uploaded.isNotEmpty) {
+      return _CategoryVisual(icon: Icons.sell_outlined, color: const Color(0xFFBE185D), imageUrl: uploaded);
+    }
+    if (c.contains('deal') || c.contains('🔥')) {
+      return const _CategoryVisual(icon: Icons.bolt, color: Color(0xFFEF4444));
+    }
+    if (c.contains('popular') || c.contains('✨') || c.contains('top')) {
+      return const _CategoryVisual(icon: Icons.star, color: Color(0xFFF59E0B));
+    }
+    if (c.contains('burger') || c.contains('burgur') || c.contains('fast')) {
+      return const _CategoryVisual(icon: Icons.lunch_dining, color: Color(0xFFF97316));
+    }
+    if (c.contains('shawarma') || c.contains('showarma') || c.contains('roll') || c.contains('wrap')) {
+      return const _CategoryVisual(icon: Icons.kebab_dining, color: Color(0xFFD97706));
+    }
+    if (c.contains('drink') || c.contains('beverage') || c.contains('juice') || c.contains('soda')) {
+      return const _CategoryVisual(icon: Icons.local_drink_outlined, color: Color(0xFF0284C7));
+    }
+    if (c.contains('pizza')) {
+      return const _CategoryVisual(icon: Icons.local_pizza_outlined, color: Color(0xFFEA580C));
+    }
+    if (c.contains('desi') || c.contains('karahi') || c.contains('handi') || c.contains('biryani')) {
+      return const _CategoryVisual(icon: Icons.restaurant, color: Color(0xFFB91C1C));
+    }
+    if (c.contains('chinese') || c.contains('soup') || c.contains('noodle')) {
+      return const _CategoryVisual(icon: Icons.ramen_dining, color: Color(0xFFDC2626));
+    }
+    if (c.contains('coffee') || c.contains('tea') || c.contains('cafe')) {
+      return const _CategoryVisual(icon: Icons.coffee, color: Color(0xFF78350F));
+    }
+    if (c.contains('sweet') || c.contains('mithai') || c.contains('cake') || c.contains('bakery')) {
+      return const _CategoryVisual(icon: Icons.cake_outlined, color: Color(0xFFDB2777));
+    }
+    if (c.contains('fragrance') || c.contains('perfume') || c.contains('attar') || c.contains('oud')) {
+      return const _CategoryVisual(icon: Icons.spa_outlined, color: Color(0xFF7C3AED));
+    }
+    return const _CategoryVisual(icon: Icons.category_outlined, color: Color(0xFF64748B));
+  }
+
+  String get _menuSectionIcon {
+    final restaurant = widget.currentBranch?.isRestaurant ?? true;
+    return restaurant ? '🍽️' : '🛍️';
+  }
+
+  String get _menuSectionTitle {
+    final restaurant = widget.currentBranch?.isRestaurant ?? true;
+    return restaurant ? 'Explore Food Menu' : 'Explore Products';
   }
 
   Future<void> _reloadCatalog() async {
@@ -118,6 +210,7 @@ class _CustomerHomeTabState extends State<CustomerHomeTab> {
           categoryName: _selectedCategory == 'All' ? null : _selectedCategory,
           keyword: _searchQuery.isEmpty ? null : _searchQuery,
         ),
+        widget.catalogService.getOnlineCategories(branchId: branchId),
         if (branchId != null)
           widget.catalogService.getHeroSlides(branchId)
         else
@@ -130,9 +223,10 @@ class _CustomerHomeTabState extends State<CustomerHomeTab> {
       ]);
 
       final page = results[0] as ({List<OnlineProductDto> items, int totalCount});
-      final slides = results[1] as List<HeroSlideDto>;
-      final deals = results[2] as List<DealDto>;
-      final favIds = results[3] as Set<int>;
+      final onlineCats = results[1] as List<OnlineCategoryDto>;
+      final slides = results[2] as List<HeroSlideDto>;
+      final deals = results[3] as List<DealDto>;
+      final favIds = results[4] as Set<int>;
 
       if (mounted) {
         setState(() {
@@ -141,6 +235,7 @@ class _CustomerHomeTabState extends State<CustomerHomeTab> {
           _heroSlides = slides;
           _deals = deals;
           _favoriteIds = favIds;
+          _applyOnlineCategoryCatalog(onlineCats);
           _rebuildCategories();
           _isLoading = false;
         });
@@ -402,41 +497,162 @@ class _CustomerHomeTabState extends State<CustomerHomeTab> {
                     const SizedBox(height: 16),
                   ],
 
-                  SizedBox(
-                    height: 42,
-                    child: ListView.separated(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      scrollDirection: Axis.horizontal,
-                      itemCount: _categories.length,
-                      separatorBuilder: (_, __) => const SizedBox(width: 8),
-                      itemBuilder: (context, index) {
-                        final cat = _categories[index];
-                        final isSelected = cat == _selectedCategory;
-
-                        return ChoiceChip(
-                          label: Text(cat),
-                          selected: isSelected,
-                          onSelected: (_) => _onCategorySelected(cat),
-                          selectedColor: AppColors.primary,
-                          backgroundColor: AppColors.cardBackground,
-                          labelStyle: TextStyle(
-                            color: isSelected ? Colors.white : AppColors.textPrimary,
-                            fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-                            fontSize: 13,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20),
-                            side: BorderSide(
-                              color: isSelected ? AppColors.primary : AppColors.borderSubtle,
+                  if (_categories.isNotEmpty) ...[
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                      child: Row(
+                        children: [
+                          Text(_menuSectionIcon, style: const TextStyle(fontSize: 22)),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _menuSectionTitle,
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w800,
+                                    color: AppColors.textPrimary,
+                                  ),
+                                ),
+                                const Text(
+                                  'Browse by category',
+                                  style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+                                ),
+                              ],
                             ),
                           ),
-                          showCheckmark: false,
-                        );
-                      },
+                          if (_selectedCategory != 'All')
+                            TextButton(
+                              onPressed: () => _onCategorySelected('All'),
+                              style: TextButton.styleFrom(
+                                foregroundColor: AppColors.textSecondary,
+                                padding: const EdgeInsets.symmetric(horizontal: 8),
+                                minimumSize: Size.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              ),
+                              child: const Text(
+                                'Clear',
+                                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                              ),
+                            ),
+                          if (_categories.length > 1)
+                            Text(
+                              '${_categories.length - 1} categories',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.textMuted,
+                              ),
+                            ),
+                        ],
+                      ),
                     ),
-                  ),
+                    SizedBox(
+                      height: 108,
+                      child: ListView.separated(
+                        padding: const EdgeInsets.fromLTRB(14, 4, 14, 8),
+                        scrollDirection: Axis.horizontal,
+                        itemCount: _categories.length,
+                        separatorBuilder: (_, __) => const SizedBox(width: 14),
+                        itemBuilder: (context, index) {
+                          final cat = _categories[index];
+                          final isSelected = cat == _selectedCategory;
+                          final visual = _categoryVisual(cat);
 
-                  const SizedBox(height: 16),
+                          return GestureDetector(
+                            onTap: () => _onCategorySelected(cat),
+                            child: SizedBox(
+                              width: 76,
+                              child: Column(
+                                children: [
+                                  AnimatedScale(
+                                    scale: isSelected ? 1.05 : 1.0,
+                                    duration: const Duration(milliseconds: 180),
+                                    child: Container(
+                                      width: 68,
+                                      height: 68,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: const Color(0xFFF1F5F9),
+                                        border: Border.all(
+                                          color: isSelected ? _catActive : const Color(0xFFE2E8F0),
+                                          width: 2.5,
+                                        ),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: isSelected
+                                                ? _catActive.withValues(alpha: 0.3)
+                                                : Colors.black.withValues(alpha: 0.1),
+                                            blurRadius: isSelected ? 16 : 12,
+                                            offset: const Offset(0, 4),
+                                          ),
+                                        ],
+                                      ),
+                                      clipBehavior: Clip.antiAlias,
+                                      child: Stack(
+                                        fit: StackFit.expand,
+                                        children: [
+                                          if (visual.imageUrl != null && visual.imageUrl!.isNotEmpty)
+                                            CachedNetworkImage(
+                                              imageUrl: visual.imageUrl!,
+                                              fit: BoxFit.cover,
+                                              errorWidget: (_, __, ___) => _CategoryIconFallback(
+                                                icon: visual.icon,
+                                                color: visual.color,
+                                              ),
+                                              placeholder: (_, __) => _CategoryIconFallback(
+                                                icon: visual.icon,
+                                                color: visual.color,
+                                              ),
+                                            )
+                                          else
+                                            _CategoryIconFallback(
+                                              icon: visual.icon,
+                                              color: visual.color,
+                                            ),
+                                          if (isSelected)
+                                            Positioned(
+                                              right: 1,
+                                              bottom: 1,
+                                              child: Container(
+                                                width: 18,
+                                                height: 18,
+                                                decoration: BoxDecoration(
+                                                  color: _catActive,
+                                                  shape: BoxShape.circle,
+                                                  border: Border.all(color: Colors.white, width: 2),
+                                                ),
+                                                child: const Icon(Icons.check, size: 10, color: Colors.white),
+                                              ),
+                                            ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    cat,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontSize: 11.5,
+                                      fontWeight: isSelected ? FontWeight.w900 : FontWeight.w700,
+                                      color: isSelected ? _catActive : const Color(0xFF475569),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+
+                  const SizedBox(height: 8),
 
                   if (_deals.isNotEmpty) ...[
                     Padding(
@@ -607,6 +823,38 @@ class _CustomerHomeTabState extends State<CustomerHomeTab> {
                 ],
               ),
             ),
+    );
+  }
+}
+
+class _CategoryVisual {
+  final IconData icon;
+  final Color color;
+  final String? imageUrl;
+
+  const _CategoryVisual({
+    required this.icon,
+    required this.color,
+    this.imageUrl,
+  });
+}
+
+class _CategoryIconFallback extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+
+  const _CategoryIconFallback({
+    required this.icon,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ColoredBox(
+      color: color,
+      child: Center(
+        child: Icon(icon, color: Colors.white, size: 28),
+      ),
     );
   }
 }

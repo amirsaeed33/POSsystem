@@ -56,6 +56,38 @@ class OnlineCatalogService {
     return [];
   }
 
+  /// Storefront categories with optional uploaded images (matches web GetOnlineCategories).
+  Future<List<OnlineCategoryDto>> getOnlineCategories({int? branchId}) async {
+    try {
+      final url = branchId != null
+          ? '${AppEndpoints.getOnlineCategories}?branchId=$branchId'
+          : AppEndpoints.getOnlineCategories;
+      final res = await _api.get(url);
+      if (res is! List) return [];
+
+      final items = <OnlineCategoryDto>[];
+      for (final raw in res) {
+        if (raw is String) {
+          final name = raw.trim();
+          if (name.isNotEmpty) items.add(OnlineCategoryDto(name: name));
+          continue;
+        }
+        if (raw is Map) {
+          final dto = OnlineCategoryDto.fromJson(Map<String, dynamic>.from(raw));
+          if (dto.name.isEmpty) continue;
+          items.add(OnlineCategoryDto(
+            name: dto.name,
+            imagePath: dto.imagePath,
+            imageUrl: _api.resolveImageUrl(dto.imagePath),
+          ));
+        }
+      }
+      return items;
+    } catch (_) {
+      return [];
+    }
+  }
+
   OnlineProductDto _mapProduct(Map<String, dynamic> json) {
     final dto = OnlineProductDto.fromJson(json);
     return OnlineProductDto(

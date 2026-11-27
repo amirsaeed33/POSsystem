@@ -14,6 +14,7 @@ class AppEndpoints {
   static const String getOnlineStoreHeader = 'api/services/app/CustomerOrder/GetOnlineStoreHeader';
   static const String getOnlineCatalog = 'api/services/app/CustomerOrder/GetOnlineCatalog';
   static const String getOnlineCatalogPaged = 'api/services/app/CustomerOrder/GetOnlineCatalogPaged';
+  static const String getOnlineCategories = 'api/services/app/CustomerOrder/GetOnlineCategories';
   static const String createOnlineOrder = 'api/services/app/CustomerOrder/CreateOnlineOrder';
   static const String getOrdersByPhone = 'api/services/app/CustomerOrder/GetOrdersByPhone';
   static const String trackOrder = 'api/services/app/CustomerOrder/TrackOrder';
