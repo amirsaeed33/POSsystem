@@ -20,21 +20,13 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final TextEditingController _tenantController = TextEditingController();
   final TextEditingController _userController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _obscurePassword = true;
   bool _isLoading = false;
 
   @override
-  void initState() {
-    super.initState();
-    _tenantController.text = widget.sessionService.tenancyName ?? '';
-  }
-
-  @override
   void dispose() {
-    _tenantController.dispose();
     _userController.dispose();
     _passwordController.dispose();
     super.dispose();
@@ -46,7 +38,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       await widget.sessionService.login(
-        tenancyName: _tenantController.text.trim().isNotEmpty ? _tenantController.text.trim() : null,
         userName: _userController.text.trim(),
         password: _passwordController.text,
       );
@@ -149,17 +140,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
                   ),
                   const SizedBox(height: 28),
-
-                  // Tenancy Input
-                  TextFormField(
-                    controller: _tenantController,
-                    decoration: const InputDecoration(
-                      labelText: 'Tenancy Name (Optional)',
-                      hintText: 'Leave empty for default tenancy',
-                      prefixIcon: Icon(Icons.business_outlined, color: AppColors.textMuted),
-                    ),
-                  ),
-                  const SizedBox(height: 14),
 
                   // Username / Email Input
                   TextFormField(
