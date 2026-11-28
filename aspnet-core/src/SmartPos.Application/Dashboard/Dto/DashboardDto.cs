@@ -25,6 +25,7 @@ namespace SmartPos.Dashboard.Dto
 
         public decimal TodaySales { get; set; }
 
+        /// <summary>Today's purchases net of purchase returns (invoice − returns).</summary>
         public decimal TodayPurchases { get; set; }
 
         public decimal TodayExpenses { get; set; }
@@ -105,6 +106,7 @@ namespace SmartPos.Dashboard.Dto
 
         public decimal Sales { get; set; }
 
+        /// <summary>Purchases for the day, net of purchase returns.</summary>
         public decimal Purchases { get; set; }
 
         public decimal Expenses { get; set; }
@@ -126,7 +128,7 @@ namespace SmartPos.Dashboard.Dto
 
         public decimal Expense { get; set; }
 
-        /// <summary>Purchase totals for the month (used with Expense for outgoing).</summary>
+        /// <summary>Purchase totals for the month, net of returns (used with Expense for outgoing).</summary>
         public decimal Purchases { get; set; }
 
         /// <summary>Gross profit for the month: Sales − CostOfGoodsSold − Expenses.</summary>

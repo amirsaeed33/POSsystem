@@ -30,6 +30,7 @@ namespace SmartPos.Dashboard
         private readonly IRepository<SaleReturn> _saleReturnRepository;
         private readonly IRepository<SaleReturnLine> _saleReturnLineRepository;
         private readonly IRepository<Purchase> _purchaseRepository;
+        private readonly IRepository<PurchaseReturn> _purchaseReturnRepository;
         private readonly IRepository<Expense> _expenseRepository;
         private readonly IRepository<CustomerOrder> _customerOrderRepository;
         private readonly IRepository<StockAdjustment> _stockAdjustmentRepository;
@@ -46,6 +47,7 @@ namespace SmartPos.Dashboard
             IRepository<SaleReturn> saleReturnRepository,
             IRepository<SaleReturnLine> saleReturnLineRepository,
             IRepository<Purchase> purchaseRepository,
+            IRepository<PurchaseReturn> purchaseReturnRepository,
             IRepository<Expense> expenseRepository,
             IRepository<CustomerOrder> customerOrderRepository,
             IRepository<StockAdjustment> stockAdjustmentRepository,
@@ -61,6 +63,7 @@ namespace SmartPos.Dashboard
             _saleReturnRepository = saleReturnRepository;
             _saleReturnLineRepository = saleReturnLineRepository;
             _purchaseRepository = purchaseRepository;
+            _purchaseReturnRepository = purchaseReturnRepository;
             _expenseRepository = expenseRepository;
             _customerOrderRepository = customerOrderRepository;
             _stockAdjustmentRepository = stockAdjustmentRepository;
@@ -147,8 +150,31 @@ namespace SmartPos.Dashboard
                 .AsNoTracking()
                 .Where(x => x.PurchaseDate >= startMonth)
                 .WhereIf(branchId.HasValue, x => x.BranchId == branchId.Value)
-                .Select(x => new { x.PurchaseDate, x.TotalAmount })
+                .Select(x => new { x.Id, x.PurchaseDate, x.TotalAmount })
                 .ToListAsync();
+
+            var purchaseIdsInWindow = purchases.Select(x => x.Id).ToList();
+            var returnsByPurchaseId = new Dictionary<int, decimal>();
+            if (purchaseIdsInWindow.Count > 0)
+            {
+                returnsByPurchaseId = await _purchaseReturnRepository.GetAll()
+                    .AsNoTracking()
+                    .Where(x => purchaseIdsInWindow.Contains(x.PurchaseId))
+                    .GroupBy(x => x.PurchaseId)
+                    .Select(g => new { PurchaseId = g.Key, TotalReturned = g.Sum(r => r.TotalAmount) })
+                    .ToDictionaryAsync(x => x.PurchaseId, x => x.TotalReturned);
+            }
+
+            // Net purchases (invoice − returns), same pattern as net sales.
+            var netPurchases = purchases.Select(p =>
+            {
+                var returned = returnsByPurchaseId.GetValueOrDefault(p.Id, 0m);
+                return new
+                {
+                    p.PurchaseDate,
+                    TotalAmount = Math.Max(0m, p.TotalAmount - returned)
+                };
+            }).ToList();
 
             var expenses = await _expenseRepository.GetAll()
                 .AsNoTracking()
@@ -170,7 +196,7 @@ namespace SmartPos.Dashboard
                 .Where(x => x.SaleDate >= todayStart && x.SaleDate < tomorrow)
                 .Sum(x => x.PaidAmount) + todayLaterCollectedPayments;
 
-            var todayPurchases = purchases
+            var todayPurchases = netPurchases
                 .Where(x => x.PurchaseDate >= todayStart && x.PurchaseDate < tomorrow)
                 .Sum(x => x.TotalAmount);
 
@@ -275,7 +301,7 @@ namespace SmartPos.Dashboard
                 var expense = expenses
                     .Where(x => x.ExpenseDate.Year == monthDate.Year && x.ExpenseDate.Month == monthDate.Month)
                     .Sum(x => x.Amount);
-                var monthPurchases = purchases
+                var monthPurchases = netPurchases
                     .Where(x => x.PurchaseDate.Year == monthDate.Year && x.PurchaseDate.Month == monthDate.Month)
                     .Sum(x => x.TotalAmount);
                 var monthSalesLines = recentSalesWithLines
@@ -303,7 +329,7 @@ namespace SmartPos.Dashboard
                 var daySales = netSales
                     .Where(x => x.SaleDate >= dayDate && x.SaleDate < dayEnd)
                     .Sum(x => x.TotalAmount);
-                var dayPurchases = purchases
+                var dayPurchases = netPurchases
                     .Where(x => x.PurchaseDate >= dayDate && x.PurchaseDate < dayEnd)
                     .Sum(x => x.TotalAmount);
                 var dayExpenses = expenses
@@ -334,7 +360,7 @@ namespace SmartPos.Dashboard
                 var daySales = netSales
                     .Where(x => x.SaleDate >= dayDate && x.SaleDate < dayEnd)
                     .Sum(x => x.TotalAmount);
-                var dayPurchases = purchases
+                var dayPurchases = netPurchases
                     .Where(x => x.PurchaseDate >= dayDate && x.PurchaseDate < dayEnd)
                     .Sum(x => x.TotalAmount);
                 var dayExpenses = expenses
@@ -521,13 +547,42 @@ namespace SmartPos.Dashboard
                 .Where(x => !x.IsFullyReturned)
                 .ToList();
 
-            var recentPurchases = await _purchaseRepository.GetAll()
+            var recentPurchasesRaw = await _purchaseRepository.GetAll()
                 .AsNoTracking()
                 .WhereIf(branchId.HasValue, x => x.BranchId == branchId.Value)
                 .OrderByDescending(x => x.CreationTime)
                 .Take(10)
                 .Select(x => new { x.Id, x.InvoiceNo, x.PurchaseDate, x.CreationTime, x.TotalAmount })
                 .ToListAsync();
+
+            var recentPurchaseIds = recentPurchasesRaw.Select(x => x.Id).ToList();
+            var recentReturnsByPurchaseId = new Dictionary<int, decimal>();
+            if (recentPurchaseIds.Count > 0)
+            {
+                recentReturnsByPurchaseId = await _purchaseReturnRepository.GetAll()
+                    .AsNoTracking()
+                    .Where(x => recentPurchaseIds.Contains(x.PurchaseId))
+                    .GroupBy(x => x.PurchaseId)
+                    .Select(g => new { PurchaseId = g.Key, TotalReturned = g.Sum(r => r.TotalAmount) })
+                    .ToDictionaryAsync(x => x.PurchaseId, x => x.TotalReturned);
+            }
+
+            var recentPurchases = recentPurchasesRaw
+                .Select(x =>
+                {
+                    var returned = recentReturnsByPurchaseId.GetValueOrDefault(x.Id, 0m);
+                    return new
+                    {
+                        x.Id,
+                        x.InvoiceNo,
+                        x.PurchaseDate,
+                        x.CreationTime,
+                        TotalAmount = Math.Max(0m, x.TotalAmount - returned),
+                        IsFullyReturned = returned >= x.TotalAmount
+                    };
+                })
+                .Where(x => !x.IsFullyReturned)
+                .ToList();
 
             var recentExpenses = await _expenseRepository.GetAll()
                 .AsNoTracking()
